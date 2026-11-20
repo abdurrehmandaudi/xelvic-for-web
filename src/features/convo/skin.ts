@@ -66,12 +66,12 @@ export function nameTint(seed?: string | null): string {
 
 export const FALLBACK_WALLS: ConvoWall[] = [
   { key: "default", name: "Default" },
-  { key: "xellom", name: "Xellom" },
-  { key: "sheher", name: "Sheher" },
-  { key: "safar", name: "Safar" },
+  { key: "xelvic", name: "Xelvic" },
+  { key: "sheher", name: "City" },
+  { key: "safar", name: "Journey" },
   { key: "studio", name: "Studio" },
-  { key: "raat", name: "Raat" },
-  { key: "mehfil", name: "Mehfil" },
+  { key: "raat", name: "Night" },
+  { key: "mehfil", name: "Gathering" },
 ];
 
 export const FALLBACK_TINTS: ConvoTint[] = Object.entries(TINT_HEX).map(([key, hex]) => ({
@@ -95,6 +95,11 @@ export function wallUrl(key?: string | null): string | null {
 
 export function tintHex(key?: string | null): string | null {
   if (!key) return null;
+  return TINT_HEX[key] ?? null;
+}
+
+export function chosenTint(key?: string | null): string | null {
+  if (!key || key === "default") return null;
   return TINT_HEX[key] ?? null;
 }
 
@@ -249,10 +254,16 @@ export function convoColors(palette: ConvoPalette) {
           .join(", ")})`
       : "none";
 
+  const convoBubbleCorner =
+    convoBubbleRun === "none"
+      ? convoBubbleWash
+      : alphaBlend(tones[tones.length - 1], CONVO_WASH, pageInk);
+
   return {
     convoBubbleWash,
     convoBubbleEdge,
     convoBubbleRun,
+    convoBubbleCorner,
     convoOutInk,
     convoOutDim,
     convoInWash,

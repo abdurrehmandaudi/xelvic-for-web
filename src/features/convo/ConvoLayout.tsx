@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link, Outlet, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { MessageCircleMore, Search } from "lucide-react";
@@ -16,6 +16,46 @@ type SidePanel =
       spark: Spark | null;
       balance?: number;
     };
+
+const SIDEBAR_WIDTH_KEY = "xelvic:convo-list-width";
+const SIDEBAR_MIN = 272;
+const SIDEBAR_MAX = 480;
+
+function maxSidebarWidth() {
+  if (typeof window === "undefined") return SIDEBAR_MAX;
+  return Math.max(
+    SIDEBAR_MIN + 24,
+    Math.min(SIDEBAR_MAX, Math.round(window.innerWidth * 0.45)),
+  );
+}
+
+function clampSidebarWidth(width: number) {
+  return Math.min(
+    maxSidebarWidth(),
+    Math.max(SIDEBAR_MIN, Math.round(width)),
+  );
+}
+
+function readSavedSidebarWidth(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    if (!raw) return null;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? clampSidebarWidth(parsed) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSidebarWidth(width: number | null) {
+  try {
+    if (width == null) window.localStorage.removeItem(SIDEBAR_WIDTH_KEY);
+    else window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width));
+  } catch {
+    return;
+  }
+}
 
 function EmptyChatPane() {
   return (
@@ -52,7 +92,7 @@ function EmptyChatPane() {
         <p className="mx-auto mt-4 max-w-[390px] text-[14px] leading-7 text-dim sm:text-[15px]">
           Choose someone from your list, or start a fresh conversation. Your messages stay between you and them.
         </p>
-        <Link to="/app/search" className="btn btn-primary mt-8 h-12 gap-2 rounded-full px-7 shadow-[0_8px_20px_color-mix(in_srgb,var(--accent)_22%,transparent)]">
+        <Link to="/app/search" className="inline-flex min-h-11 select-none items-center justify-center font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105 mt-8 h-12 gap-2 rounded-full px-7 shadow-[0_8px_20px_color-mix(in_srgb,var(--accent)_22%,transparent)]">
           <Search className="size-4" aria-hidden />
           Find people
         </Link>
@@ -70,8 +110,102 @@ export function ConvoLayout() {
   const [panel, setPanel] = useState<SidePanel | null>(null);
   const [shownPanel, setShownPanel] = useState<SidePanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState<number | null>(
+    readSavedSidebarWidth,
+  );
+  const [resizingSidebar, setResizingSidebar] = useState(false);
+  const asideRef = useRef<HTMLElement | null>(null);
+  const widthRef = useRef<number | null>(sidebarWidth);
+  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const chatOpen = Boolean(threadId);
   const composeOpen = panel?.kind === "compose";
+
+  useEffect(() => {
+    function onResize() {
+      const current = widthRef.current;
+      if (current == null) return;
+      const next = clampSidebarWidth(current);
+      if (next === current) return;
+      widthRef.current = next;
+      setSidebarWidth(next);
+      saveSidebarWidth(next);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    if (!resizingSidebar) return;
+    const previousCursor = document.body.style.cursor;
+    const previousSelect = document.body.style.userSelect;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    return () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousSelect;
+    };
+  }, [resizingSidebar]);
+
+  function applySidebarWidth(width: number, persist: boolean) {
+    const next = clampSidebarWidth(width);
+    widthRef.current = next;
+    setSidebarWidth(next);
+    if (persist) saveSidebarWidth(next);
+  }
+
+  function beginSidebarResize(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const pane = asideRef.current;
+    if (!pane) return;
+    event.currentTarget.focus({ preventScroll: true });
+    event.preventDefault();
+    dragRef.current = {
+      startX: event.clientX,
+      startWidth: pane.getBoundingClientRect().width,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setResizingSidebar(true);
+  }
+
+  function moveSidebarResize(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag) return;
+    applySidebarWidth(
+      drag.startWidth + event.clientX - drag.startX,
+      false,
+    );
+  }
+
+  function endSidebarResize(event: React.PointerEvent<HTMLDivElement>) {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    setResizingSidebar(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (widthRef.current != null) saveSidebarWidth(widthRef.current);
+  }
+
+  function resetSidebarWidth() {
+    widthRef.current = null;
+    setSidebarWidth(null);
+    saveSidebarWidth(null);
+  }
+
+  function resizeSidebarWithKeyboard(
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const current =
+      widthRef.current ??
+      asideRef.current?.getBoundingClientRect().width ??
+      360;
+    applySidebarWidth(
+      current + (event.key === "ArrowRight" ? 24 : -24),
+      true,
+    );
+  }
 
   useEffect(() => {
     if (threadId) setPanel(null);
@@ -119,12 +253,20 @@ export function ConvoLayout() {
   }
 
   return (
-    <div className="relative flex h-[calc(100dvh-57px)] w-full overflow-hidden md:h-dvh">
+    <div className="relative isolate flex h-[calc(100dvh-57px)] w-full overflow-hidden md:h-dvh">
       <aside
+        ref={asideRef}
         className={cn(
-          "min-h-0 w-full shrink-0 flex-col border-line bg-[var(--pane)] md:flex md:w-[320px] md:border-r lg:w-[360px] xl:w-[390px]",
+          "relative min-h-0 w-full shrink-0 flex-col border-line bg-[var(--pane)] md:flex md:w-[var(--convo-list-width,320px)] md:border-r lg:w-[var(--convo-list-width,360px)] xl:w-[var(--convo-list-width,390px)]",
           chatOpen ? "hidden" : "flex",
         )}
+        style={
+          sidebarWidth != null
+            ? ({
+                "--convo-list-width": `${sidebarWidth}px`,
+              } as CSSProperties)
+            : undefined
+        }
         aria-label="Convos"
       >
         <ConvoPage
@@ -134,6 +276,35 @@ export function ConvoLayout() {
           onToggleCompose={toggleCompose}
           onOpenSpark={openSpark}
         />
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize conversation list"
+          aria-valuemin={SIDEBAR_MIN}
+          aria-valuemax={SIDEBAR_MAX}
+          aria-valuenow={sidebarWidth ?? undefined}
+          title="Drag to resize"
+          tabIndex={0}
+          onPointerDown={beginSidebarResize}
+          onPointerMove={moveSidebarResize}
+          onPointerUp={endSidebarResize}
+          onPointerCancel={endSidebarResize}
+          onLostPointerCapture={endSidebarResize}
+          onKeyDown={resizeSidebarWithKeyboard}
+          onDoubleClick={resetSidebarWidth}
+          className={cn(
+            "group absolute inset-y-0 -right-[8px] z-40 hidden w-[8px] cursor-col-resize touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+            panelVisible ? "lg:block" : "md:block",
+          )}
+        >
+          <span
+            className={cn(
+              "pointer-events-none absolute left-[-2px] top-1/2 h-9 w-[3px] -translate-y-1/2 rounded-full bg-[color-mix(in_srgb,var(--ink)_16%,transparent)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+              resizingSidebar && "bg-accent opacity-100",
+            )}
+            aria-hidden
+          />
+        </div>
       </aside>
       <aside
         className={cn(

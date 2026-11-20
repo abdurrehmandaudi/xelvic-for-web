@@ -114,13 +114,9 @@ export function dropPollLeft(poll: Poll, now: number = Date.now()): string {
  * far end when the poll takes more than one.
  */
 export function dropPollFoot(poll: Poll, answers: number): string {
-  if (poll.closed) return `Closed · ${dropAnswers(answers)}`;
-  return [
-    answers > 0 ? dropAnswers(answers) : "",
-    dropPollLeft(poll),
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const count = answers > 0 ? dropAnswers(answers) : "No answers yet";
+  if (poll.closed) return `Closed · ${count}`;
+  return [count, dropPollLeft(poll)].filter(Boolean).join(" · ");
 }
 
 /**

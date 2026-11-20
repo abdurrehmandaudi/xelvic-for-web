@@ -809,3 +809,506 @@ it is sent nowhere, it reaches no server, and no other participant can observe i
 which is also why it is held in the component rather than in the engine.
 
 **Reads performed:** none. No backend file was read or modified this round.
+
+### Round 23, same day — nothing new on the wire, and a field that was already there
+
+The voice note and the emoji work **moved no request, address, body, header, timeout or
+response shape, and added, renamed and extended no endpoint.**
+
+- A voice note goes out through the door a picture already uses: `POST /api/v1/chat/assets/`
+  multipart, documented at the top of this report since it was written. The client adds
+  `kind: "voice"` — a value the endpoint has always accepted, because the phone's own voice
+  notes arrive that way — and then sends the message with the asset's id, which is the same
+  two-step a picture takes.
+- `duration_ms` and `waveform` are **fields this report already listed, not fields this round
+  added**: `WaveformField` in `apps/chat/serializers.py` has accepted the waveform for as long
+  as the phone has sent one, and `apps/chat/services.py` clamps each of at most 120 readings to
+  −128…127 (`WaveformField`'s own docstring exists because a `ListField` under multipart
+  arrives as a single JSON string, so this client sends the JSON form the same way). The web
+  sends the same shape the phone does: `duration_ms` as the recording's own clock, and
+  `waveform` as 0–100 integers, which is what `recording_controller.dart`'s `_appendAmplitude`
+  produces on the phone (clamped reading × 100). Nothing about that range, count or meaning was
+  negotiated here; it was read and followed.
+- The emoji side touches the network only in the reader's browser: `fonts.gstatic.com` for a
+  still or an animation, and nothing at all to this API. The picker's one round trip is the
+  asset upload above; the table it draws from ships with the page. The last change of the round
+  — one emoji drawn once, with the machine's own character faded out under Google's artwork —
+  is a CSS opacity on a layer inside the component and **cannot reach the wire at all**: the
+  same stills and the same animations are fetched from the same addresses as before it.
+- The alternative resting sets that were built and then removed this round were, at every
+  point, third-party artwork fetched by URL from the reader's browser. No endpoint, no proxy
+  and no server-side fetch was ever added for them, which is why removing them left nothing
+  behind on this side.
+
+**Reads performed:** `backend/apps/chat/services.py`, `backend/apps/chat/serializers.py` and
+`backend/apps/chat/models.py` were read to confirm the asset contract and the waveform's range
+and ceiling. No backend file was modified. Nothing outside `xelvic-web/` was created, edited or
+deleted.
+
+### Round 24, same day — a kind that was already there, sent for the first time
+
+The six-row composer menu **moved no request, address, body, header, timeout or response shape,
+and added, renamed and extended no endpoint.** One row of it puts something new on the wire, and
+that something is a message kind this API has always had:
+
+- **`kind: "location"` goes out through the same door every other send uses** —
+  `POST /api/v1/chat/threads/{id}/messages/send/`, documented at the top of this report — and is
+  the phone's own kind: `Message.Kind.LOCATION` at `backend/apps/chat/models.py:562`, a member of
+  `EMBED_KINDS` at `services.py:67` and **not** of `MEDIA_KINDS` at `services.py:65`. That is why
+  no asset is uploaded and no `POST /chat/assets/` happens on this path: `services.py:1993` asks
+  for an asset only for a media kind, and `services.py:1998` would refuse one for any other, so a
+  location message must carry its content in `payload`. The web sends exactly that.
+- **The payload's three keys are the phone's own spelling, not this round's invention.**
+  `app/lib/place_probe.dart`'s `postOrigin()` builds `{'lat': …, 'lng': …, 'accuracy_m': …}` — one
+  map, built in one place so *"no store learns what a coordinate is"* — and returns null, so no
+  keys at all, when there is no fix. The web sends the same three names and omits `accuracy_m`
+  when the browser promised no accuracy, which is the same shape by the same reasoning. What
+  differs is the envelope, and honestly so: the phone spreads that map into a **post's** `origin`,
+  because the phone's chat has no location row, while the web puts it in a **message's**
+  `payload`, because the phone's chat has rendered that kind all along (`chatQuoteLocation`).
+  `payload` is a free-form JSON field; nothing about it was renegotiated here.
+- **The measured bodies**, recorded verbatim by the probe's stub before it answered, are in
+  `XELVIC_TESTING_REPORT.md`, Round 24 — including the searched place, which carries **no
+  `accuracy_m`** at all rather than a zero.
+- **The other five rows touch the network in no new way.** *Photos and videos* and *File* open the
+  two file pickers whose accept lists are the old single list cut in two, and reach
+  `POST /chat/assets/` exactly as the composer always did; *Spark*, *Sticker* and *Emoji* are the
+  camera, the shelf and the panel, all unchanged.
+- **The place lookups are not this API and were not before this round.** Naming a position asks
+  OpenStreetMap (Nominatim, with a BigDataCloud fallback) from the reader's browser, with no app
+  token and no API base — the same calls `src/features/camera/CameraCapture.tsx` has made since it
+  was written, moved into `src/utils/place.ts` and imported by both. No endpoint, proxy or
+  server-side fetch was added for them.
+- **`src/utils/place.ts` is a move**, so the camera's addresses, parameters and timeouts are the
+  ones this round's sheet uses: nothing about the wire changed by that file being shared.
+
+**Reads performed:** `backend/apps/chat/models.py` (the `LOCATION` kind) and
+`backend/apps/chat/services.py` (`MEDIA_KINDS`, `EMBED_KINDS`, `send_message`'s asset rules) were
+read to confirm that a location needs no asset and that its content travels in `payload`; and
+`app/lib/place_probe.dart` for the phone's own key names. No backend file was modified. Nothing
+outside `xelvic-web/` was created, edited or deleted.
+
+### Round 25, same day — no new address, and four writes already known
+
+**Nothing new on the wire.** The convo header's Vibes panel was rebuilt on the Drops walk's own
+clip, and the walk's clip already spoke to every address it needs. Measured, not assumed: the
+stub recorded these from the running page — every one of them a route this report has carried
+since the Drops pass, and every one except the share row read off the wire rather than off the
+source.
+
+| Method and path | Body actually sent | Where it was already documented |
+| --- | --- | --- |
+| `GET /api/v1/drops/vibes/?limit=8` | — | The Vibes shelf, the same hand the Drops page walks. `dropsVibesQuery` → `dropsService.vibesFeed` → `VIBES_FEED_FIRST`. **No author, no following flag, no filter of any kind** |
+| `POST /api/v1/drops/vibes/<id>/like/` | `{"on": true}` | The felt write, shared by the walk |
+| `GET`/`POST /api/v1/drops/vibes/<id>/comments/` | `{"body": "from the vibes panel"}` | A post's own responds: read and write at the post's address. `commentTable` (`/drops/vibe-comments`) is only for editing, removing and liking a comment, and was not touched this round |
+| `POST /api/v1/saved/` | `{"kind": "vibe", "id": "<id>", "on": true}` | The bookmark write, which answers `{saved}` — and the answer is what the client believes, which is why the stub's first `{ok: true}` rolled the glyph back and the stub, not the app, was wrong |
+| `POST /api/v1/drops/vibes/<id>/share/` | — (none sent) | The share route, read from `drops.service.ts`. **Not measured this round**: the panel's Share opened the sheet and drew its rows, but nothing was picked inside it, so no body was posted |
+| `POST /api/v1/reco/signals/` | `{"surface": "vibes", …}` with each clip and its position | The impressions report, sent once per opening, as the walk sends it once per hand |
+
+**A read, and only a read, of the filter that answers the owner's third ask.** The complaint —
+*"abhi usme kewal followers ka hi videos aa raha hai jabki sabhi ka aana chahiye"* — was checked
+against the backend's own code rather than inferred from the screen. `visible_vibes` in
+`backend/apps/drops/` is `Q(author=me) | Q(author__is_private=False) |
+Q(author_id__in=following_ids(me))` plus the block, mute, hidden, age, country and language
+filters, and the reco lanes sit behind switches that are off by default. **There is no
+followers-only clause on the server and no author filter on the client.** No file in
+`backend/` was created, edited or deleted, and no migration, setting or contract change was
+made — the backend is read-only this round, as it has been throughout.
+
+**Also confirmed by reading, not by guessing.** `Message.Kind.LOCATION`'s placement in
+`EMBED_KINDS` and the comment route's split between a post's own address and
+`commentTable` were re-read while wiring the panel; both were already documented in Round 24 and
+in the Drops pass respectively, and neither changed.
+
+**No contract change on 2026-11-12 (Round 25).** Nothing new was asked of the API, nothing that
+was being sent stopped being sent, and no response shape was reinterpreted. The one thing this
+round could have got wrong — believing a local toggle instead of the write's own answer — is the
+thing the probe was built to catch, and it caught it in the probe.
+
+### Round 26, same day — a third-party catalogue read for measurement, and no backend call at all
+
+**Nothing on the wire from this client.** Round 26 changed two boxes and one drawing; it asked the
+backend for nothing new and sent nothing different. The only network traffic it added was to a
+**third-party service this report has carried since the sticker shelf was built**, and only to
+measure it:
+
+| Method and path | What it is | Where it was already documented |
+| --- | --- | --- |
+| `GET https://sticker.gaongram.in/api/stickers?limit=1000` | The sticker catalogue. Public, **no token**, `Access-Control-Allow-Origin: *` | The shelf in `src/services/stickers.service.ts`, and the composer's Sticker row |
+| `GET <res.cloudinary.com>/.../f_auto,q_auto,w_512,c_limit/...` | A sticker's picture. Answers `content-type: image/png`, `cache-control: private, no-transform, immutable, max-age=2592000`, `access-control-allow-origin: *` | The same rows' `url` field, drawn unchanged |
+
+**Read, and only read, and not by the client.** Ninety pictures were fetched **by the measuring
+script** (`ink.mjs`, outside the repository) to read their alpha channels and find out where the
+uneven sizes came from — not by the app, and not to change anything. The `access-control-allow-origin:
+*` header is what makes that read possible at all; it is also why `StickerArt` can measure the ink
+from the page, with a retry without `crossorigin` for any host that refuses.
+
+**Nothing was sent, so nothing could be reinterpreted.** The URL stored on a row — including its
+Cloudinary transform — is the URL that travels to the backend when a sticker is picked, which is why
+Round 27 refused to ask for a smaller file: a cheaper download would have been a **different message**
+on the backend's own field, not a different download.
+
+**No contract change on 2026-11-12 (Round 26).** No backend address was added, removed or reshaped;
+`backend/` was not read for this round beyond what earlier rounds had already established, and no
+file in it was created, edited or deleted.
+
+### Round 27, same day — the catalogue counted, and the same URL sent as before
+
+**Nothing new on the wire, and one number confirmed.** Round 27 changed *when* the app asks for a
+sticker's picture, not *what* it asks for. The catalogue and the pictures are the same third-party
+addresses Round 26's section lists above; the difference is that the shelf now asks for **all 602** of
+them a beat after it opens instead of only the sixteen the window can reach.
+
+| | Round 26 and before | Round 27 |
+| --- | --- | --- |
+| Requests to the catalogue | 7 (`limit=100`, paged) | 7 — unchanged |
+| Picture requests, first open | 76 | **602** (one per cell, measured: `asked` 602, `files` 602) |
+| Bytes, cold cache | not measured | **26 MB**, `immutable, max-age=2592000` |
+| What is sent to the backend when a sticker is picked | the row's own `url` | **the row's own `url`** — unchanged, transform and all |
+
+**The count that settled the GIF question, read and not inferred.** `GET
+https://sticker.gaongram.in/api/stickers?limit=100&offset=N` was paged through seven times and the
+rows counted: **602 rows, 602 unique ids**, every row carrying `id, packId, url, tags, animated, pack,
+match`, and **`animated: true` 0 of 602**. That is a fact about a third-party catalogue, recorded
+here because a feature was declined on the strength of it — **no GIF section was built**, per the
+owner's own *"agar nahi hai to leave it"*.
+
+**Also confirmed, not assumed.** One picture was fetched directly for its headers
+(`content-type: image/png`, `content-length: 52764`, `cache-control: private, no-transform,
+immutable, max-age=2592000`, `access-control-allow-origin: *`), which is what makes a warm re-open
+nearly free — measured at `files: 0, mb: 0`.
+
+**No contract change on 2026-11-12 (Round 27).** Nothing that was being sent stopped being sent,
+nothing new was asked of the backend, and no response shape was reinterpreted. `backend/` was not
+read for this round, and no file in it was created, edited or deleted.
+
+### Round 28, same day — one field that was always on the wire, read for the first time
+
+**No new address, no new frame, and nothing newly asked of the backend.** Round 28 draws the
+character that comes up over the composer while the other person writes. Both halves of that were
+already on the wire, and the round changed neither:
+
+| what | where it already was | changed this round |
+| --- | --- | --- |
+| The client saying it is writing | `{"action":"typing","thread":<id>,"typing":true\|false}` up the socket, `false` 2400 ms after the last keystroke | **No** |
+| The server saying somebody else is | `{"event":"thread.typing","data":{"thread_id","user_id","typing","ttl"}}` down the socket — `services.typing`, with `ttl` from `RULES["TYPING_TTL_SECONDS"]` (**6** in `config/settings.py`, and the same number rides the `ready` frame as `typing_ttl`) | **No** |
+
+**The one field this round began reading: `character` on the other participant's card.**
+`UserCardSerializer` (`backend/apps/accounts/serializers.py`) has carried the Drip key on every card
+all along — it is what the phone's `_peek` reads to decide **whose** figure to draw. The web's
+`UserCard` type simply had not declared it, so nothing could read it. Declaring it is a type
+correction against a response that was already arriving; **no request changed, and no response was
+reinterpreted.** The value is resolved against the same `GET /catalogue/` the shop already reads, so
+the figure's pictures come from the catalogue's own URLs rather than from a new endpoint.
+
+**Read for this round and not changed.** `backend/apps/chat/consumers.py` (`action == "typing"`,
+line 860; the `ready` frame's `typing_ttl`, line 667), `backend/apps/chat/services.py` (`def typing`
+and the frame it group-sends, line 3148), `backend/apps/accounts/serializers.py`
+(`UserCardSerializer`, `character` at line 216-218) and `backend/config/settings.py`
+(`TYPING_TTL_SECONDS` at line 1458).
+
+**No contract change on 2026-11-12 (Round 28).** No endpoint added, renamed, extended or removed; no
+migration; no setting changed; no request body, header, timeout or response shape touched. Nothing
+under `backend/` was created, edited or deleted.
+
+**What is not verified on this wire.** The typing frames this round was measured against came from a
+**loopback stub** that speaks the frame shape read out of the files above, not from the running
+backend. So the shape is read and the drawing is measured, and a note typed by a **real** second
+account has never been watched arriving.
+
+### Round 29, same day — a whole frame family the web was not speaking
+
+**Still no contract change, and this time the web is the thing that moved.** Round 29 stands the
+phone's **second** character over the composer — `wait`, for somebody who is on one of my places and
+not writing. That character is not fed by the typing mechanism: it is fed by **`focus`**, the gaze
+family, which the web had no code for at all. The backend has had it throughout; the web simply never
+said or read a word of it. So this is a **new frame family on the web's side of an unchanged
+contract**.
+
+| what | where it already was | changed |
+| --- | --- | --- |
+| The client saying where it is | `{"action":"focus","user":<id>,"kind":"chat"\|"profile","phase":"idle"}` up the socket — `ChatConsumer.receive_json`, `action == "focus"` → `_focus_said` | **Web now sends it** |
+| The client asking who is looking at me | `{"action":"focus","users":[<id>,…]}` up the socket | **Web now sends it** |
+| The client saying it is looking at nothing | `{"action":"focus","kind":"none"}` up the socket | **Web now sends it** |
+| The server saying somebody else is | `{"event":"focus","data":{"user_id","kind","phase","direction"}}` down the socket — `events.FOCUS` (`apps/chat/events.py:560`), sent by `_focus_asked` (`consumers.py:737-752`) and `_focus_said` (`consumers.py:733-735`) | **Web now reads it** |
+| The TTL | `focus_ttl` on the `ready` frame, from `RULES["FOCUS_TTL_SECONDS"]` — **30** (`config/settings.py:1553`, `consumers.py:668`) | Read as the same 30 on both sides; the web does not parse the frame for it |
+
+**The ask is told apart by a key, not a flag, and the web had to match that exactly.** The backend's
+own dispatch is `if "users" in content: _focus_asked(...) else: _focus_said(...)`
+(`consumers.py:862-866`). An ask that carried no list would therefore be read as a **statement** about
+a person, so `focusAskFrame` always builds the key even for an empty list, and the provider does not
+send one at all when nobody is watched.
+
+**The negative half is the half that matters, and the web reads it rather than assuming.** `focus_of`
+(`apps/chat/services.py:1572`) answers **both ways round**: a partner with no live entry is reported as
+`kind: "none"` rather than left out of the answer. The backend's own comment says why — a missing
+answer was read as a reason to keep the last character, which is a character that never leaves the
+screen after the other phone is killed (the 2026-10-11 report). The web's `lookOf` returns `null` for
+`none`, **and for any `kind` this build does not know**, so a newer server naming a third place leaves
+the screen quiet instead of inventing a character for it. Both cases are pinned in
+`src/features/presence/looking.test.ts`.
+
+**Two fields arrive that the web deliberately ignores.** `phase` is `"idle"` or `"moving"` and
+`direction` is `"up"`, `"down"` or `null` (`consumers.py:490-496`). The web reads **`kind` only**. The
+reason is that the web's character has two states and a rise and fall — a fact about a screen being
+open — and the phone has never sent `moving` either: `focusSayFrame` writes `phase: "idle"` and no
+`direction`, which is the phone's own sentence written out unchanged. Reading a field neither client
+sends would be inventing behaviour, so it is named here as unread rather than drawn.
+
+**Who may hear it is the backend's rule and not the web's.** `focus_of` returns entries only for
+**direct partners** of the person asking, and only about them looking at something of *yours* — "a
+frame that said X is on Y's profile would be a way of following a stranger around the app". The web
+side has nothing to enforce here and does not pretend to; it asks about exactly the ids whose page it
+has open, and draws only what comes back.
+
+**The expiry is the server's thirty, held on both sides on purpose.** `services.focus_of`'s stored
+entry "expires on its own, so a socket that goes away quietly stops being reported after
+`FOCUS_TTL_SECONDS`". The web therefore refreshes its own word every 15 s
+(`GAZE_REFRESH_MS`) and asks again every 15 s (`GAZE_RECHECK_MS`), and believes a fact for 30 s
+(`GAZE_STALE_MS`, the same 30). The 15/30 ratio is asserted in a test: a genuine gaze is renewed by
+every poll, so only two missed polls in a row can lose it. The phone reads `focus_ttl` from the
+`ready` frame no more than the web does — the number is a constant on both sides — which is noted above
+as a place where a backend change would not be followed.
+
+**Read for this round and not changed.** `backend/apps/chat/consumers.py` (`receive_json`'s `focus`
+branch at 862-866, `_focus_said` at 733-735, `_focus_asked` at 737-752, the module-level
+`_focus_said` at 464-499, the `ready` frame's `focus_ttl` at 668), `backend/apps/chat/services.py`
+(`focus_of` at 1572), `backend/apps/chat/events.py` (`FOCUS` at 560, `PRESENCE` at 555) and
+`backend/config/settings.py` (`FOCUS_TTL_SECONDS` 30 at 1553, `TYPING_TTL_SECONDS` 6 at 1458,
+`PRESENCE_TTL_SECONDS` 45 at 1457).
+
+**No contract change on 2026-11-12 (Round 29).** No endpoint added, renamed, extended or removed; no
+migration; no setting changed; no request body, header, timeout or response shape touched. The frames
+the web now speaks are frames the backend **already had**. Nothing under `backend/` was created,
+edited or deleted.
+
+**What is not verified on this wire.** Every `focus` frame this round was measured against came from a
+**loopback stub** that speaks the shape read out of the files above, not from the running backend. Two
+live accounts looking at each other has **not** been watched, and the server's own 30-second lapse of a
+peer who vanished without saying goodbye is exercised through unit tests and never through a real
+vanished peer.
+
+## A payload shape the client had wrong on 2026-11-12 (Round 30) — no contract change, but a bug worth recording here
+
+**No request, address, body, header, timeout or response shape moved, and no endpoint was added,
+renamed, extended or removed.** The backend is read-only and was written to nowhere. What belongs in
+*this* report is a client-side misreading of a payload the backend has always sent, because the
+misreading looked exactly like a contract question and was not one.
+
+**The fact, read off the backend.** `_write_log` (`apps/calls/services.py`) closes a finished call with
+
+```python
+chat.system_note(thread, call.caller, body, {
+    "call": str(call.pk), "media": call.kind, "outcome": outcome, "seconds": seconds,
+})
+```
+
+and `chat.system_note` (`apps/chat/services.py`) writes a `Message.Kind.SYSTEM` row with
+`payload=dict(payload, actor=…)`. So the payload on the wire is **one flat dictionary**:
+
+```json
+{"call": "<uuid string>", "media": "audio", "outcome": "ended", "seconds": 134, "actor": "…"}
+```
+
+`call` is a **string** uuid and `media`, `outcome` and `seconds` are its **siblings**. The bodies are
+whole sentences already — `"Audio call · 2:14"`, `"Audio call declined"`, `"Missed audio call"`.
+
+**What the web did with it.** `callNote()` read `message.payload.call` as an **object** and looked for
+`media` inside it:
+
+```ts
+const raw = message.payload?.call;          // a string on every real payload
+if (!raw || typeof raw !== "object") return null;
+```
+
+No server has ever sent that shape, so the guard never passed and **every call in every thread drew as
+an ordinary bubble** — from the day the code was written until this round. It was proven, not reasoned:
+a CDP dump of the message list printed `Missed audio call` and `Video call · 12:31` wearing the
+bubble's own classes. The fix reads the payload flat, exactly as `callNoteOf`
+(`app/lib/calls.dart:3758`) does: a Map check, `payload['call'] != null`, and `payload['media']` in
+`{audio, video}` — all siblings. The dispatcher's order was already right and stayed right:
+`chat.dart:8012-8030` checks `callNoteOf` **before** `kind == 'system'`, and so does the web.
+
+**Two other fields of this contract, recorded because they were read and are easy to get wrong.**
+`Message.Kind.SYSTEM` is what `system_note` writes — a call note is **not** `kind: "text"` — and the
+asset serializer's field for a document's type is **`mime`**, not `mime_type`. Both were miswritten in
+this round's own probe stub and both were caught by dumping the DOM rather than by reading the page,
+which is the only reason they are written down here.
+
+**What was read for this round and not changed.** `apps/calls/services.py` (`_write_log`, `_outcome`,
+`_talked`, `_clock`), `apps/chat/services.py` (`system_note`), `apps/chat/serializers.py` (the asset
+field at 39). Nothing under `backend/` was modified.
+
+**No contract change on 2026-11-12 (Rounds 30 and 31).** No endpoint added, renamed, extended or
+removed; no migration; no setting changed; no request body, header, timeout or response shape touched.
+Round 31 sent nothing new at all: where a message's time is *read* is a question about a screen, and
+the only clock involved is `created_at`, which every message response has always carried and which the
+web formats with the viewer's own locale.
+
+**What is not verified on this wire.** The call note's shape was verified against a **loopback stub**
+and against the backend's source; a real call was neither placed nor received against a running server,
+so a call note produced by the live backend has **not** been watched arriving. The asset field names
+were likewise read from `serializers.py` and replayed through a stub.
+
+### Round 32, same day — two asset fields that were always on the wire and had never been read
+
+**No new address, no new frame, and nothing newly asked of the backend.** Round 32 draws the phone's
+own voice-note bubble, and everything that bubble needs was already in the message the thread already
+fetches:
+
+- **`asset.waveform`** — the samples the phone's `AudioWaveform` shapes its bars from. The web carried
+  the field in [api.ts](src/types/api.ts) and never drew it; the bubble now reads it through
+  `boundedWaveform(asset.waveform, 56)`.
+- **`asset.duration_ms`** — the length the readout shows before the file's metadata has landed, and
+  the length a seek is measured against.
+
+Neither is invented and neither is requested twice: a voice note arrives inside
+`GET /chat/threads/{id}/messages/` exactly as it always did, and the player then fetches the bytes from
+the `content_url` that message already named, through the same authenticated media door every other
+attachment uses. `asset.available === false` and `asset.purged_at` are read for the expired line —
+both were already on the serializer.
+
+**What was read for this round and not changed.** `apps/chat/serializers.py` (the asset fields
+`kind`, `mime`, `size`, `original_name`, `duration_ms`, `waveform`, `available`, `purged_at`,
+`content_url`). Nothing under `backend/` was modified.
+
+**No contract change on 2026-11-12 (Round 32).** No endpoint added, renamed, extended or removed; no
+migration; no setting changed; no request body, header, timeout or response shape touched. The round is
+a drawing change over fields the client was already being sent.
+
+### Round 33, same day — one field decides which of two objects is drawn, and it was already there
+
+**Still no contract change, and the interesting part is that none was needed.** The phone draws a
+voice note and a sound file as two different things, and the fact that separates them is the message's
+own `kind` — `voice` or `audio` — with `asset.kind` behind it as a fallback for a line that says
+nothing useful. Both have always been in the payload. The web's `soundKind`
+([sound.ts](src/features/convo/sound.ts)) is that read and nothing more:
+
+```ts
+if (message.kind === "voice" || message.kind === "audio") return message.kind;
+const kind = message.asset?.kind;
+return kind === "voice" || kind === "audio" ? kind : null;
+```
+
+A shared song is a third case and needs **no** field at all: it is an ordinary `kind: "text"` message
+whose `payload.track` carries the track, which is what the phone reads (`chat.dart:8325`) and what the
+web's `sharedTrack` reads. So the whole of Round 33 is a reading of fields that were already arriving —
+`payload.track` (title, byline, `seed`, `seconds`, `cover`, `id`), `message.kind`, `asset.kind`,
+`asset.original_name`, `asset.size` and `asset.mime` for the file card's details line.
+
+**What the round did *not* do, and it is worth naming here because it is a wire question.** The
+phone's file row is a `_MediaFrame` with transfer states (Pending, Uploading, Retry, Discard) driven by
+the client's own upload queue. The web draws none of them; nothing on the wire was added to make them
+possible, and nothing pretends they exist.
+
+**What was read for this round and not changed.** `apps/chat/serializers.py` (the asset fields) and
+`apps/chat/models.py` — `Attachment.waveform` is a `JSONField(default=list, blank=True)`, and
+`Message.Kind` carries `VOICE = "voice"` and `AUDIO = "audio"` beside each other. Nothing under
+`backend/` was modified.
+
+**No contract change on 2026-11-12 (Round 33).** No endpoint added, renamed, extended or removed; no
+migration; no setting changed; no request body, header, timeout or response shape touched. Round 33
+sent nothing new on the wire at all.
+
+**What is not verified on this wire.** Both rounds were read against a **loopback stub** with fixtures
+built by hand; no voice note, sound file or song share was sent or received against a running backend,
+so a real server's `waveform` (its length, its 0–100 scale, and whether a recording ever arrives with
+it empty — the field is a `JSONField(default=list)`, so **empty and absent are not the same thing** on
+this wire) has **not** been watched arriving. The `voice`/`audio` values of `message.kind` were read
+from `Message.Kind` and replayed through a stub.
+
+### Round 34, 2026-11-13 — a dozen group endpoints the web had never called
+
+Nothing new was added to the contract. These were already registered in `apps/chat/urls.py` and are
+what `app/lib/screens/group.dart` has been calling all along; the web simply had no surface that
+reached them. Each was read in `views_groups.py`, `views_threads.py` and `services.py` before being
+wired:
+
+| Method and path | Body / query | Answers |
+| --- | --- | --- |
+| `PATCH /chat/threads/<pk>/group/` | `{title}` | `{thread}` |
+| `POST /chat/threads/<pk>/avatar/` | multipart field `avatar` | `{thread}` |
+| `DELETE /chat/threads/<pk>/avatar/` | — | `{thread}` |
+| `GET/PATCH /chat/threads/<pk>/room/` | `{locked?, invites_on?}` | `{thread_id, locked, invites_on, channels}` |
+| `GET/POST /chat/threads/<pk>/channels/` | `{name}` | `{channels}` / `{channel}` |
+| `PATCH/DELETE /chat/threads/<pk>/channels/<cid>/` | `{name?, post?, media?}` | `{channel}` |
+| `GET/POST /chat/threads/<pk>/invites/` | — | `{invites}` / an invite |
+| `DELETE /chat/threads/<pk>/invites/<iid>/` | — | the invite, now off |
+| `GET/POST /chat/threads/<pk>/members/` | `?q=` / `{users}` | `{members, shown, total, everyone, capped}` |
+| `PATCH/DELETE /chat/threads/<pk>/members/<user_id>/` | `{role}` | `{thread}` |
+| `POST /chat/threads/<pk>/leave/` | — | — |
+| `POST /chat/threads/<pk>/delete/` | — | — |
+
+**Two shapes the client had to be corrected to.** `Invite` was `{id, code, url}` in `types/api.ts` and
+is really `{id, code, url, active, joined_count, revoked_at, created_at}` — `active` is the only honest
+way to draw "this link still works", and a revoked link stays in the list. `Channel` was `{id, name,
+position}` and also carries `post` (`everyone` | `admins`) and `media` (`any` | `photos` | `words`);
+a rule write sends **both**, because sending one leaves the other where it was.
+
+**One field the web had never read.** `UserCard.can_open` decides whether a roster row may open a
+profile; absent means it may. Without it the panel would offer a profile link to a deactivated or
+blocking account.
+
+**Round 34 sent nothing new on the wire** — every one of these was already being sent by the phone.
+
+### Round 35, 2026-11-13 — one boolean that turns a dead control into no control
+
+`GET /chat/threads/<pk>/` returns a `gate`, and `chat_gate` in `apps/social/services.py` has put
+`blocked_by_me` on it since the phone needed to tell the two sides of a block apart. The web read only
+`gate.mode`, so a convo blocked **by the other person** drew the same "Unblock" as a convo blocked by
+me. `blocked_by_me` is now read, and that row is not drawn when it is false.
+
+**No request shape changed, and the alias is not on the wire at all** — it is `localStorage`, exactly as
+it is shared_preferences on the phone. Nothing here was watched arriving from a live server.
+
+## Round 36 — zero API surface change (2026-11-14)
+
+No endpoint was added, changed, called differently or removed. The response interceptor, the refresh
+road and the session store were read this round and left exactly as they were; the two `401`s on
+`/api/v1/spaces/?shelf=live` that appeared alongside the crash are the `401`-then-refresh-then-retried
+`401` shape the interceptor already documents, and they are **not** the crash: React's message is
+`TypeError: Cannot read properties of null (reading 'useContext')`, which no HTTP status can produce.
+
+The backend remains untouched — no endpoint, migration, setting or contract change — and
+`git -C ../xelvic status` shows no `backend/` change from this round.
+
+## Round 37 — zero API surface change (2026-11-14)
+
+No endpoint was added, changed, called differently or removed, and no request or response shape moved.
+This round rewrote CSS classes in the components that render them; nothing in `src/services/`, the
+interceptors, the socket layer or the session store was touched, and no file under `src/api/` or
+`src/constants/` was edited.
+
+The backend remains untouched — no endpoint, migration, setting or contract change — and nothing under
+`../xelvic/` was read or written this round.
+
+## Round 38 — the skin PATCH, unchanged (2026-11-14)
+
+No endpoint, request field, response field, header or error path changed. `chatService.skin(threadId,
+patch)` still calls `PATCH /api/v1/chat/threads/{pk}/skin/` with `{wallpaper?, tint?}` and reads
+`{wallpaper, tint}`; the sheet still sends one key at a time, and the tint keys are the server's
+(`default`, `cyan`, `mint`, `amber`, `rose`, `magenta`).
+
+Two things moved on the client side of that contract, both towards the phone's behaviour:
+
+- **Order.** A chosen photo is saved locally first; `PATCH {wallpaper: "default"}` runs afterwards, and a
+  failure is tolerant, because the server has no key for somebody's own picture and the picture is what
+  the person asked for. This is `_chooseOwn` in `app/lib/screens/convo.dart`, followed as written.
+- **The fallback catalogue's keys.** `FALLBACK_WALLS` used `xellom`, a key the server's `WALL_KEYS` does
+  not have, so a thread whose catalogue had not arrived would have shown a swatch that the server refuses
+  with a 400. It now carries `xelvic` and the phone's labels (`kWallNames`), so a fallback is always a key
+  the server accepts.
+
+No migration, model, setting or contract was touched, nothing under `backend/` was read or written, and
+no request shape was invented to carry a photo — the photo stays in the browser, as it stays on the phone.
+
+## Round 39 — zero API surface change (2026-11-14)
+
+No endpoint, request field, response field, header or error path is involved. The emoji in a bubble are the
+message's own text: an emoji is sent as an ordinary character, arrives as one, and the space this round adds
+is drawn by the client and travels nowhere. No migration, model, setting or contract was touched and nothing
+under `backend/` was read or written.
+
+The phone's side is unchanged too: `app/lib/screens/chat.dart` was read for its sizing and counting rules
+(`messageFontSize`, `emojiCount`, `_isEmojiCluster`) and for the `Text` that draws a body, and nothing in it
+was modified.

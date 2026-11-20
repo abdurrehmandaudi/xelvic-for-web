@@ -100,7 +100,7 @@ export function KeptView({ ownerId }: { ownerId: string }) {
         action={
           <button
             type="button"
-            className="btn btn-secondary mt-4"
+            className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4"
             onClick={() => void people.refetch()}
           >
             {t("Try again")}
@@ -120,7 +120,7 @@ export function KeptView({ ownerId }: { ownerId: string }) {
               aria-hidden
             />
             <input
-              className="field w-full rounded-[14px] border-line py-[11px] pl-10 pr-10 text-[14.5px]"
+              className="min-h-10 border bg-card text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full rounded-[14px] border-line py-[11px] pl-10 pr-10 text-[14.5px]"
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
               placeholder={t("Name or @handle...")}

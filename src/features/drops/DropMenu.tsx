@@ -10,13 +10,12 @@ import {
   Flag,
   ImageDown,
   ListPlus,
-  MessageSquareOff,
-  MessagesSquare,
   Pencil,
   ThumbsDown,
   Trash,
   UserRound,
 } from "lucide-react";
+import { FaRegCommentDots } from "react-icons/fa6";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal, ConfirmDialog } from "@/components/overlays/Modal";
 import { SheetRow } from "@/features/profile/parts";
@@ -269,13 +268,7 @@ export function DropMenu({
                 />
               ) : null}
               <SheetRow
-                icon={
-                  drop.comments_off ? (
-                    <MessagesSquare className="size-[18px]" />
-                  ) : (
-                    <MessageSquareOff className="size-[18px]" />
-                  )
-                }
+                icon={<FaRegCommentDots className="size-[18px]" />}
                 label={drop.comments_off ? "Turn on comments" : "Turn off comments"}
                 onClick={() => void toggleDoor("comments_off")}
               />

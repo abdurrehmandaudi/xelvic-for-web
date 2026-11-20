@@ -32,13 +32,13 @@ function PublicPlayerBar() {
           <span className="block truncate text-[12px] font-bold">{track.title}</span>
           <span className="block truncate text-[10px] text-[var(--nav-quiet)]">{track.artist}</span>
         </span>
-        <button type="button" onClick={player.previous} className="icon-btn text-[var(--nav-quiet)] hover:bg-[color-mix(in_srgb,var(--nav-ink)_10%,transparent)] hover:text-[var(--nav-ink)]" aria-label="Previous">
+        <button type="button" onClick={player.previous} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] active:scale-[0.94] text-[var(--nav-quiet)] hover:bg-[color-mix(in_srgb,var(--nav-ink)_10%,transparent)] hover:text-[var(--nav-ink)]" aria-label="Previous">
           <SkipBack className="size-4" />
         </button>
         <button type="button" onClick={player.toggle} className="flex size-9 items-center justify-center rounded-full bg-[var(--nav-ink)] text-[rgb(var(--nav))]" aria-label={player.playing ? "Pause" : "Play"}>
           {player.playing ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
         </button>
-        <button type="button" onClick={player.next} className="icon-btn text-[var(--nav-quiet)] hover:bg-[color-mix(in_srgb,var(--nav-ink)_10%,transparent)] hover:text-[var(--nav-ink)]" aria-label="Next">
+        <button type="button" onClick={player.next} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] active:scale-[0.94] text-[var(--nav-quiet)] hover:bg-[color-mix(in_srgb,var(--nav-ink)_10%,transparent)] hover:text-[var(--nav-ink)]" aria-label="Next">
           <SkipForward className="size-4" />
         </button>
       </div>
@@ -81,18 +81,18 @@ export function PublicPlaylistPage() {
       <main className="mx-auto w-full max-w-[860px] px-4 py-6 pb-28 sm:px-6">
         {detail.isLoading ? (
           <div className="space-y-4" aria-hidden>
-            <div className="skeleton h-44 rounded-[22px]" />
-            <div className="skeleton h-64 rounded-[18px]" />
+            <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-44 rounded-[22px]" />
+            <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-64 rounded-[18px]" />
           </div>
         ) : detail.isError ? (
-          <div className="card">
+          <div className="rounded-control border border-line bg-card">
             <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
             <div className="flex justify-center pb-8">
               <Link to="/signin" className="text-xs font-bold text-accent hover:underline">Sign in to Xelvic</Link>
             </div>
           </div>
         ) : !playlist ? (
-          <div className="card">
+          <div className="rounded-control border border-line bg-card">
             <ErrorState error={new Error("That link does not lead to a playlist.")} />
           </div>
         ) : (
@@ -129,13 +129,13 @@ export function PublicPlaylistPage() {
 
             <section className="mt-6">
               {tracks.length ? (
-                <div className="card divide-y divide-line/70 p-1.5">
+                <div className="rounded-control border border-line bg-card divide-y divide-line/70 p-1.5">
                   {tracks.map((track, index) => (
                     <TrackRow key={track.id} track={track} queue={tracks} index={index} />
                   ))}
                 </div>
               ) : (
-                <div className="card py-16 text-center text-sm text-dim">This playlist has no tracks on it.</div>
+                <div className="rounded-control border border-line bg-card py-16 text-center text-sm text-dim">This playlist has no tracks on it.</div>
               )}
             </section>
 

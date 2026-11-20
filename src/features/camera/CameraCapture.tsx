@@ -30,9 +30,16 @@ import { FaCheck } from "react-icons/fa6";
 import { Avatar } from "@/components/ui/Avatar";
 import { Spinner } from "@/components/ui/Button";
 import { Modal } from "@/components/overlays/Modal";
-import axios from "axios";
 import { cn } from "@/utils/cn";
 import { errorMessage } from "@/utils/errors";
+// All of this client's dealings with a position live in `utils/place`, which is
+// where the composer's Location row reads it from too. See that file.
+import {
+  getJson,
+  reversePlace,
+  searchPlaces,
+  type PlaceChoice,
+} from "@/utils/place";
 import { kindOf, uploadAsset } from "@/utils/upload";
 import { useToast } from "@/hooks/useToast";
 import { chatService } from "@/services/chat.service";
@@ -131,168 +138,12 @@ type ToolSheet = "place" | "text" | "prompt";
 type OverlayPoint = { x: number; y: number };
 type OverlayPositions = Record<OverlayKind, OverlayPoint>;
 
-interface PlaceChoice {
-  label: string;
-  detail?: string;
-  latitude?: number;
-  longitude?: number;
-}
-
 const INITIAL_OVERLAY_POSITIONS: OverlayPositions = {
   time: { x: 0.5, y: 0.26 },
   place: { x: 0.5, y: 0.34 },
   text: { x: 0.5, y: 0.48 },
   prompt: { x: 0.5, y: 0.28 },
 };
-
-function compactPlace(
-  address: Record<string, string> | undefined,
-  fallback: string,
-) {
-  if (!address) return fallback;
-  const first =
-    address.amenity ||
-    address.hotel ||
-    address.road ||
-    address.neighbourhood ||
-    address.suburb ||
-    address.city ||
-    address.town ||
-    address.village;
-  const second =
-    address.city ||
-    address.town ||
-    address.village ||
-    address.state ||
-    address.country;
-  return (
-    [first, second]
-      .filter((part, index, all) => part && all.indexOf(part) === index)
-      .join(", ") || fallback
-  );
-}
-
-/**
- * A read from somebody else's server — OpenStreetMap, BigDataCloud.
- *
- * These are not Xelvic roads, so they must not go through the app's client:
- * that one prefixes the API base and attaches the account's bearer token, and
- * neither belongs to a third party. A bare `axios` call sends no credentials at
- * all. Cancellation is translated back into the `AbortError` the callers here
- * already recognise, because axios reports a cancelled request under its own
- * name.
- */
-async function getJson<T>(
-  url: string,
-  options: { headers?: Record<string, string>; signal?: AbortSignal } = {},
-): Promise<T> {
-  try {
-    const response = await axios.get<T>(url, { ...options, timeout: 15_000 });
-    return response.data;
-  } catch (error) {
-    if (axios.isCancel(error)) throw new DOMException("Aborted", "AbortError");
-    throw error;
-  }
-}
-
-async function reversePlace(
-  latitude: number,
-  longitude: number,
-  signal?: AbortSignal,
-): Promise<PlaceChoice> {
-  const query = new URLSearchParams({
-    format: "jsonv2",
-    lat: String(latitude),
-    lon: String(longitude),
-    zoom: "18",
-    addressdetails: "1",
-  });
-  try {
-    const row = await getJson<{
-      display_name?: string;
-      address?: Record<string, string>;
-    }>(`https://nominatim.openstreetmap.org/reverse?${query}`, {
-      headers: { Accept: "application/json" },
-      signal,
-    });
-    const fallback =
-      row.display_name?.split(",").slice(0, 2).join(", ") ||
-      `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-    return {
-      label: compactPlace(row.address, fallback),
-      detail: row.display_name,
-      latitude,
-      longitude,
-    };
-  } catch (cause) {
-    if ((cause as { name?: string } | null)?.name === "AbortError") throw cause;
-    const fallbackQuery = new URLSearchParams({
-      latitude: String(latitude),
-      longitude: String(longitude),
-      localityLanguage: "en",
-    });
-    const row = await getJson<{
-      locality?: string;
-      city?: string;
-      principalSubdivision?: string;
-      countryName?: string;
-    }>(`https://api.bigdatacloud.net/data/reverse-geocode-client?${fallbackQuery}`, {
-      headers: { Accept: "application/json" },
-      signal,
-    });
-    const label =
-      [row.locality || row.city, row.principalSubdivision]
-        .filter(Boolean)
-        .join(", ") ||
-      row.countryName ||
-      `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-    return {
-      label,
-      detail: [
-        row.locality,
-        row.city,
-        row.principalSubdivision,
-        row.countryName,
-      ]
-        .filter((part, index, all) => part && all.indexOf(part) === index)
-        .join(", "),
-      latitude,
-      longitude,
-    };
-  }
-}
-
-async function searchPlaces(
-  query: string,
-  signal: AbortSignal,
-): Promise<PlaceChoice[]> {
-  const params = new URLSearchParams({
-    format: "jsonv2",
-    q: query,
-    limit: "6",
-    addressdetails: "1",
-  });
-  const rows = await getJson<
-    Array<{
-      display_name: string;
-      lat: string;
-      lon: string;
-      address?: Record<string, string>;
-    }>
-  >(`https://nominatim.openstreetmap.org/search?${params}`, {
-    headers: { Accept: "application/json" },
-    signal,
-  });
-  return rows.map((row) => ({
-    label: compactPlace(
-      row.address,
-      row.display_name.split(",").slice(0, 2).join(", "),
-    ),
-    detail: row.display_name,
-    latitude: Number(row.lat),
-    longitude: Number(row.lon),
-  }));
-}
 
 const SHAPES = [
   { key: "1/1", value: 1 },

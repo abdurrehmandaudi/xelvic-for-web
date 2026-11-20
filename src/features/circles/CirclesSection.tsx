@@ -110,7 +110,7 @@ export function CirclesSection() {
             onClick={() => setPickerOpen(true)}
             title="Pick another interest"
             aria-label="Pick another interest"
-            className="icon-btn"
+            className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]"
           >
             <Plus className="size-[18px]" />
           </button>
@@ -119,7 +119,7 @@ export function CirclesSection() {
 
       {mine.isLoading && circles.length === 0 ? (
         <div className="px-[18px]" aria-hidden>
-          <div className="skeleton h-[168px] rounded-[20px]" />
+          <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-[168px] rounded-[20px]" />
         </div>
       ) : circles.length === 0 ? (
         <div className="px-[18px]">
@@ -135,7 +135,7 @@ export function CirclesSection() {
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
-              className="btn btn-primary mt-3.5 min-h-[46px] w-full rounded-[14px] text-[13px]"
+              className="inline-flex select-none items-center justify-center gap-2 px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105 mt-3.5 min-h-[46px] w-full rounded-[14px] text-[13px]"
             >
               Pick your interests
             </button>

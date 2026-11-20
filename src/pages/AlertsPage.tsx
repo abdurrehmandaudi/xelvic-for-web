@@ -274,18 +274,18 @@ export function AlertsPage() {
         {alerts.isLoading ? (
           <div className="space-y-2" aria-hidden>
             {[0, 1, 2, 3, 4].map((row) => (
-              <div key={row} className="card flex items-center gap-3 p-3">
-                <div className="skeleton size-11 rounded-full" />
+              <div key={row} className="rounded-control border border-line bg-card flex items-center gap-3 p-3">
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] size-11 rounded-full" />
                 <div className="flex-1 space-y-2">
-                  <div className="skeleton h-3 w-3/5 rounded-full" />
-                  <div className="skeleton h-2.5 w-4/5 rounded-full" />
+                  <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-3/5 rounded-full" />
+                  <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-2.5 w-4/5 rounded-full" />
                 </div>
-                <div className="skeleton h-[76px] w-[58px] rounded-[10px]" />
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-[76px] w-[58px] rounded-[10px]" />
               </div>
             ))}
           </div>
         ) : alerts.isError ? (
-          <div className="card">
+          <div className="rounded-control border border-line bg-card">
             <ErrorState error={alerts.error} onRetry={() => void alerts.refetch()} />
           </div>
         ) : !rows.length ? (

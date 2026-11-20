@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Eye, Heart, MessageCircle, Share2, StickyNote } from "lucide-react";
+import { Eye, Heart, StickyNote } from "lucide-react";
+import { FaRegCommentDots } from "react-icons/fa6";
+import { FiShare2 } from "react-icons/fi";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal } from "@/components/overlays/Modal";
 import { dropsService } from "@/services/drops.service";
@@ -106,7 +108,7 @@ export function StatsSheet({
         ) : !studio.data ? (
           <div className="space-y-3 px-4 py-6" aria-hidden>
             {[0, 1, 2, 3, 4].map((row) => (
-              <div key={row} className="skeleton h-6 w-full rounded-full" />
+              <div key={row} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-6 w-full rounded-full" />
             ))}
           </div>
         ) : (
@@ -123,16 +125,16 @@ export function StatsSheet({
       ) : !stats ? (
         <div className="space-y-3 px-4 py-6" aria-hidden>
           {[0, 1, 2, 3, 4].map((row) => (
-            <div key={row} className="skeleton h-6 w-full rounded-full" />
+            <div key={row} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-6 w-full rounded-full" />
           ))}
         </div>
       ) : (
         <div className="pb-4">
           <StatRow icon={<Eye className="size-[22px]" />} label="Views" value={stats.views} />
           <StatRow icon={<Heart className="size-[22px]" />} label="Felt" value={stats.likes} />
-          <StatRow icon={<MessageCircle className="size-[22px]" />} label="Comments" value={stats.comments} />
+          <StatRow icon={<FaRegCommentDots className="size-[22px]" />} label="Comments" value={stats.comments} />
           <StatRow icon={<StickyNote className="size-[22px]" />} label="Notes" value={stats.notes} />
-          <StatRow icon={<Share2 className="size-[22px]" />} label="Shares" value={stats.shares} />
+          <StatRow icon={<FiShare2 className="size-[22px]" />} label="Shares" value={stats.shares} />
 
           {shared}
 
@@ -254,8 +256,8 @@ function AudienceList({ drop, open }: { drop: Drop; open: boolean }) {
           <div className="space-y-2 py-2" aria-hidden>
             {[0, 1, 2].map((row) => (
               <div key={row} className="flex items-center gap-3">
-                <div className="skeleton size-9 rounded-full" />
-                <div className="skeleton h-3 w-32 rounded-full" />
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] size-9 rounded-full" />
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-32 rounded-full" />
               </div>
             ))}
           </div>

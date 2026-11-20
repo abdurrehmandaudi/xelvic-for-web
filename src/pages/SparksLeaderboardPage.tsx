@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Bolt, Flame, Share2, Trophy } from "lucide-react";
+import { ArrowLeft, Bolt, Flame, Trophy } from "lucide-react";
+import { FiShare2 } from "react-icons/fi";
 import { Avatar } from "@/components/ui/Avatar";
 import { Blank } from "@/components/ui/Blank";
 import { sparksService } from "@/services/sparks.service";
@@ -189,7 +190,7 @@ export function SparksLeaderboardPage() {
         <button
           type="button"
           onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/app/sparks"))}
-          className="icon-btn"
+          className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]"
           aria-label={t("Back")}
         >
           <ArrowLeft className="size-5" />
@@ -201,10 +202,10 @@ export function SparksLeaderboardPage() {
           type="button"
           onClick={() => void share()}
           disabled={sharing}
-          className="icon-btn"
+          className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]"
           aria-label={t("Share")}
         >
-          <Share2 className="size-5" />
+          <FiShare2 className="size-5" />
         </button>
       </div>
 

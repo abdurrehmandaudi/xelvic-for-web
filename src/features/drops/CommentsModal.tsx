@@ -7,7 +7,6 @@ import {
   Heart,
   Image as ImageIcon,
   Lock,
-  MessageCircle,
   Mic,
   Pencil,
   Send,
@@ -15,6 +14,7 @@ import {
   Trash,
   UserRound,
 } from "lucide-react";
+import { FaRegCommentDots } from "react-icons/fa6";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { AuthedImage } from "@/components/media/Media";
@@ -319,20 +319,6 @@ function NoteThread({
   );
 }
 
-/**
- * The responds under a post, and the private notes beside them.
- *
- * Ported from `showComments` / `_Comments` in `screens/drop_sheets.dart`. Two
- * tabs and one sheet because the box that writes to them is one box: the tab
- * only decides which door the same act goes through. A respond is public and is
- * what the count on the card counts; a note is private — the poster and its
- * writer, and nobody else — which is why it is a tab here rather than a second
- * sheet.
- *
- * When the author has turned comments off, the comments tab says so and the box
- * for a respond is not drawn at all. Notes are untouched by that switch, because
- * a private line to the poster was never the room's.
- */
 export function CommentsModal({
   drop,
   open,
@@ -345,14 +331,6 @@ export function CommentsModal({
   open: boolean;
   onClose: () => void;
   onCommented?: () => void;
-  /**
-   * A line to start the composer with — the Vibe player's suggested replies.
-   *
-   * It is a *draft* and not a comment: it lands in the box and nothing is sent
-   * until the person sends it, which is the only arrangement in which a
-   * suggestion reads as the reader's own sentence rather than as the app
-   * speaking in their voice.
-   */
   draft?: string | null;
   /** Whether the sheet opens on the notes, the way a note's own notice does. */
   notes?: boolean;
@@ -835,7 +813,7 @@ export function CommentsModal({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={Boolean(attach) || uploading}
-          className="icon-btn size-9 shrink-0 disabled:opacity-40"
+          className="inline-flex items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] size-9 shrink-0 disabled:opacity-40"
           title="Picture"
           aria-label="Attach a picture"
         >
@@ -845,7 +823,7 @@ export function CommentsModal({
           type="button"
           onClick={() => setStickerOpen(true)}
           disabled={Boolean(sticker)}
-          className="icon-btn size-9 shrink-0 disabled:opacity-40"
+          className="inline-flex items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] size-9 shrink-0 disabled:opacity-40"
           title="Sticker"
           aria-label="Attach a sticker"
         >
@@ -855,7 +833,7 @@ export function CommentsModal({
           type="button"
           onClick={() => setVoiceOpen(true)}
           disabled={Boolean(attach) || uploading}
-          className="icon-btn size-9 shrink-0 disabled:opacity-40"
+          className="inline-flex items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] size-9 shrink-0 disabled:opacity-40"
           title="Voice note"
           aria-label="Record a voice note"
         >
@@ -867,7 +845,7 @@ export function CommentsModal({
           onChange={onWrite}
           placeholder={hint}
           maxLength={1000}
-          className="field min-h-11 flex-1 rounded-[20px] py-2.5 text-[14px]"
+          className="w-full border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-11 flex-1 rounded-[20px] py-2.5 text-[14px]"
           aria-label={onNotes ? "Your note" : "Your respond"}
         />
         <Button
@@ -901,7 +879,7 @@ export function CommentsModal({
         footer={
           shut ? (
             <p className="flex items-center justify-center gap-2 py-2 text-[13px] font-semibold text-dim">
-              <MessageCircle className="size-4" aria-hidden />
+              <FaRegCommentDots className="size-4" aria-hidden />
               Comments are turned off
             </p>
           ) : (
@@ -931,10 +909,10 @@ export function CommentsModal({
             <div className="space-y-1 p-4" aria-hidden>
               {[0, 1, 2].map((row) => (
                 <div key={row} className="flex gap-3 py-3">
-                  <div className="skeleton size-9 rounded-full" />
+                  <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] size-9 rounded-full" />
                   <div className="flex-1 space-y-2">
-                    <div className="skeleton h-2.5 w-24 rounded-full" />
-                    <div className="skeleton h-3 w-4/5 rounded-full" />
+                    <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-2.5 w-24 rounded-full" />
+                    <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-4/5 rounded-full" />
                   </div>
                 </div>
               ))}
@@ -943,7 +921,7 @@ export function CommentsModal({
             <ErrorState error={commentsQuery.error} onRetry={() => void commentsQuery.refetch()} compact />
           ) : threaded.length === 0 ? (
             <EmptyState
-              icon={<MessageCircle className="size-6" />}
+              icon={<FaRegCommentDots className="size-6" />}
               title="No comments yet"
               body="Be the first to say something."
               className="py-12"
@@ -1068,12 +1046,12 @@ export function CommentsModal({
         size="sm"
         footer={
           <div className="flex justify-end gap-2">
-            <button type="button" className="btn btn-secondary" onClick={() => setEditing(null)}>
+            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5" onClick={() => setEditing(null)}>
               Cancel
             </button>
             <button
               type="button"
-              className="btn btn-primary"
+              className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105"
               onClick={() => void saveEdit()}
               disabled={savingEdit || !editText.trim()}
             >
@@ -1088,7 +1066,7 @@ export function CommentsModal({
             onChange={(event) => setEditText(event.target.value)}
             maxLength={1000}
             rows={3}
-            className="field min-h-[96px] resize-y text-[14px]"
+            className="w-full rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-[96px] resize-y text-[14px]"
             aria-label="Reword your respond"
             placeholder="Say something"
           />
@@ -1124,7 +1102,7 @@ export function CommentsModal({
         {stickerShelf.isLoading ? (
           <div className="grid grid-cols-4 gap-2 p-3" aria-hidden>
             {Array.from({ length: 8 }, (_, index) => (
-              <div key={index} className="skeleton aspect-square rounded-[12px]" />
+              <div key={index} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] aspect-square rounded-[12px]" />
             ))}
           </div>
         ) : stickerShelf.isError ? (

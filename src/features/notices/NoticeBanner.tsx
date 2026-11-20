@@ -123,7 +123,7 @@ export function NoticeBanner({ notice, onOpen, onDismiss }: NoticeBannerProps) {
               onDismiss();
             }}
             aria-label="Dismiss"
-            className="icon-btn mt-0.5 size-9 shrink-0 text-dim"
+            className="inline-flex items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] mt-0.5 size-9 shrink-0 text-dim"
           >
             <X className="size-[19px]" />
           </button>

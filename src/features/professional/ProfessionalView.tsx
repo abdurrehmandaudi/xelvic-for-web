@@ -317,7 +317,7 @@ export function ProfessionalView({ onBack }: { onBack: () => void }) {
               rows={2}
               placeholder={t("Where people can find you")}
               aria-label={t("Where you are")}
-              className="field w-full resize-none pl-10"
+              className="min-h-10 rounded-control border border-line bg-card pr-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full resize-none pl-10"
             />
           </div>
         </div>
@@ -337,7 +337,7 @@ export function ProfessionalView({ onBack }: { onBack: () => void }) {
               autoCorrect="off"
               placeholder={t("The address people may write to")}
               aria-label={t("Public email")}
-              className={cn("field w-full pl-10", emailTrouble && "border-[var(--bad)]")}
+              className={cn("min-h-10 rounded-control border border-line bg-card pr-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full pl-10", emailTrouble && "border-[var(--bad)]")}
             />
           </div>
           {emailTrouble ? (
@@ -410,7 +410,7 @@ export function ProfessionalView({ onBack }: { onBack: () => void }) {
                       }
                       placeholder={t("What this link is (optional)")}
                       aria-label={t("Label")}
-                      className="field w-full py-1.5 text-[13px]"
+                      className="min-h-10 rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full py-1.5 text-[13px]"
                     />
                     <input
                       value={row.url}
@@ -424,7 +424,7 @@ export function ProfessionalView({ onBack }: { onBack: () => void }) {
                       }
                       placeholder="example.com/you"
                       aria-label={t("Link")}
-                      className="field w-full py-1.5 text-[13px]"
+                      className="min-h-10 rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full py-1.5 text-[13px]"
                     />
                   </div>
                   <div className="ml-1 flex shrink-0 flex-col">
@@ -575,7 +575,7 @@ function TradePicker({
             onChange={(event) => setTyped(event.target.value)}
             placeholder={t("Search, or write your own")}
             aria-label={t("What you do")}
-            className="field w-full pl-10 pr-10"
+            className="min-h-10 rounded-control border border-line bg-card py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full pl-10 pr-10"
           />
           {typed ? (
             <button

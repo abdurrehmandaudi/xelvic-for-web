@@ -260,15 +260,15 @@ export function PlaylistPage() {
                   setName(playlist.name);
                   setRenameOpen(true);
                 }}
-                className="icon-btn"
+                className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]"
                 aria-label="Edit playlist"
               >
                 <Pencil className="size-4" />
               </button>
-              <button type="button" onClick={() => setShareOpen(true)} className="icon-btn" aria-label="Share playlist">
+              <button type="button" onClick={() => setShareOpen(true)} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Share playlist">
                 <Send className="size-4" />
               </button>
-              <button type="button" onClick={() => setDeleteOpen(true)} className="icon-btn text-dim hover:text-[var(--bad)]" aria-label="Take playlist down">
+              <button type="button" onClick={() => setDeleteOpen(true)} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 active:scale-[0.94] text-dim hover:text-[var(--bad)]" aria-label="Take playlist down">
                 <Trash2 className="size-4" />
               </button>
             </>
@@ -280,9 +280,9 @@ export function PlaylistPage() {
         {detail.isLoading ? (
           <PageSkeleton rows={3} />
         ) : detail.isError ? (
-          <div className="card"><ErrorState error={detail.error} onRetry={() => void detail.refetch()} /></div>
+          <div className="rounded-control border border-line bg-card"><ErrorState error={detail.error} onRetry={() => void detail.refetch()} /></div>
         ) : !playlist ? (
-          <div className="card"><EmptyState icon={<ListMusic className="size-6" />} title="This playlist is not here" body="It may have been taken down, or the link may be wrong." action={<Button onClick={() => navigate("/app/audio")}>Back to Audio</Button>} /></div>
+          <div className="rounded-control border border-line bg-card"><EmptyState icon={<ListMusic className="size-6" />} title="This playlist is not here" body="It may have been taken down, or the link may be wrong." action={<Button onClick={() => navigate("/app/audio")}>Back to Audio</Button>} /></div>
         ) : (
           <>
             <section className="relative overflow-hidden rounded-[24px] border border-line bg-[color-mix(in_srgb,var(--accent)_10%,var(--card))] p-5">
@@ -338,7 +338,7 @@ export function PlaylistPage() {
 
             <section className="mt-6">
               {tracks.length ? (
-                <div className="card divide-y divide-line/70 p-1.5">
+                <div className="rounded-control border border-line bg-card divide-y divide-line/70 p-1.5">
                   {tracks.map((track, index) => (
                     <div key={track.item || track.id} className="flex items-center gap-1">
                       <div className="min-w-0 flex-1">
@@ -363,7 +363,7 @@ export function PlaylistPage() {
                   ))}
                 </div>
               ) : (
-                <div className="card">
+                <div className="rounded-control border border-line bg-card">
                   <EmptyState
                     icon={<ListMusic className="size-6" />}
                     title="Nothing on this shelf yet"
@@ -391,7 +391,7 @@ export function PlaylistPage() {
         <div className="space-y-4 px-5 py-4">
           <label className="block">
             <span className="mb-1.5 block text-[11px] font-bold text-dim">Name</span>
-            <input value={name} onChange={(event) => setName(event.target.value)} className="field w-full" />
+            <input value={name} onChange={(event) => setName(event.target.value)} className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full" />
           </label>
           <div>
             <span className="mb-1.5 block text-[11px] font-bold text-dim">Cover</span>
@@ -411,7 +411,7 @@ export function PlaylistPage() {
         <div className="px-5 py-4">
           <label className="relative block">
             <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-dim" />
-            <input value={trackQuery} onChange={(event) => setTrackQuery(event.target.value)} autoFocus placeholder="Search the catalogue" className="field h-11 w-full pl-11" />
+            <input value={trackQuery} onChange={(event) => setTrackQuery(event.target.value)} autoFocus placeholder="Search the catalogue" className="min-h-10 rounded-control border border-line bg-card pr-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none h-11 w-full pl-11" />
           </label>
           <div className="mt-3">
             {trackQuery.trim().length < 2 ? (

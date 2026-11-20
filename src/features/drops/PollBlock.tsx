@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, CircleX, Clock, GripVertical, Lock } from "lucide-react";
+import { Check, CheckCircle2, CircleX, Clock, GripVertical, Lock } from "lucide-react";
 import { AuthedImage } from "@/components/media/Media";
 import { cn } from "@/utils/cn";
 import { errorMessage } from "@/utils/errors";
@@ -89,7 +89,7 @@ function ChoicePoll({
   }
 
   return (
-    <div className="px-4 pb-1">
+    <div className="px-4 pb-1.5">
       {poll.options.map((option) => (
         <PollLine
           key={option.id}
@@ -127,30 +127,55 @@ function PollLine({
       disabled={busy || Boolean(poll.closed)}
       aria-pressed={mine}
       className={cn(
-        "relative mb-2 block w-full overflow-hidden rounded-[12px] border text-left transition",
-        mine ? "border-accent bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]" : "border-line bg-card",
-        poll.closed ? "cursor-default" : "hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--line))]",
+        "group relative mb-2 flex h-[42px] w-full items-center gap-2.5 overflow-hidden rounded-lg border px-3 py-0.5 text-left transition",
+        mine
+          ? "border-accent bg-[color-mix(in_srgb,var(--accent)_10%,var(--card))] shadow-[0_4px_14px_color-mix(in_srgb,var(--accent)_10%,transparent)]"
+          : "border-[color-mix(in_srgb,var(--line)_85%,transparent)] bg-card shadow-[0_1px_0_rgba(255,255,255,0.6)_inset]",
+        poll.closed
+          ? "cursor-default"
+          : "hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--line))] hover:shadow-[0_4px_14px_rgba(17,17,26,0.06)]",
       )}
     >
       {share > 0 ? (
         <span
           aria-hidden
-          className="absolute inset-y-0 left-0 bg-[color-mix(in_srgb,var(--accent)_20%,transparent)] transition-[width] duration-300"
+          className="absolute inset-y-0 left-0 bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] transition-[width] duration-300"
           style={{ width: `${share * 100}%` }}
         />
       ) : null}
-      <span className="relative flex items-center px-[13px] py-3">
-        {option.image_url ? (
-          <PollThumb src={option.image_url} />
-        ) : null}
-        <span className="min-w-0 flex-1 break-words text-[14px] leading-[1.35]" style={{ fontWeight: mine ? 700 : 500 }}>
-          {option.text}
+      {option.image_url ? (
+        <PollThumb src={option.image_url} />
+      ) : (
+        <span
+          className={cn(
+            "relative flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition",
+            mine
+              ? "border-accent bg-accent text-on-accent"
+              : "border-[color-mix(in_srgb,var(--ink)_18%,var(--line))] bg-card text-transparent group-hover:border-accent/50",
+          )}
+          aria-hidden
+        >
+          <Check className="size-3" strokeWidth={3} />
         </span>
-        {poll.results ? (
-          <span className="num ml-2.5 shrink-0 text-[13px] font-bold text-dim">{percent}%</span>
-        ) : null}
-        {mine ? <CheckCircle2 className="ml-2 size-[17px] shrink-0 text-accent" aria-hidden /> : null}
+      )}
+      <span
+        className="relative min-w-0 flex-1 break-words text-[13.5px] leading-[1.35]"
+        style={{ fontWeight: mine ? 700 : 600 }}
+      >
+        {option.text}
       </span>
+      {poll.results ? (
+        <span
+          className={cn(
+            "num relative shrink-0 rounded-full px-2 py-1 text-[10.5px] font-extrabold",
+            mine
+              ? "bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent"
+              : "bg-[color-mix(in_srgb,var(--ink)_5%,transparent)] text-dim",
+          )}
+        >
+          {percent}%
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -167,7 +192,7 @@ function PollLine({
  */
 function PollThumb({ src }: { src: string }) {
   return (
-    <span className="me-2.5 size-10 shrink-0 overflow-hidden rounded-[8px]">
+    <span className="size-10 shrink-0 overflow-hidden rounded-[10px] ring-1 ring-inset ring-black/5">
       <AuthedImage src={src} alt="" className="size-10" />
     </span>
   );
@@ -185,15 +210,19 @@ function PollThumb({ src }: { src: string }) {
  */
 export function PollFoot({ poll, answers }: { poll: Poll; answers: number }) {
   return (
-    <div className="flex items-center gap-1.5 pb-0.5 pt-px">
-      {poll.closed ? (
-        <Lock className="size-[13px] shrink-0 text-dim" aria-hidden />
-      ) : (
-        <Clock className="size-[13px] shrink-0 text-dim" aria-hidden />
-      )}
-      <span className="min-w-0 flex-1 truncate text-[12px] text-dim">{dropPollFoot(poll, answers)}</span>
+    <div className="mt-2 flex items-center gap-2 rounded-lg bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] px-3 py-2">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent">
+        {poll.closed ? (
+          <Lock className="size-3" aria-hidden />
+        ) : (
+          <Clock className="size-3" aria-hidden />
+        )}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[11.5px] font-semibold text-dim">{dropPollFoot(poll, answers)}</span>
       {poll.multiple ? (
-        <span className="shrink-0 text-[11.5px] font-semibold text-dim">Any number</span>
+        <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--card)_80%,transparent)] px-2 py-0.5 text-[9.5px] font-bold text-dim ring-1 ring-[color-mix(in_srgb,var(--line)_80%,transparent)]">
+          Any number
+        </span>
       ) : null}
     </div>
   );
@@ -260,21 +289,21 @@ function ArrangePoll({
 
   if (!done) {
     return (
-      <div className="px-4 pb-1">
-        <p className="pb-2 ps-0.5 text-[12px] font-semibold text-dim">Drag into the right order</p>
+      <div className="px-4 pb-1.5">
+        <p className="pb-2 ps-0.5 text-[11.5px] font-semibold text-dim">Drag into the right order</p>
         {order.map((option, index) => (
           <div
             key={option.id}
-            className="mb-2 flex items-center rounded-[12px] border border-line bg-card px-[13px] py-2.5"
+            className="mb-2 flex items-center gap-2.5 rounded-[14px] border border-[color-mix(in_srgb,var(--line)_85%,transparent)] bg-card px-3 py-2.5 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset]"
           >
             {option.image_url ? <PollThumb src={option.image_url} /> : null}
-            <span className="min-w-0 flex-1 break-words text-[14px] leading-[1.35]">{option.text}</span>
+            <span className="min-w-0 flex-1 break-words text-[13.5px] font-semibold leading-[1.35]">{option.text}</span>
             <button
               type="button"
               onClick={() => move(index, index - 1)}
               disabled={index === 0}
               aria-label={`Move ${option.text} up`}
-              className="icon-btn ml-2 size-7 text-dim disabled:opacity-30"
+              className="inline-flex size-7 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] disabled:opacity-30"
             >
               <GripVertical className="size-4 rotate-90" aria-hidden />
             </button>
@@ -283,18 +312,18 @@ function ArrangePoll({
               onClick={() => move(index, index + 1)}
               disabled={index === order.length - 1}
               aria-label={`Move ${option.text} down`}
-              className="icon-btn size-7 text-dim disabled:opacity-30"
+              className="inline-flex size-7 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] disabled:opacity-30"
             >
               <GripVertical className="size-4 -rotate-90" aria-hidden />
             </button>
           </div>
         ))}
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-0.5">
           <button
             type="button"
             onClick={() => void submit()}
             disabled={sending}
-            className="min-h-8 rounded-full px-3 text-[14px] font-bold text-accent transition hover:bg-[var(--accent-soft)] disabled:opacity-50"
+            className="min-h-9 rounded-full bg-accent px-4 text-[13px] font-bold text-on-accent shadow-[0_5px_14px_color-mix(in_srgb,var(--accent)_24%,transparent)] transition hover:brightness-105 active:scale-95 disabled:opacity-50"
           >
             {sending ? "Sending..." : "Done"}
           </button>
@@ -305,17 +334,17 @@ function ArrangePoll({
   }
 
   return (
-    <div className="px-4 pb-1">
+    <div className="px-4 pb-1.5">
       {poll.options.map((option, index) => (
         <div
           key={option.id}
-          className="mb-2 flex items-center rounded-[12px] border border-line bg-card px-[13px] py-3"
+          className="mb-2 flex items-center gap-2.5 rounded-[14px] border border-[color-mix(in_srgb,var(--line)_85%,transparent)] bg-card px-3 py-2.5 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset]"
         >
-          <span className="me-2.5 flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[12px] font-extrabold text-accent">
+          <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[12px] font-extrabold text-accent">
             {index + 1}
           </span>
           {option.image_url ? <PollThumb src={option.image_url} /> : null}
-          <span className="min-w-0 flex-1 break-words text-[14px] leading-[1.35]">{option.text}</span>
+          <span className="min-w-0 flex-1 break-words text-[13.5px] font-semibold leading-[1.35]">{option.text}</span>
         </div>
       ))}
       {/* Drawn only once it is known: a poll that closed under somebody who

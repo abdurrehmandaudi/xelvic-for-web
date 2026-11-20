@@ -105,13 +105,13 @@ export function TrackRow({
         type="button"
         onClick={() => void toggleLike()}
         disabled={busy}
-        className={cn("icon-btn", liked ? "text-accent" : "text-dim hover:text-ink")}
+        className={cn("inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]", liked ? "text-accent" : "text-dim hover:text-ink")}
         aria-label={liked ? "Remove from felt" : "Felt this"}
       >
         <Heart className={cn("size-4", liked && "fill-current")} />
       </button>
       {onRemove ? (
-        <button type="button" onClick={onRemove} className="icon-btn text-dim hover:text-[var(--bad)]" aria-label="Remove from playlist">
+        <button type="button" onClick={onRemove} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 active:scale-[0.94] text-dim hover:text-[var(--bad)]" aria-label="Remove from playlist">
           <Trash2 className="size-4" />
         </button>
       ) : null}

@@ -298,6 +298,23 @@ export function figurePoses(figure: FigureLike): FigureArt {
   };
 }
 
+/**
+ * Whether a figure may stand over a composer at all.
+ *
+ * `placement` is staff's word for where a figure is allowed to be seen, and the
+ * two surfaces that draw one read it as a pair: `chat` is for the convo alone,
+ * `profile` for the profile alone, `none` for neither, and `both` for either.
+ * This is the convo's half of that word. The phone has the same four lines twice
+ * — `CharacterRow.onChat` for a figure off the shop's shelf and
+ * `ThemeRow.figureOnChat` for the one a theme ships, both in
+ * `app/lib/catalogue.dart` — and this is the pair of them unchanged. A figure
+ * with no row of its own, which is the app's bundled one, is not covered by
+ * anybody's `placement` and is allowed.
+ */
+export function figureOnChat(placement: FigurePlacement | undefined): boolean {
+  return placement !== "profile" && placement !== "none";
+}
+
 // ---------------------------------------------------------------------------
 // Logos
 // ---------------------------------------------------------------------------

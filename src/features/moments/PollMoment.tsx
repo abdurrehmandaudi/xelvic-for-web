@@ -162,7 +162,7 @@ export function PollMoment({
               type="button"
               onClick={onClose}
               disabled={busy}
-              className="icon-btn"
+              className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]"
               aria-label="Close"
             >
               <X className="size-5" />
@@ -191,7 +191,7 @@ export function PollMoment({
               autoFocus
               placeholder="Ask something"
               aria-label="The question"
-              className="field w-full resize-none text-[17px] font-bold leading-6"
+              className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full resize-none text-[17px] font-bold leading-6"
             />
 
             {options.map((option, index) => (
@@ -228,13 +228,13 @@ export function PollMoment({
                   maxLength={80}
                   placeholder={`Option ${index + 1}`}
                   aria-label={`Option ${index + 1}`}
-                  className="field h-11 min-w-0 flex-1"
+                  className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none h-11 min-w-0 flex-1"
                 />
                 {options.length > MIN_OPTIONS ? (
                   <button
                     type="button"
                     onClick={() => removeOption(option.key)}
-                    className="icon-btn size-9 shrink-0"
+                    className="inline-flex items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] size-9 shrink-0"
                     aria-label={`Remove option ${index + 1}`}
                   >
                     <X className="size-4" />

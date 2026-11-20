@@ -66,7 +66,7 @@ export function CirclePage() {
           title={circle.isError ? "That circle could not be reached" : "That circle is not here"}
           body={circle.isError ? errorMessage(circle.error) : "You may not have a seat in it any more."}
           action={
-            <button type="button" className="btn btn-secondary" onClick={() => void circle.refetch()}>
+            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5" onClick={() => void circle.refetch()}>
               Try again
             </button>
           }
@@ -84,7 +84,7 @@ export function CirclePage() {
         actions={
           <>
             {day.run > 0 ? <Flame run={day.run} /> : null}
-            <button type="button" className="icon-btn" onClick={refresh} aria-label="Refresh">
+            <button type="button" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" onClick={refresh} aria-label="Refresh">
               <RefreshCw className="size-[18px]" />
             </button>
           </>

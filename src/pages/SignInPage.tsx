@@ -388,7 +388,7 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
           ) : (
             <form onSubmit={submit} className="mt-3 space-y-3">
               <input
-                className="field min-h-10 py-2 text-md rounded-lg"
+                className="w-full border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-md rounded-lg"
                 value={target}
                 onChange={(event) => setTarget(event.target.value)}
                 placeholder="Email or phone number"
@@ -396,7 +396,7 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
                 required
               />
               <input
-                className="field min-h-10 py-2 text-md rounded-lg"
+                className="w-full border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-md rounded-lg"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}

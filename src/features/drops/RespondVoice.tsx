@@ -121,7 +121,7 @@ export function RespondVoice({
           {trouble ?? (recording ? "Recording. Stop when you have said it." : "Start, say what you mean, then stop.")}
         </p>
         {recording ? (
-          <button type="button" onClick={stop} className="btn btn-primary w-full">
+          <button type="button" onClick={stop} className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105 w-full">
             Finish
           </button>
         ) : null}

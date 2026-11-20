@@ -101,7 +101,7 @@ export function LikeButton({
   liked?: boolean;
   /** An uploaded sound is felt at the drop's own route, not the track's. */
   drop?: boolean;
-  size?: "sm" | "lg";
+  size?: "sm" | "md" | "lg";
 }) {
   const [liked, setLiked] = useState(Boolean(initial));
   const [busy, setBusy] = useState(false);
@@ -130,8 +130,10 @@ export function LikeButton({
     }
   }
 
-  const box = size === "lg" ? "size-[38px]" : "size-[30px]";
-  const glyph = size === "lg" ? "size-[19px]" : "size-[16px]";
+  const box =
+    size === "lg" ? "size-[38px]" : size === "md" ? "size-[34px]" : "size-[30px]";
+  const glyph =
+    size === "lg" ? "size-[19px]" : size === "md" ? "size-[22px]" : "size-[16px]";
   return (
     <button
       type="button"
@@ -225,7 +227,7 @@ export function AudioRowTile({
         <button
           type="button"
           onClick={() => onMore(row)}
-          className="icon-btn size-8 shrink-0 text-dim hover:text-ink"
+          className="inline-flex items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 active:scale-[0.94] size-8 shrink-0 text-dim hover:text-ink"
           aria-label={`More about ${track.title}`}
         >
           <MoreVertical className="size-[18px]" />

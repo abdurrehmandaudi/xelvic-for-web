@@ -56,7 +56,7 @@ export function SettingsShell({
           viewport from here would travel over the app shell's bar. */}
       <Backdrop backdrop={backdrop ?? null} position="absolute" />
       <header className="sticky top-0 z-30 flex h-[64px] items-center gap-2 border-b border-line bg-[color-mix(in_srgb,var(--page)_92%,transparent)] px-2 backdrop-blur-xl">
-        <button type="button" onClick={onBack} className="icon-btn" aria-label="Back">
+        <button type="button" onClick={onBack} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Back">
           <ArrowLeft className="size-6" />
         </button>
         <h1 className="min-w-0 flex-1 truncate text-[17px] font-extrabold">{title}</h1>

@@ -221,6 +221,13 @@ export function ConvoRow({
           <span className="min-w-0 flex-1 truncate text-[15.5px] font-bold tracking-[-0.15px]">
             {title}
           </span>
+          {group ? (
+            <Users
+              className="size-3.5 shrink-0 text-dim"
+              strokeWidth={2.2}
+              aria-label="Group"
+            />
+          ) : null}
           {/* The count, at the end of the name and never on the far right of the
               row: a number that has to be found across the width of a row is a
               number read against the wrong name. Groups only — see UnreadPlate. */}
@@ -236,18 +243,9 @@ export function ConvoRow({
             {line}
           </p>
         </div>
-        {group || thread.muted ? (
-          <span className="mt-1 flex flex-wrap items-center gap-1.5">
-            {group ? (
-              <span className="inline-flex h-[21px] items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--ink)_7%,transparent)] px-2 text-[10.5px] font-semibold text-dim">
-                <Users className="size-3" aria-hidden /> Group
-              </span>
-            ) : null}
-            {thread.muted ? (
-              <span className="inline-flex h-[21px] items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--ink)_7%,transparent)] px-2 text-[10.5px] font-semibold text-dim">
-                <BellOff className="size-3" aria-hidden /> Muted
-              </span>
-            ) : null}
+        {thread.muted ? (
+          <span className="mt-1 inline-flex h-[21px] items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--ink)_7%,transparent)] px-2 text-[10.5px] font-semibold text-dim">
+            <BellOff className="size-3" aria-hidden /> Muted
           </span>
         ) : null}
       </div>

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { mediaUrl } from "@/config/urls";
 
 /**
  * The disk copy of media, tested where it can actually be wrong.
@@ -13,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const ACCOUNT_ID = 7;
 const PICTURE = "https://api.xelvic.com/media/drops/a.jpg";
 const CLIP = "https://api.xelvic.com/media/drops/b.mp4";
+const CDN_COVER = "https://cdn.xelvic.com/covers/a.png";
 
 class MemoryStorage {
   private map = new Map<string, string>();
@@ -145,9 +147,11 @@ describe("the media disk cache", () => {
 
   it("refuses a file too large to keep", async () => {
     const { caches } = install();
-    const { rememberMedia, storedMedia } = await load();
+    const { STORE_MAX_BYTES, rememberMedia, storedMedia } = await load();
 
-    await rememberMedia(CLIP, new Blob([new Uint8Array(20 * 1024 * 1024 + 1)]));
+    // One byte over the cap, without holding that many bytes to say so.
+    const over = { size: STORE_MAX_BYTES + 1, type: "video/mp4" } as Blob;
+    await rememberMedia(CLIP, over);
 
     expect(await storedMedia(CLIP)).toBeNull();
     expect(caches.opened.get(`xelvic-media-${ACCOUNT_ID}`)?.size ?? 0).toBe(0);
@@ -166,6 +170,31 @@ describe("the media disk cache", () => {
 
     expect(await caches.keys()).toEqual([]);
     expect(await storedMedia(PICTURE)).toBeNull();
+  });
+
+  it("warms a convo's files off the disk, and leaves other addresses alone", async () => {
+    install();
+    const { peekMedia, rememberMedia, warmMedia } = await load();
+    // Kept under the address the reader will ask for, which is the one the
+    // app's own arithmetic makes of it.
+    await rememberMedia(mediaUrl(PICTURE)!, file("jpeg-bytes", "image/jpeg"));
+
+    warmMedia([PICTURE, CDN_COVER, null]);
+
+    await vi.waitFor(() => expect(peekMedia(PICTURE)).not.toBeNull());
+    expect(peekMedia(CDN_COVER)).toBeNull();
+  });
+
+  it("warms no more files than it was told to", async () => {
+    install();
+    const { peekMedia, rememberMedia, warmMedia } = await load();
+    await rememberMedia(mediaUrl(PICTURE)!, file("jpeg-bytes", "image/jpeg"));
+    await rememberMedia(mediaUrl(CLIP)!, file("mp4-bytes", "video/mp4"));
+
+    warmMedia([PICTURE, CLIP], 1);
+
+    await vi.waitFor(() => expect(peekMedia(PICTURE)).not.toBeNull());
+    expect(peekMedia(CLIP)).toBeNull();
   });
 
   it("does nothing when the browser has no Cache Storage", async () => {

@@ -247,7 +247,7 @@ export function DevicesView() {
           <p className="text-[13.5px] text-[var(--bad)]">{t("Could not read your devices.")}</p>
           <button
             type="button"
-            className="btn btn-secondary mt-3"
+            className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-3"
             onClick={() => void devices.refetch()}
           >
             {t("Try again")}
@@ -400,7 +400,7 @@ export function DevicesView() {
               aria-hidden
             />
             <input
-              className="field w-full pl-10 pr-10"
+              className="min-h-10 rounded-control border border-line bg-card py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full pl-10 pr-10"
               type={show ? "text" : "password"}
               autoFocus
               autoComplete="current-password"
@@ -426,7 +426,7 @@ export function DevicesView() {
         <div className="flex justify-end gap-2 px-5 pb-5 pt-2">
           <button
             type="button"
-            className="btn btn-ghost"
+            className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent text-ink hover:[&:not(:disabled)]:bg-ink-5"
             disabled={busy}
             onClick={() => {
               setAsking(null);
@@ -437,7 +437,7 @@ export function DevicesView() {
           </button>
           <button
             type="button"
-            className="btn btn-danger"
+            className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-bad-24 bg-bad-10 text-bad"
             disabled={busy || !password}
             onClick={() => {
               if (asking) void remove(asking, password);

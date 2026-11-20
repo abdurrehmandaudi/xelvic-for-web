@@ -273,13 +273,7 @@ function CallHistory() {
               return (
                 <div
                   key={log.id}
-                  className={cn("group relative overflow-hidden border border-line/90 bg-card px-1.5 hover:bg-card/5",
-                    dead
-                        ? "bg-accent/10"
-                        : log.outgoing
-                          ? "bg-card"
-                          : "bg-[var(--good)]",
-                  )}
+                  className="group relative overflow-hidden border border-line/90 bg-card px-1.5 transition-colors hover:bg-[color-mix(in_srgb,var(--accent)_5%,var(--card))]"
                 >
                   <div className="flex min-h-[52px] items-center gap-2 pl-1.5">
                     <button
@@ -463,7 +457,7 @@ function RequestsPanel() {
         }}
       >
         <div className="flex items-center gap-3">
-          <Avatar user={person} name={name} size={44} online={person.online} />
+          <Avatar user={person} name={name} size={44} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[14.5px] font-extrabold tracking-[-0.1px]">
               {name}
@@ -699,7 +693,7 @@ export function NewConvoPanel({ onClose }: { onClose: () => void }) {
                     disabled={Boolean(busy)}
                     className="group flex w-full items-center gap-3 rounded-[14px] border border-transparent px-2.5 py-2.5 text-left transition hover:border-line hover:bg-[color-mix(in_srgb,var(--accent)_4%,var(--card))] disabled:opacity-55"
                   >
-                    <Avatar user={person} size={40} online={person.online} />
+                    <Avatar user={person} size={40} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12.5px] font-extrabold">
                         {person.name || person.username}
@@ -920,7 +914,7 @@ function NewGroupModal({
                       : "border-transparent hover:border-line hover:bg-[color-mix(in_srgb,var(--accent)_4%,var(--card))]",
                   )}
                 >
-                  <Avatar user={person} size={38} online={person.online} />
+                  <Avatar user={person} size={38} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[12.5px] font-extrabold">
                       {person.name || person.username}
@@ -1537,7 +1531,7 @@ export function ConvoPage({
                       {[0, 1, 2].map((row) => (
                         <div
                           key={row}
-                          className="skeleton h-11 rounded-[10px]"
+                          className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-11 rounded-[10px]"
                         />
                       ))}
                     </div>
@@ -1660,12 +1654,12 @@ export function ConvoPage({
                   key={row}
                   className="flex min-h-[64px] items-center gap-2 border-b border-line/70 py-2 pl-2 pr-2.5"
                 >
-                  <div className="skeleton size-[52px] shrink-0 rounded-full" />
+                  <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] size-[52px] shrink-0 rounded-full" />
                   <div className="flex-1 space-y-2">
-                    <div className="skeleton h-3 w-36 rounded-full" />
-                    <div className="skeleton h-2.5 w-52 max-w-full rounded-full" />
+                    <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-36 rounded-full" />
+                    <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-2.5 w-52 max-w-full rounded-full" />
                   </div>
-                  <div className="skeleton h-2.5 w-8 rounded-full" />
+                  <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-2.5 w-8 rounded-full" />
                 </div>
               ))}
             </div>

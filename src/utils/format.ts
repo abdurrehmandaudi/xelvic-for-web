@@ -134,6 +134,20 @@ export function duration(seconds: number | null | undefined): string {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
+export function mediaSize(bytes: number | null | undefined): string {
+  const whole = Number(bytes);
+  if (!Number.isFinite(whole) || whole <= 0) return "Unknown size";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = whole;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  const digits = unit === 0 || value >= 10 ? 0 : 1;
+  return `${value.toFixed(digits)} ${units[unit]}`;
+}
+
 export function initialsOf(name: string, fallback = "?") {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return fallback;

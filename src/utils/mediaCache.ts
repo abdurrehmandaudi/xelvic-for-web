@@ -56,7 +56,7 @@ const CACHE_LIMIT = 160;
  */
 const STORE_PREFIX = "xelvic-media-";
 /** Files kept on disk. A browser evicts the oldest under quota pressure too. */
-const STORE_ENTRIES = 400;
+const STORE_ENTRIES = 600;
 /**
  * A single file larger than this is not kept.
  *
@@ -66,7 +66,7 @@ const STORE_ENTRIES = 400;
  * of pictures. The browser evicts the whole cache under quota pressure; the
  * `put` is guarded for exactly that.
  */
-const STORE_MAX_BYTES = 20 * 1024 * 1024;
+export const STORE_MAX_BYTES = 96 * 1024 * 1024;
 
 let storePromise: Promise<Cache | null> | null = null;
 let storeFor: string | null = null;
@@ -83,6 +83,9 @@ function store(): Promise<Cache | null> {
   if (!storePromise || storeFor !== name) {
     storeFor = name;
     storePromise = caches.open(name).catch(() => null);
+    if (typeof navigator !== "undefined") {
+      void navigator.storage?.persist?.().catch(() => undefined);
+    }
   }
   return storePromise;
 }
@@ -158,9 +161,15 @@ const MAX_IN_FLIGHT = 6;
 let inFlight = 0;
 const waiting: (() => void)[] = [];
 
-async function withMediaSlot<T>(read: () => Promise<T>): Promise<T> {
+async function withMediaSlot<T>(
+  read: () => Promise<T>,
+  priority = false,
+): Promise<T> {
   if (inFlight >= MAX_IN_FLIGHT) {
-    await new Promise<void>((resolve) => waiting.push(resolve));
+    await new Promise<void>((resolve) => {
+      if (priority) waiting.unshift(resolve);
+      else waiting.push(resolve);
+    });
   }
   inFlight += 1;
   try {
@@ -191,6 +200,47 @@ function evict() {
   }
 }
 
+const BLOB_LIMIT = 40;
+const blobs = new Map<string, Promise<Blob>>();
+
+function isPrivateMedia(address: string | null): address is string {
+  if (!address || /^(data:|blob:)/i.test(address)) return false;
+  try {
+    return isBackendMediaPath(new URL(address).pathname);
+  } catch {
+    return false;
+  }
+}
+
+function heldBlob(absolute: string, priority = false): Promise<Blob> {
+  const held = blobs.get(absolute);
+  if (held) {
+    blobs.delete(absolute);
+    blobs.set(absolute, held);
+    return held;
+  }
+  const read = (async () => {
+    const stored = await storedMedia(absolute);
+    if (stored) return stored;
+    const blob = await withMediaSlot(
+      () => mediaService.blob(absolute),
+      priority,
+    );
+    void rememberMedia(absolute, blob);
+    return blob;
+  })();
+  const guarded = read.catch((error: unknown) => {
+    blobs.delete(absolute);
+    throw error;
+  });
+  blobs.set(absolute, guarded);
+  if (blobs.size > BLOB_LIMIT) {
+    const oldest = blobs.keys().next();
+    if (!oldest.done && oldest.value !== absolute) blobs.delete(oldest.value);
+  }
+  return guarded;
+}
+
 /**
  * The bytes behind a media address, through the account's own credentials.
  *
@@ -201,12 +251,18 @@ function evict() {
  * browser a bare address to save would ask for a private file with no
  * Authorization header at all, and would put the server's error page on disk
  * under the picture's own name. See `DropMenu`'s "Save to gallery".
+ *
+ * The disk copy is read first, which is what makes a document that was opened
+ * once open at once the second time, and what keeps "Save as" from pulling a
+ * file the tab already has.
  */
 export function mediaBlob(url: string): Promise<Blob> {
-  return mediaService.blob(url);
+  const absolute = mediaUrl(url);
+  if (!isPrivateMedia(absolute)) return mediaService.blob(url);
+  return heldBlob(absolute);
 }
 
-async function loadMedia(url: string): Promise<string> {
+async function loadMedia(url: string, priority = false): Promise<string> {
   const absolute = mediaUrl(url);
   if (!absolute) throw new Error("No media URL");
   if (/^(data:|blob:)/i.test(absolute)) return absolute;
@@ -222,14 +278,7 @@ async function loadMedia(url: string): Promise<string> {
 
   // The disk copy first, and it does not queue for a network slot: a picture
   // already in the browser's own store is a picture that is on screen now.
-  const stored = await storedMedia(absolute);
-  if (stored) return URL.createObjectURL(stored);
-
-  const blob = await withMediaSlot(() => mediaBlob(absolute));
-  // Writing the copy is not on the critical path — the picture is drawn from
-  // the bytes already in hand, and the next open reads them from disk.
-  void rememberMedia(absolute, blob);
-  return URL.createObjectURL(blob);
+  return URL.createObjectURL(await heldBlob(absolute, priority));
 }
 
 /**
@@ -238,7 +287,7 @@ async function loadMedia(url: string): Promise<string> {
  * Exported for `useMediaUrl`, which counts how many things are drawing an
  * entry (`refs`) so the eviction pass above can leave it alone.
  */
-export function entryFor(url: string): MediaEntry {
+export function entryFor(url: string, priority = false): MediaEntry {
   const existing = cache.get(url);
   if (existing) {
     touch(url, existing);
@@ -250,7 +299,7 @@ export function entryFor(url: string): MediaEntry {
     failed: false,
     promise: Promise.resolve(""),
   };
-  entry.promise = loadMedia(url)
+  entry.promise = loadMedia(url, priority)
     .then((objectUrl) => {
       entry.objectUrl = objectUrl;
       return objectUrl;
@@ -289,5 +338,21 @@ export function peekMedia(url: string | null | undefined): string | null {
   if (!entry) return null;
   touch(url, entry);
   return entry.objectUrl;
+}
+
+const WARM_LIMIT = 48;
+
+export function warmMedia(
+  urls: Iterable<string | null | undefined>,
+  limit = WARM_LIMIT,
+) {
+  let asked = 0;
+  for (const url of urls) {
+    if (asked >= limit) return;
+    if (!url || /^(data:|blob:)/i.test(url) || cache.has(url)) continue;
+    if (!isPrivateMedia(mediaUrl(url))) continue;
+    asked += 1;
+    void entryFor(url).promise.catch(() => undefined);
+  }
 }
 

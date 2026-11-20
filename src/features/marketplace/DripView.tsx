@@ -465,7 +465,7 @@ function FigurePage({ row, onClose }: { row: DripCharacter; onClose: () => void 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-page text-ink">
       <header className="flex h-[56px] shrink-0 items-center gap-2 px-2">
-        <button type="button" onClick={onClose} className="icon-btn" aria-label="Back">
+        <button type="button" onClick={onClose} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Back">
           <ArrowLeft className="size-6" aria-hidden />
         </button>
         <h2 className="min-w-0 flex-1 truncate text-[17px] font-extrabold">{row.name}</h2>

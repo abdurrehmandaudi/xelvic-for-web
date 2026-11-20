@@ -181,7 +181,7 @@ function CodeForm({
         ))}
       </div>
       {error ? <p className="mt-3 text-[11px] font-semibold text-[var(--bad)]">{error}</p> : null}
-      <button type="submit" disabled={busy} className="btn btn-primary mt-5 w-full">
+      <button type="submit" disabled={busy} className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105 mt-5 w-full">
         {busy ? "Working..." : submitLabel}
       </button>
     </form>
@@ -413,7 +413,7 @@ export function VaultModal({
             <button
               type="button"
               onClick={() => void lockNow()}
-              className="icon-btn"
+              className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]"
               title="Lock it now"
               aria-label="Lock the vault now"
               disabled={busy !== null}
@@ -428,13 +428,13 @@ export function VaultModal({
               setPrompt(null);
               setError(null);
             }}
-            className={cn("icon-btn", view === "settings" && "text-accent")}
+            className={cn("inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]", view === "settings" && "text-accent")}
             title="Vault settings"
             aria-label="Vault settings"
           >
             <Settings2 className="size-[18px]" />
           </button>
-          <button type="button" onClick={onClose} className="icon-btn -mr-1" aria-label="Close">
+          <button type="button" onClick={onClose} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] -mr-1" aria-label="Close">
             <X className="size-[18px]" />
           </button>
         </header>
@@ -582,7 +582,7 @@ export function VaultModal({
                   }}
                   className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 >
-                  <Avatar user={thread.other} name={threadTitle(thread)} src={thread.avatar} size={44} online={thread.other?.online} />
+                  <Avatar user={thread.other} name={threadTitle(thread)} src={thread.avatar} size={44} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-bold">{threadTitle(thread)}</span>
                     <span className="block truncate text-[10.5px] text-dim">
@@ -594,7 +594,7 @@ export function VaultModal({
                   type="button"
                   onClick={() => void takeOut(thread)}
                   disabled={busy !== null}
-                  className="icon-btn text-dim"
+                  className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] text-dim"
                   title="Back to the convo list"
                   aria-label={`Take ${threadTitle(thread)} out of the vault`}
                 >
@@ -603,7 +603,7 @@ export function VaultModal({
                 <button
                   type="button"
                   onClick={() => setSheetThread(thread)}
-                  className="icon-btn text-dim"
+                  className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] text-dim"
                   title="Convo options"
                   aria-label={`Options for ${threadTitle(thread)}`}
                 >

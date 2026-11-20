@@ -19,6 +19,13 @@
 const CDN = "https://fonts.gstatic.com/s/e/notoemoji/latest";
 
 /**
+ * The five skin-tone modifiers, in the order Unicode defines them — so a
+ * person's three is `TONES[2]`, and both the tone a message typed and the
+ * folder a 3D drawing lives in are read off the same list.
+ */
+export const TONES = ["\u{1F3FB}", "\u{1F3FC}", "\u{1F3FD}", "\u{1F3FE}", "\u{1F3FF}"] as const;
+
+/**
  * How an emoji is spelled in a CDN path: its codepoints in lower-case hex,
  * joined by underscores. ❤️ is `2764_fe0f`, 👋🏽 is `1f44b_1f3fd`.
  */

@@ -248,7 +248,7 @@ export function AudioPage() {
             setTyped("");
             setAsked("");
           }}
-          className="icon-btn -ml-2"
+          className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] -ml-2"
           aria-label="Back to Audio"
         >
           <ArrowLeft className="size-5" />
@@ -370,19 +370,19 @@ export function AudioPage() {
             <h1 className="truncate text-[22px] font-extrabold leading-6 tracking-[-0.4px]">Audio</h1>
             <p className="truncate text-[12px] text-dim">Playlists · Podcasts · Artists · Trending</p>
           </div>
-          <Link to="/app/audio/studio" className="icon-btn" aria-label="Your studio">
+          <Link to="/app/audio/studio" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Your studio">
             <BarChart3 className="size-[19px]" />
           </Link>
-          <button type="button" onClick={() => setPostOpen(true)} className="icon-btn" aria-label="Post audio">
+          <button type="button" onClick={() => setPostOpen(true)} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Post audio">
             <Plus className="size-[19px]" />
           </button>
-          <button type="button" onClick={() => setLinkOpen(true)} className="icon-btn" aria-label="Open a playlist link">
+          <button type="button" onClick={() => setLinkOpen(true)} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Open a playlist link">
             <Link2 className="size-[19px]" />
           </button>
           <button
             type="button"
             onClick={() => setMode("search")}
-            className="icon-btn -mr-1"
+            className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] -mr-1"
             aria-label="Search the catalogue"
           >
             <Search className="size-[19px]" />
@@ -658,7 +658,7 @@ export function AudioPage() {
               onChange={(event) => setName(event.target.value)}
               maxLength={400}
               placeholder="Late night"
-              className="field w-full"
+              className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full"
             />
           </label>
           <div>
@@ -711,7 +711,7 @@ export function AudioPage() {
             autoFocus
             maxLength={300}
             placeholder="https://.../s/..."
-            className="field w-full"
+            className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full"
             autoComplete="off"
             spellCheck={false}
           />

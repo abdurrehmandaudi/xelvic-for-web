@@ -9,9 +9,26 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     resolve: {
+      dedupe: ["react", "react-dom"],
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url)),
       },
+    },
+    optimizeDeps: {
+      include: [
+        "@tanstack/react-query",
+        "axios",
+        "clsx",
+        "lucide-react",
+        "qrcode.react",
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react-icons/bi",
+        "react-icons/fa6",
+        "react-router-dom",
+        "tailwind-merge",
+      ],
     },
     server: {
       port: 5173,

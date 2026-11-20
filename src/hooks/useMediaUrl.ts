@@ -19,7 +19,11 @@ export interface MediaState {
  * asks for nothing until it is. See `components/Media.tsx`, which flips it from
  * an `IntersectionObserver`.
  */
-export function useMediaUrl(url: string | null | undefined, enabled = true): MediaState {
+export function useMediaUrl(
+  url: string | null | undefined,
+  enabled = true,
+  priority = false,
+): MediaState {
   const [state, setState] = useState<MediaState>(() => {
     if (url && /^(data:|blob:)/i.test(url)) return { src: url, loading: false, failed: false };
     // Already in hand from an earlier visit to this screen: draw it on the
@@ -39,7 +43,7 @@ export function useMediaUrl(url: string | null | undefined, enabled = true): Med
       return;
     }
     let cancelled = false;
-    const entry = entryFor(url);
+    const entry = entryFor(url, priority);
     entry.refs += 1;
     setState({ src: entry.objectUrl, loading: !entry.objectUrl, failed: false });
     entry.promise
@@ -54,7 +58,7 @@ export function useMediaUrl(url: string | null | undefined, enabled = true): Med
       entry.refs -= 1;
       releaseMedia(entry);
     };
-  }, [url, enabled]);
+  }, [url, enabled, priority]);
 
   return state;
 }

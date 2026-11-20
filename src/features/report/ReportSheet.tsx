@@ -138,7 +138,7 @@ export function ReportSheet({
         {answer.isLoading ? (
           <div className="space-y-2" aria-hidden>
             {[0, 1, 2].map((row) => (
-              <div key={row} className="skeleton h-10 w-full rounded-[12px]" />
+              <div key={row} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-10 w-full rounded-[12px]" />
             ))}
           </div>
         ) : reasons.length ? (
@@ -200,12 +200,12 @@ export function ReportSheet({
         </p>
       </div>
       <div className="flex justify-end gap-2 px-4 pb-4 pt-2">
-        <button type="button" className="btn btn-secondary" onClick={onClose}>
+        <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5" onClick={onClose}>
           Cancel
         </button>
         <button
           type="button"
-          className="btn btn-danger"
+          className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-bad-24 bg-bad-10 text-bad"
           onClick={() => void file()}
           disabled={busy || !reason}
         >

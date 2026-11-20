@@ -69,19 +69,19 @@ export function PageSkeleton({ rows = 3 }: { rows?: number }) {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-5 md:px-6" aria-hidden>
       {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="card p-4">
+        <div key={index} className="rounded-control border border-line bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className="skeleton size-11 rounded-full" />
+            <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] size-11 rounded-full" />
             <div className="flex-1 space-y-2">
-              <div className="skeleton h-3 w-32 rounded-full" />
-              <div className="skeleton h-2.5 w-20 rounded-full" />
+              <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-32 rounded-full" />
+              <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-2.5 w-20 rounded-full" />
             </div>
           </div>
           <div className="mt-4 space-y-2">
-            <div className="skeleton h-3 w-full rounded-full" />
-            <div className="skeleton h-3 w-4/5 rounded-full" />
+            <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-full rounded-full" />
+            <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-4/5 rounded-full" />
           </div>
-          <div className="skeleton mt-4 aspect-[4/3] w-full rounded-xl" />
+          <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] mt-4 aspect-[4/3] w-full rounded-xl" />
         </div>
       ))}
     </div>

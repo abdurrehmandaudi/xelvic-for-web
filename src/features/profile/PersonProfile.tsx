@@ -48,6 +48,7 @@ import { chatService } from "@/services/chat.service";
 import { dropsService } from "@/services/drops.service";
 import { momentsService } from "@/services/moments.service";
 import { useAuth } from "@/hooks/useAuth";
+import { useLooking } from "@/hooks/useLooking";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useTheme } from "@/hooks/useTheme";
 import { useToast } from "@/hooks/useToast";
@@ -163,6 +164,35 @@ export function PersonProfile() {
   }, [personId, isMe]);
 
   const deleted = (answer.error as { status?: number } | null)?.status === 410;
+
+  /**
+   * This page is on somebody's screen, and they are the one person entitled to
+   * know it.
+   *
+   * Ported from `person.dart`, which says it on the way in and takes it back on
+   * the way out — *"This page is on somebody's screen, and they are the one
+   * person entitled to know it. It keeps being said on a timer from here — a
+   * fact like this expires, and sitting still is the case most worth telling."*
+   * It is the second of the two places this says anything, and it is what makes
+   * **my** figure stand over **their** composer with the `wait` pose while I
+   * read their page and write nothing.
+   *
+   * My own page says nothing, which is the phone's arrangement rather than a
+   * shortcut: one's own profile is a different screen there (`profile.dart`) and
+   * it never speaks. The server refuses a gaze at somebody I do not talk to in
+   * any case — see `services.focus_of` — so a stranger's page is a frame that
+   * changes nothing.
+   *
+   * The goodbye is *named*, which matters for the same reason the convo's is: a
+   * page is disposed after the one replacing it has been built, and an unnamed
+   * goodbye would take the next screen's word off the server with it.
+   */
+  const { say: sayLooking, leave: leaveLooking } = useLooking();
+  useEffect(() => {
+    if (!personId || isMe) return;
+    sayLooking(personId, "profile");
+    return () => leaveLooking(personId);
+  }, [personId, isMe, sayLooking, leaveLooking]);
 
   /**
    * Whether their day is up right now, and whether I have watched it.
@@ -423,7 +453,7 @@ export function PersonProfile() {
           title={t("No such account")}
           line={t("That username is not here.")}
           action={
-            <button type="button" className="btn btn-secondary mt-4" onClick={() => navigate("/app/search")}>
+            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4" onClick={() => navigate("/app/search")}>
               {t("Search people")}
             </button>
           }
@@ -789,7 +819,7 @@ export function PersonProfile() {
             id="report-reason"
             value={reportReason}
             onChange={(event) => setReportReason(event.target.value)}
-            className="field mt-1.5"
+            className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none mt-1.5"
           >
             <option value="spam">{t("Spam")}</option>
             <option value="abuse">{t("Abuse")}</option>
@@ -797,10 +827,10 @@ export function PersonProfile() {
             <option value="other">{t("Something else")}</option>
           </select>
           <div className="mt-4 flex justify-end gap-2">
-            <button type="button" className="btn btn-secondary" onClick={() => setReportOpen(false)}>
+            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5" onClick={() => setReportOpen(false)}>
               {t("Cancel")}
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => void report()}>
+            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105" onClick={() => void report()}>
               {t("Send report")}
             </button>
           </div>
@@ -846,7 +876,7 @@ export function PersonProfile() {
             type="button"
             onClick={() => setQr(false)}
             aria-label={t("Close")}
-            className="icon-btn absolute right-3 top-3"
+            className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] absolute right-3 top-3"
           >
             <X className="size-4" />
           </button>
@@ -876,7 +906,7 @@ export function PersonProfile() {
           </p>
           <button
             type="button"
-            className="btn btn-secondary mt-4"
+            className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4"
             onClick={() => {
               void navigator.clipboard
                 .writeText(`@${handle}`)

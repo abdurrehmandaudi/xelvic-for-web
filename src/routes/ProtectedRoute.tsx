@@ -13,7 +13,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-page px-6">
         <ErrorState error={new Error(error || "Could not restore your session.")} onRetry={retry} />
-        <button type="button" className="btn btn-ghost -mt-6" onClick={() => void logout()}>
+        <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent text-ink hover:[&:not(:disabled)]:bg-ink-5 -mt-6" onClick={() => void logout()}>
           Sign out instead
         </button>
       </div>
@@ -39,7 +39,7 @@ export function NotFoundPage() {
       <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-dim">404</p>
       <h1 className="mt-3 text-3xl font-extrabold tracking-tight">This page is not here</h1>
       <p className="mt-2 max-w-sm text-sm leading-6 text-dim">The address may be old, or the thing it pointed at is gone.</p>
-      <Link to="/" className="btn btn-primary mt-6">
+      <Link to="/" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105 mt-6">
         Back to Xelvic
       </Link>
     </div>

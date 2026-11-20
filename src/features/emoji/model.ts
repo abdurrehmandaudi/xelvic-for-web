@@ -1,27 +1,3 @@
-/**
- * The emoji picker's arithmetic, kept away from its drawing.
- *
- * Everything here is a pure function of the generated table in `data.ts` and
- * the emoji passed in, which is what makes it testable without a browser — and
- * the two rules worth testing are the ones that are easy to get quietly wrong:
- * where Google keeps an emoji's animation, and what a skin tone does to a
- * character that is more than one code point.
- *
- * **Where the drawings come from.** Google's animated-emoji CDN, keyed by the
- * emoji's own codepoints — `2764_fe0f` for ❤️ — which is the same artwork the
- * phone's own keyboard draws. It carries a still drawing (`emoji.svg`) for
- * 1892 of the 1906 emoji in `data.ts` and an animation (`lottie.json`) for 605
- * of them; both counts were measured by asking the CDN for every single one
- * before the table was generated, so a tile never asks for something that is
- * not there. A tile that cannot move is drawn still from its first frame.
- *
- * A tinted emoji is a **different** emoji to that CDN, and not a variation of
- * the plain one: of the 1615 toned forms of the 323 emoji that take a tone,
- * 1580 have a drawing and only 250 have an animation, against 605 animations
- * among the plain 1906. `data.ts` therefore carries five tinted drawings and
- * five tinted animations per tone-able emoji, measured the same way, and
- * `artOf` is what reads them.
- */
 import { EMOJI, EMOJI_GROUPS, type EmojiRow } from "./data";
 
 export { EMOJI, EMOJI_GROUPS };
@@ -133,12 +109,3 @@ export function rememberRecent(
 ): string[] {
   return [char, ...list.filter((one) => one !== char)].slice(0, cap);
 }
-
-/**
- * One emoji to stand for each group on the bar that switches between them.
- *
- * Plain characters rather than drawings, deliberately: the bar is nine buttons
- * that must be there the instant the picker opens, and nine network fetches for
- * nine buttons is a bar that arrives in pieces.
- */
-export const GROUP_MARKS = ["😀", "👋", "🐻", "🍔", "✈️", "⚽", "💡", "❤️", "🏳️"];

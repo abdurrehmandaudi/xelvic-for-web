@@ -1,8 +1,13 @@
 import type { ThreadCard, UserCard } from "@/types/api";
+import { aliasOf } from "./names";
 
 export function threadTitle(thread: ThreadCard) {
-  if (thread.title) return thread.title;
   const person = thread.other ?? thread.member ?? thread.members?.[0]?.user;
+  if (thread.kind !== "group" && person) {
+    const mine = aliasOf(person.id, person.username);
+    if (mine) return mine;
+  }
+  if (thread.title) return thread.title;
   return person?.name || person?.username || "Conversation";
 }
 

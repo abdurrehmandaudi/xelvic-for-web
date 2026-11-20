@@ -6,10 +6,10 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { FaFileLines } from "react-icons/fa6";
 import {
   BadgeCheck,
   CalendarClock,
-  FileText,
   Gavel,
   Hourglass,
   IdCard,
@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { Button, Spinner } from "@/components/ui/Button";
+import { DocumentGlyph } from "@/components/icons/DocumentGlyph";
 import { Modal } from "@/components/overlays/Modal";
 import { VerifiedTick } from "@/components/icons/Tick";
 import { verifyService } from "@/services/verify.service";
@@ -380,7 +381,7 @@ export function VerifyView() {
               }}
             />
             <PickRow
-              icon={<FileText className="size-5" />}
+              icon={<FaFileLines className="size-5" />}
               label={t("Choose a file")}
               line={t("A document — a registration, a press page.")}
               onClick={() => {
@@ -601,7 +602,7 @@ function Form({
           rows={4}
           maxLength={REASON_MAX}
           placeholder={t("Who you are, and why the mark belongs on your account.")}
-          className="field mt-2 resize-none"
+          className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none mt-2 resize-none"
         />
       </div>
 
@@ -647,12 +648,12 @@ function Form({
                 // written the same in every language — the app marks its own
                 // copy l10n-free for that reason.
                 placeholder="https://"
-                className="field min-w-0 flex-1"
+                className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-w-0 flex-1"
               />
               <button
                 type="button"
                 onClick={() => onRemoveLink(row.id)}
-                className="icon-btn shrink-0"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] shrink-0"
                 aria-label={t("Remove")}
                 title={t("Remove")}
               >
@@ -681,7 +682,11 @@ function Form({
               key={doc.id}
               className="flex items-center gap-3 rounded-[14px] border border-line bg-card py-3 pl-3.5 pr-2"
             >
-              <FileText className="size-5 shrink-0 text-accent" aria-hidden />
+              <DocumentGlyph
+                mime={doc.file.type}
+                name={doc.file.name}
+                className="size-5 shrink-0 text-accent"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13.5px] font-semibold">{doc.file.name}</p>
                 <input
@@ -695,7 +700,7 @@ function Form({
               <button
                 type="button"
                 onClick={() => onRemoveDoc(doc.id)}
-                className="icon-btn shrink-0"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] shrink-0"
                 aria-label={t("Remove")}
                 title={t("Remove")}
               >

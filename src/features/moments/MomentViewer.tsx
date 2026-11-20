@@ -14,10 +14,10 @@ import {
   Play,
   Repeat,
   Send,
-  Share2,
   Trash2,
   X,
 } from "lucide-react";
+import { FiShare2 } from "react-icons/fi";
 import { Avatar } from "@/components/ui/Avatar";
 import { ConfirmDialog, Modal } from "@/components/overlays/Modal";
 import { VerifiedTick } from "@/components/icons/Tick";
@@ -965,7 +965,7 @@ export function MomentViewer({
           )}
         </HeaderButton>
         <HeaderButton label="Share" onClick={() => void openShare()}>
-          <Share2 className="size-[22px]" aria-hidden />
+          <FiShare2 className="size-[22px]" aria-hidden />
         </HeaderButton>
         {named ? (
           <HeaderButton label="Put this on my moment" onClick={() => void carry()}>
@@ -1174,8 +1174,8 @@ export function MomentViewer({
           <div className="space-y-3 p-4" aria-hidden>
             {[0, 1, 2].map((row) => (
               <div key={row} className="flex items-center gap-3">
-                <div className="skeleton size-9 rounded-full" />
-                <div className="skeleton h-3 w-32 rounded-full" />
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] size-9 rounded-full" />
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-32 rounded-full" />
               </div>
             ))}
           </div>
@@ -1263,7 +1263,7 @@ export function MomentViewer({
             </span>
             <button
               type="button"
-              className="btn btn-primary"
+              className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105"
               disabled={!chosen.length || busy}
               onClick={() => void sendInto()}
             >
@@ -1277,7 +1277,7 @@ export function MomentViewer({
           {threads.isLoading ? (
             <div className="space-y-2 p-2" aria-hidden>
               {[0, 1, 2].map((row) => (
-                <div key={row} className="skeleton h-11 rounded-[12px]" />
+                <div key={row} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-11 rounded-[12px]" />
               ))}
             </div>
           ) : threads.isError ? (

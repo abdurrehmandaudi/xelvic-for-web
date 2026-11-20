@@ -1,23 +1,25 @@
 /**
  * When an emoji is allowed to move.
  *
- * Three rules, kept out of the component because they own no DOM — they take
- * counts and flags and answer yes or no, which is what makes them testable
- * without a browser. Getting them wrong is not a crash; it is a screen that
- * moves when nobody asked it to, or one that stays still when somebody did,
- * and both are things a person notices and a test does not unless it is told
- * where to look.
+ * One rule, and it is the pointer's: **an emoji moves while a pointer is resting
+ * on it, and at no other time.** It arrived in two steps from the owner. First
+ * the thread: *"ye jo continue animate ho raha hai jabki send karne par aur hover
+ * karne par animate hona chahiye"* — a message is read, not browsed, and every
+ * bubble running its own animation for as long as it is on screen is a thread
+ * nobody can read. Then the panel, where the same fault was worse because the
+ * whole grid moved at once: *"usme emoji animate continue hote hi rahte please
+ * ise aisa kijiye ki kewal hover karne par hi emoji animate kare"*.
  *
- * **A tile in the picker moves while it is on screen.** That grid exists to be
- * looked at and one emoji is being chosen from it; movement is the preview.
+ * So being on screen stopped being a reason to move for a tile as well, and
+ * became only a condition: nothing plays for something scrolled out of sight,
+ * which is why `wanted` still asks. What moves a tile is the pointer, and what
+ * moves an emoji in a sentence is the pointer plus the single pass a send or an
+ * arrival asks for (`EmojiArt`'s `burst`, which is not asked here at all).
  *
- * **An emoji in a message does not.** A message is read, not browsed, and a
- * thread where every bubble is running its own animation for as long as it is
- * on screen is a thread nobody can read — which is what it did until the owner
- * said so: *"ye jo continue animate ho raha hai jabki send karne par aur hover
- * karne par animate hona chahiye"*. So it moves when it is **hovered**, and it
- * moves **once** when the message it belongs to is sent or arrives (`EmojiArt`'s
- * `burst`), and otherwise it is the still drawing.
+ * A consequence worth naming rather than discovering: on a device with no
+ * pointer that can rest — a phone, a tablet — the panel is still, because a
+ * touch arrives and leaves in the same instant. That is the rule as asked for,
+ * and it is the same stillness a message's emoji keep there.
  *
  * **A pointer resting on one buys it a place past the budget.** The budget is
  * real — a few dozen Lottie players is a stutter — but the emoji somebody has
@@ -36,9 +38,15 @@ export type Mode = "tile" | "text";
 /** What a drawing is doing. */
 export type Phase = "off" | "loading" | "playing";
 
-/** Whether this drawing should be moving at all, where it is and what it is. */
-export function wanted(mode: Mode, inView: boolean, hovered: boolean): boolean {
-  return mode === "tile" ? inView : hovered;
+/**
+ * Whether this drawing should be moving at all.
+ *
+ * The same answer for a tile and for an emoji in a sentence, which is why the
+ * mode is no longer an argument: a still emoji is what both of them are until a
+ * pointer rests on one, and the only thing that plays without one is a burst.
+ */
+export function wanted(inView: boolean, hovered: boolean): boolean {
+  return inView && hovered;
 }
 
 /**

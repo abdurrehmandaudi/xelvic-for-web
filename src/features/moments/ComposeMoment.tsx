@@ -190,7 +190,7 @@ export function ComposeMoment({
               type="button"
               onClick={() => input.current?.click()}
               disabled={busy || picks.length >= 6}
-              className="btn btn-secondary min-h-9"
+              className="inline-flex select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 min-h-9"
             >
               <ImagePlus className="size-4" /> {picks.length ? "Add another" : "Choose from library"}
             </button>
@@ -198,7 +198,7 @@ export function ComposeMoment({
               type="button"
               onClick={() => setMentionOpen(true)}
               disabled={busy}
-              className={cn("btn min-h-9", people.length ? "btn-primary" : "btn-secondary")}
+              className={cn("inline-flex select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 min-h-9", people.length ? "border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105" : "border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5")}
             >
               <AtSign className="size-4" />
               {people.length ? people.map((person) => `@${person.username}`).join(", ") : "Name people"}

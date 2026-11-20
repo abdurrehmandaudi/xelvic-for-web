@@ -405,7 +405,7 @@ export function MemoriesShelf({
           <div className="flex justify-end gap-2">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5"
               disabled={busy}
               onClick={() => setRenaming(null)}
             >
@@ -413,7 +413,7 @@ export function MemoriesShelf({
             </button>
             <button
               type="button"
-              className="btn btn-primary"
+              className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105"
               disabled={busy || !name.trim()}
               onClick={() => void rename()}
             >
@@ -429,7 +429,7 @@ export function MemoriesShelf({
             maxLength={24}
             autoFocus
             placeholder={t("A name for it")}
-            className="field"
+            className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none"
             aria-label={t("Rename")}
           />
         </div>

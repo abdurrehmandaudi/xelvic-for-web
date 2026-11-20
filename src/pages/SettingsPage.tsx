@@ -764,7 +764,7 @@ export function SettingsPage() {
               setDeleteWrong(false);
             }}
             placeholder="Your password"
-            className="field"
+            className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none"
             autoComplete="current-password"
             autoFocus
           />

@@ -130,7 +130,7 @@ export function CrewPage() {
           title={t("No answer from the server")}
           line={errorMessage(people.error)}
           action={
-            <button type="button" className="btn btn-secondary mt-4" onClick={() => void people.refetch()}>
+            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4" onClick={() => void people.refetch()}>
               {t("Try again")}
             </button>
           }
@@ -142,7 +142,7 @@ export function CrewPage() {
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-[19px] -translate-y-1/2 text-dim" aria-hidden />
                 <input
-                  className="field w-full rounded-[14px] border-line py-[11px] pl-10 pr-10 text-[14.5px]"
+                  className="min-h-10 border bg-card text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full rounded-[14px] border-line py-[11px] pl-10 pr-10 text-[14.5px]"
                   value={typed}
                   onChange={(event) => setTyped(event.target.value)}
                   placeholder={t("Name or @handle...")}
@@ -209,7 +209,7 @@ export function CrewPage() {
                         type="button"
                         onClick={() => setRemoving(person)}
                         aria-label={t("Remove from your Crew")}
-                        className="icon-btn text-[var(--bad)]"
+                        className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] text-[var(--bad)]"
                       >
                         <UserMinus className="size-[18px]" />
                       </button>

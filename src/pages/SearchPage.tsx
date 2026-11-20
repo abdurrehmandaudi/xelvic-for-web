@@ -29,7 +29,7 @@ function PersonRow({ person, onPick }: { person: UserCard; onPick: () => void })
   const live = useLiveRings();
   return (
     <Link to={`/app/u/${person.username}`} onClick={onPick} className="flex items-center gap-3 rounded-[13px] px-2 py-2.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]">
-      <Avatar user={person} size={42} online={person.online} ring={live.has(String(person.id))} />
+      <Avatar user={person} size={42} ring={live.has(String(person.id))} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-[12px] font-extrabold">{person.name || person.username}</span>
@@ -148,7 +148,7 @@ export function SearchPage() {
             <section className="mt-6">
               <h2 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-dim">People on Xelvic</h2>
               {suggestions.isLoading ? (
-                <div className="mt-3 space-y-2">{[0, 1, 2, 3].map((item) => <div key={item} className="skeleton h-14 rounded-[13px]" />)}</div>
+                <div className="mt-3 space-y-2">{[0, 1, 2, 3].map((item) => <div key={item} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-14 rounded-[13px]" />)}</div>
               ) : suggestions.isError ? (
                 <ErrorState compact error={suggestions.error} onRetry={() => void suggestions.refetch()} />
               ) : !peopleRows.length ? (
@@ -163,7 +163,7 @@ export function SearchPage() {
         ) : tab === "people" ? (
           <section>
             {people.isLoading ? (
-              <div className="space-y-2">{[0, 1, 2, 3, 4].map((item) => <div key={item} className="skeleton h-14 rounded-[13px]" />)}</div>
+              <div className="space-y-2">{[0, 1, 2, 3, 4].map((item) => <div key={item} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-14 rounded-[13px]" />)}</div>
             ) : people.isError ? (
               <ErrorState error={people.error} onRetry={() => void people.refetch()} />
             ) : !people.data?.results.length ? (
@@ -177,7 +177,7 @@ export function SearchPage() {
         ) : (
           <section>
             {tracks.isLoading ? (
-              <div className="space-y-2">{[0, 1, 2, 3].map((item) => <div key={item} className="skeleton h-16 rounded-[13px]" />)}</div>
+              <div className="space-y-2">{[0, 1, 2, 3].map((item) => <div key={item} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-16 rounded-[13px]" />)}</div>
             ) : tracks.isError ? (
               <ErrorState error={tracks.error} onRetry={() => void tracks.refetch()} />
             ) : !tracks.data?.tracks.length ? (

@@ -61,8 +61,28 @@ export interface UserCard {
   initials: string;
   online?: boolean;
   is_private?: boolean;
+  /**
+   * Whether this person's profile is there to be opened at all — a block or a
+   * deactivated account closes it, a private one does not. A card that has not
+   * answered opens, which is what `openPerson` on the phone does with a missing
+   * flag for the same reason.
+   */
+  can_open?: boolean;
   last_seen?: string | null;
   theme?: string | null;
+  /**
+   * The figure this account wears, as a Drip key — `""` when none is chosen.
+   *
+   * `MeSerializer.character`, `ProfileSerializer.character` and
+   * `UserCardSerializer.character` all carry it through `WornGate`, so a profile,
+   * the chat behind it and the convo the figure stands in cannot disagree about
+   * who is standing there. Read on a profile so the bio is said by the right
+   * figure, and read on the *other* participant's card so the character that
+   * comes up while they write is theirs — see `features/convo/TypingPeek.tsx`.
+   * Null is not the same as empty: a payload that has not answered leaves the
+   * theme's own figure to stand in.
+   */
+  character?: string | null;
   verified?: boolean;
   /**
    * Their birthday as `MM-DD`, or nothing — the one piece of a date of birth
@@ -133,16 +153,6 @@ export interface Me extends UserCard {
   links?: { label?: string | null; url?: string | null }[] | null;
   country?: string | null;
   verified_at?: string | null;
-  /**
-   * The figure this account wears, as a Drip key — `""` when none is chosen.
-   *
-   * `MeSerializer.character` and `ProfileSerializer.character` both carry it
-   * through `WornGate`, so a profile and the chat behind it cannot disagree
-   * about who is standing there. Read on the profile so the bio is said by the
-   * right figure; null is not the same as empty — a payload that has not
-   * answered leaves the theme's own figure to stand in.
-   */
-  character?: string | null;
   /** `MM-DD`, or empty unless today is the day. See `services.birthday_month_day`. */
   birthday?: string | null;
 }
@@ -232,6 +242,7 @@ export interface Asset {
   quality?: string | null;
   available?: boolean;
   available_until?: string | null;
+  purged_at?: string | null;
   content_url: string | null;
   thumbnail_url?: string | null;
 }
@@ -806,6 +817,8 @@ export interface Message {
   updated_at?: string;
   pending?: boolean;
   failed?: boolean;
+  /** Why a line this browser drew never went — the server's own sentence. */
+  failure?: string;
 }
 
 /**
@@ -934,7 +947,7 @@ export interface RequestsBundle {
 export interface ThreadDetail extends ThreadCard {
   members?: ThreadMember[];
   receipts?: unknown[];
-  gate?: Record<string, unknown> | null;
+  gate?: ChatGate | null;
   vanish_days?: number | null;
   cleared_ordinal?: number;
   last_read_ordinal?: number;
@@ -944,15 +957,33 @@ export interface Channel {
   id: ID;
   name: string;
   position?: number;
+  post?: string;
+  media?: string;
 }
 
 export interface Invite {
   id: ID;
   code?: string;
   url?: string;
-  uses?: number;
-  revoked?: boolean;
+  active?: boolean;
+  joined_count?: number;
+  revoked_at?: string | null;
   created_at?: string;
+}
+
+export interface Roster {
+  members: ThreadMember[];
+  shown: number;
+  total: number;
+  everyone: number;
+  capped: boolean;
+}
+
+export interface GroupRoom {
+  thread_id: string;
+  locked: boolean;
+  invites_on: boolean;
+  channels: Channel[];
 }
 
 export interface CoverRef {

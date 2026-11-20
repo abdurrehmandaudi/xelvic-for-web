@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, Check, Link2, Search, Share2, X } from "lucide-react";
+import { ArrowUp, Check, Link2, Search, X } from "lucide-react";
+import { FiShare2 } from "react-icons/fi";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button, Spinner } from "@/components/ui/Button";
 import { Modal } from "@/components/overlays/Modal";
@@ -271,7 +272,7 @@ export function ShareSheet({
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="Clear the search"
-                className="icon-btn size-7"
+                className="inline-flex flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] size-7"
               >
                 <X className="size-4" />
               </button>
@@ -306,7 +307,7 @@ export function ShareSheet({
               Could not load your convos.
             </p>
           ) : shown.length ? (
-            <div className="scroll-area flex gap-3.5 overflow-x-auto px-3.5 pb-1 pt-1.5">
+            <div className="[scrollbar-width:thin] [scrollbar-color:color-mix(in_srgb,var(--dim)_30%,transparent)_transparent] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-dim-26 flex gap-3.5 overflow-x-auto px-3.5 pb-1 pt-1.5">
               {shown.map((thread) => {
                 const title = titleOf(thread);
                 const person = thread.member ?? thread.members?.[0]?.user;
@@ -373,7 +374,7 @@ export function ShareSheet({
             still refuse the call, and that refusal is handled above. */}
         {typeof navigator !== "undefined" && "share" in navigator ? (
           <Row
-            icon={<Share2 className="size-[18px]" />}
+            icon={<FiShare2 className="size-[18px]" />}
             label="Another app"
             line="Through this browser's own share sheet"
             onClick={() => void shareOut()}

@@ -684,7 +684,7 @@ function Offer({
         type="button"
         onClick={onRestore}
         disabled={busy || short > 0}
-        className="btn btn-primary mt-3 w-full"
+        className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105 mt-3 w-full"
       >
         {busy ? (
           <Spinner className="size-[18px]" />

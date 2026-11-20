@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CloudOff, Heart, MessageCircle } from "lucide-react";
+import { CloudOff, Heart } from "lucide-react";
+import { FaRegCommentDots } from "react-icons/fa6";
 import { Blank } from "@/components/ui/Blank";
 import { PageHeader, Tabs } from "@/components/layout/Page";
 import { dropsService } from "@/services/drops.service";
@@ -159,7 +160,7 @@ export function ActivityPage() {
           title={t("That could not be read")}
           line={errorMessage(activity.error)}
           action={
-            <button type="button" className="btn btn-secondary mt-4" onClick={() => void activity.refetch()}>
+            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4" onClick={() => void activity.refetch()}>
               {t("Try again")}
             </button>
           }
@@ -177,7 +178,7 @@ export function ActivityPage() {
               />
             ) : (
               <Blank
-                icon={<MessageCircle className="size-[46px]" />}
+                icon={<FaRegCommentDots className="size-[46px]" />}
                 title={t("You have not responded anywhere")}
                 line={t("The Drops and Vibes you leave a line on gather here.")}
               />

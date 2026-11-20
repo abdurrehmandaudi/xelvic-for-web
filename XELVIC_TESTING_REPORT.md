@@ -2762,3 +2762,1411 @@ folds into — is reasoned and unexercised.
 This round read `app/lib/screens/call_window.dart` again and wrote nothing outside
 `xelvic-web/`. No backend file was read or modified, and the round made no change to
 any request, address, body, header or response.
+
+## Round 23 — the emoji a message wears, and the mic that records (2026-11-11)
+
+The owner's reports, in the order they came: *"abhi emoji chatscreen me send karne par send ke
+baad aur hover par animate nahi kar raha hai, please ise fix kijiye"*, then *"ye jo continue
+animate ho raha hai jabki send karne par aur hover karne par animate hona chahiye"*, then four
+about what an emoji is drawn with — the last of them **"please dynamic emoji hata dijiye pahle
+jaise tha waise hi kijiye jo google ka"** — and then, once the sets were settled, the panel
+itself: *"abhi input me jo plus hai usme emoji par click karne par jo emoji panal open hota hai,
+usme emoji animate continue hote hi rahte please ise aisa kijiye ki kewal hover karne par hi
+emoji animate kare"*. The composer's mic had never recorded anything.
+
+### What was built
+
+`src/features/emoji/motion.ts` decides when an emoji may move, and the rule is one line: a
+drawing moves while a pointer rests on it, an emoji in a sentence also gets one pass when its
+message is sent or arrives, and nothing moves merely for being on screen — which is the
+owner's second report about the thread and then the third about the panel, and is why
+`wanted(inView, hovered)` takes no mode. It holds `MOST_MOVING = 24`. `EmojiArt.tsx` gained
+the `bursting` guard (a burst is not stopped by the observer's first "you are on screen"
+callback), which is the fault the owner reported.
+`src/features/convo/arrivals.ts` remembers when each message arrived under either of its two
+names and forgets it after three seconds. `src/features/convo/voicehold.ts` and
+`src/features/convo/useVoiceNote.ts` are the hold-to-record mic, and `VoiceStrip.tsx` draws what
+the recorder actually read. On the owner's last instruction the alternative resting sets were
+**removed**: `looks.ts`, `fluent.ts`, `threed.ts`, `moji3d.ts`, `emojitwo.ts` and their test
+files are gone, so is the `xelvic.emoji.look` key in `src/constants/storage.ts`, and `EmojiArt`
+now draws Google's still with Google's animation over it and nothing else.
+
+### New regression tests
+
+74 cases across six new files:
+
+- `src/features/emoji/motion.test.ts` — 11 cases in three groups: whether an emoji should be
+  moving (four cases now — a tile in the picker still while it is merely on screen, which is
+  the owner's report about the panel, a message's emoji still for the same reason, either of
+  them moving while a pointer rests on it, and neither moving once scrolled out of the page —
+  and the mode is no longer an argument, because the answer is the same for both), whether
+  there is room for one more (the budget full, and the one under the pointer let through
+  anyway), and handing a place back (given back over the budget once the pointer leaves, kept
+  while it is still there, kept when it was taken while there was room, and nothing to give
+  back when no pointer was involved).
+- `src/features/emoji/model.test.ts` — 25 cases over the picker's arithmetic: the CDN key
+  spelled from the code points, with the still and the animation asked for by that one name;
+  the table in nine groups that add back up to the whole of it, every row named and grouped;
+  a row taking a tone only when it carries all ten answers; the modifier's place and the
+  selector it replaces; a tile asking for the tinted emoji once a tone is picked; a search
+  that narrows with every word rather than widening; and the recent shelf.
+- `src/features/emoji/text.test.ts` — 15 cases: cutting a message into text and emoji (a
+  variation selector kept with its emoji, a tinted emoji kept whole, the pieces put back
+  exactly as they came, the same answer twice), and reading one emoji's artwork out of the
+  flags index, which must agree with the picker's own table and say no as readily as yes.
+- `src/features/emoji/flags.test.ts` — 3 cases holding the generated tables to each other row
+  by row so `data.ts` and `flags.ts` cannot drift.
+- `src/features/convo/arrivals.test.ts` — 7 cases: the first moment wins across a message's two
+  names, and the map forgets an arrival after three seconds.
+- `src/features/convo/voicehold.test.ts` — 13 cases: the three things a hold can become at the
+  phone's own cancel and lock slops (including the dead heat, which keeps the recording), a
+  loudness reading as a bar, and the shelf of readings. The one-second floor and the
+  thirty-minute and 25 MB ceilings are constants the recorder reads rather than cases of their
+  own.
+
+The look-era suites (`looks.test.ts`, `fluent.test.ts`, `emojitwo.test.ts`) went out with their
+modules, which is why the closing case count is below the round's peak.
+
+### Browser runs
+
+- `google-only.mjs` mounted the real `EmojiPicker` at the close of the round: Smileys drew
+  **169 images, all 169 from `fonts.gstatic.com`**, none from `cdn.jsdelivr.net`, none from
+  anywhere else; People & Body drew **386, all Google**. Sampled addresses were
+  `/1f600/emoji.svg`, `/1f603/emoji.svg`, `/1f604/emoji.svg`. No Look chip was in the panel and
+  `localStorage` held no `xelvic.emoji.look` after a fresh mount.
+- `hover-tiles.mjs` is the measurement of the owner's last report, taken after the change. It
+  mounted the real `EmojiPicker` exactly as the chat mounts it and moved the mouse with
+  `Input.dispatchMouseEvent`, so the browser itself produced the pointer events React listens
+  for. A player is an `<svg>` Lottie injects into a tile's stage span and a still is an `<img>`,
+  so the two cannot be confused, and the panel's own header icons are excluded by construction
+  — the first version of this probe counted them and had to be corrected. With the pointer in a
+  corner: **`{"running":0,"drawn":169}`**. Held on the grinning face:
+  `{"running":1,"labels":["grinning face"]}`; away: `{"running":0}`. Held on heart eyes:
+  `{"running":1}`; away: `{"running":0}`. Held on the smiling-open-mouth face:
+  `{"running":1,"labels":["grinning face with big eyes"]}`; away: `{"running":0}`.
+- `emoji-text.mjs` asked the same of the other half, mounting the real `EmojiText` and driving
+  `burst` through the same prop `ChatPage` uses: idle `{"emoji":2,"running":0}` → hovered
+  `{"running":1}` → pointer left `{"running":0}` → burst `{"running":2}` with no pointer
+  anywhere → settled `{"running":0}`.
+- `voice.mjs` mounted `useVoiceNote` behind a button in Chrome 156 with Chrome's own fake
+  microphone: a three-second hold and release made a real `voice-*.m4a`,
+  `audio/mp4;codecs=mp4a.40.2`, 36,220 bytes, `durationMs` 2195, 19 loudness readings, loudest
+  41. A hold slid left made nothing and said nothing; a 120 ms tap made nothing and said
+  *"Hold the mic to record — a tap is too short to send."*; a hold slid up parked the recorder
+  and the strip's Send made 35,113 bytes, 2,146 ms, 20 bars, loudest 88.
+- `bubble-layers.mjs`, `bubble-ink.mjs` and `one-drawing.mjs` are the doubled-emoji work. The
+  first two mounted real 42px `EmojiText` bodies, read the computed style of each of the three
+  layers, and then forced the character layer transparent and counted the ink that disappeared —
+  which is the machine's own glyph showing on the page. It was never zero, at rest or hovered.
+  `one-drawing.mjs` is the closing measurement, over seven real bodies (🙏 😀 👍 🙌 ✌️ 👏 at the
+  42px `bubbleType` gives a one-emoji message, plus one 120px 🙏):
+
+  ```text
+  at rest, every bubble   character opacity "0", still opacity "1", loaded true
+  large 🙏, pointer on it  character "0", still visibility hidden, Lottie player injected
+  character forced on     1,234 px changed at rest, 1,301 px with the pointer on it
+  per emoji at 42px       😀 0   👏 13   👍 37   ✌️ 102   🙏 132   🙌 189
+  120px 🙏                761 px
+  ```
+
+  `tile-drawing.mjs` asked the same of the **panel**, which is where the owner first saw the
+  problem, by mounting the real `EmojiPicker` full-screen the way the composer mounts it and
+  reading all three layers of every tile:
+
+  ```text
+  Smileys page, pointer away   169 tiles, 169 stills landed, characterPainted 0, bothPainted 0
+  one tile held                169 tiles, 169 stills landed, characterPainted 0, bothPainted 0
+  offenders                    []
+  ```
+
+  The face leaks nothing and the hands leak most, which is the owner's *"sabse jyada people &
+  body wale me"* as a measurement. `hover-tiles.mjs` (`{"running":0,"drawn":169}` idle, one
+  player under the pointer, none after it leaves) and `emoji-text.mjs` (idle 0 → hovered 1 →
+  left 0 → burst 2 → settled 0) were run again after the change and read the same numbers as
+  before it.
+
+### Checks at the end of this pass
+
+```text
+npm run typecheck                PASS
+npm run lint                     PASS (eslint ., no warnings)
+npm test                         33 files FAIL (vitest worker bootstrap, environment — see below)
+npx vitest run --pool=vmForks    395/395 PASS (33 files), 4 runs of 4
+npm run build                    PASS
+```
+
+`npm test` is `vitest run`, and its **default pool does not bootstrap on this machine**: every
+one of the 33 suites stops at its first `describe` with vitest's own *"failed to find the
+current runner"* or `Cannot read properties of undefined (reading 'config')` — its worker never
+finishes initialising, so no test body runs. It hits suites with nothing to do with this round's
+work (`cameraMath.test.ts`, `engine.test.ts`, `moment.test.ts`, `shop.test.ts` among them). It
+is an environment fault and **not** this change: with `src/features/emoji/EmojiArt.tsx` restored
+to its committed state the default pool fails the same 33 of 33, both on one file (three runs of
+three) and on the full suite. It was passing earlier the same day, up to and including the
+previous round's build, and stopped after it. Nothing in `package.json` or `vitest.config.ts`
+was changed to make it look green; `--pool=vmForks` runs the same files through vitest's own
+module loader instead of Node's, and that path is sound.
+
+Chunks: entry 514.84 kB (159.96 kB gzip), chat page 139.50 (37.08), EmojiPicker 97.46 (24.78),
+`lottie_light` 169.07 (47.41), and `.transition-opacity`, `.duration-100` and `.opacity-0` are
+present in the shipped stylesheet. The chat page is measured over a working copy of
+`src/pages/ChatPage.tsx` that differs from the last commit by 1,588 lines added and 523 removed
+(1,408 / 343 ignoring whitespace) — more than this round's own wiring, and not covered by these
+checks as this round's work.
+
+### Not verified
+
+No live server was reached and nothing was done in the signed-in app. The half of the voice
+note that faces the server — the upload of the recording, the message that carries it, and the
+bubble that plays it back — is written and unexercised, and no emoji was ever seen moving in a
+real thread with real messages in it. The panel's new rule was measured with a mouse only: on a
+device with no pointer that can rest — a phone, a tablet — the panel is still, because a touch
+arrives and leaves in the same instant. That is the rule as the owner asked for it and is named
+here rather than shown; it was not measured on a touch screen. The recording is timed from the moment the recorder arms
+rather than from the moment the finger went down, which is the phone's own behaviour and was
+measured. A browser without MP4 records WebM/Opus, whose length no element can report, which is
+why the recording's own clock is sent; Safari's recording support was not watched.
+
+The one-drawing change has **no unit test**, and cannot have one here: `vitest.config.ts` sets
+`environment: "node"` and there is no DOM, so `covered = drawn || animated` fading a layer out is
+not something a case can observe — the evidence is the browser probe above, which read the
+computed `opacity` of every layer of seven real bubbles and counted the ink. What the probe
+cannot settle is the owner's own picture: he sent two pink bubbles, and read against the code
+those are two message rows rather than one bubble drawn twice, so **whether the doubling he saw
+was inside a drawing or the same emoji said twice is NOT VERIFIED**. The doubling inside a
+drawing is what was measured, reproduced by forcing the character layer back on, and fixed.
+
+### Read-only project check
+
+`app/lib/screens/chat_audio.dart`, `app/lib/screens/chat.dart` and
+`app/lib/media/recording_controller.dart` were read for the recording's numbers and
+`backend/apps/chat/{services,serializers,models}.py` for the asset contract, and none was
+written to. Nothing outside `xelvic-web/` was created, edited or deleted. No request, address,
+body, header, timeout or response shape changed this round.
+
+## Round 24 — the plus menu's six rows, and a place that can be sent (2026-11-12)
+
+The owner asked for six rows in the menu the composer's plus opens — *"please ab convo ke
+chatscreen ke input me jo plus par click karne par open hota hai, please usme photos and videos,
+file, Location, Spark, sticker aur emoji ka option add kijiye"* — and the round is mostly a
+question of what evidence a menu can have. The menu is inline JSX inside a 5,400-line page, so
+there is nothing to mount on its own; `vitest.config.ts` is `environment: "node"` and there is no
+DOM, so there is nothing to assert about it either. Both facts point the same way: drive the real
+app and read what it drew.
+
+### What was driven, and where
+
+Headless Chrome (`--headless=new`, CDP over `--remote-debugging-port`) against the app's own dev
+server, from the probe directory `C:/Users/HP/xelvic-tmp/voice-probe`:
+
+- `stub-api.mjs` — a local stub on `127.0.0.1:5599` answering the four reads the chat screen makes
+  (`/auth/me/`, `/chat/threads/`, `/chat/threads/<id>/`, `/chat/threads/<id>/messages/`) and
+  recording every `POST .../messages/send/` body verbatim to `sent.json`. It echoes the request's
+  `Origin` and its `Access-Control-Request-Headers` and answers with
+  `Access-Control-Allow-Credentials: true`, because `src/config/axios.ts` sets
+  `withCredentials: true` and a wildcard is refused for credentialed requests.
+- The dev server ran as `VITE_API_URL=http://127.0.0.1:5599 npx vite --host 127.0.0.1 --port 5175`
+  — **origin only**, because `src/config/env.ts` appends `/api/v1` itself, and overridden on the
+  command line rather than in `.env`, so the live API was never pointed at.
+- The page driven is the real one at `/app/convo/<threadId>`: `main.tsx`'s provider stack, the
+  router, `ProtectedRoute`, `ConvoLayout`, `ChatPage`. Only the session is planted
+  (`sessionStorage.xelvic.access|refresh|me`) and only the server is a stub. Nothing stubs the
+  client.
+- Chrome's geolocation is overridden with `Emulation.setGeolocationOverride` to a fixed Mumbai fix
+  rather than the machine's own position, and the accuracy is an argument, so the sheet's
+  confident line and its approximate one can both be read.
+
+### `plus-menu.mjs` — the six rows and the sheet
+
+The panel the plus opens, read back from the DOM as `{label, icon, dead}` per row:
+
+```text
+menu rows      [{"label":"Photos and videos","dead":false},
+                {"label":"File","dead":false},
+                {"label":"Location","dead":false},
+                {"label":"Spark","dead":false},
+                {"label":"Sticker","dead":false},
+                {"label":"Emoji","dead":false}]
+file inputs    ["image/*,video/*","audio/*,application/pdf,.doc,.docx,.txt"]
+```
+
+Six rows in the owner's own order, none disabled. The two inputs carry the single old list
+(`image/*,video/*,audio/*,application/pdf,.doc,.docx,.txt`) cut in two at the picture/file boundary.
+Clicking the third row, with the emulated accuracy at 35 m:
+
+```text
+sheet          title "Share a location"
+               description "Where you are, or a place you look up."
+               search placeholder "Search a hotel, a street, a city..."
+               row "Shahid Major Kaustubh Rane flyover, Mumbai — Accurate to about 35 m"
+               footer "Pick a place to send" (disabled)
+```
+
+The same probe, run again with the accuracy at 2,400 m, drew
+`"Shahid Major Kaustubh Rane flyover, Mumbai — Approximate — could be 2 km off"`: the sheet's line
+is the browser's own accuracy and not a decoration. Choosing the place turned the footer into
+`Send this location`, enabled; sending closed the sheet and left a **LOCATION** bubble in the
+thread (`plus-location-sent.png`). The screenshots were read and match the DOM readings.
+
+### `plus-search.mjs` — the half that only matters when the fix is wrong
+
+The same real app, on the same stub, on a second port, with geolocation **not** granted, so the
+sheet has to draw a refusal instead of a fix. The search box was typed into with real per-character
+`Input.dispatchKeyEvent`s (`keyDown` with `text`/`unmodifiedText`, then `keyUp`, 60 ms apart), so
+React saw a keyboard rather than a value assignment, and the sheet's own 450 ms debounce ran:
+
+```text
+sheet at rest  {"title":"Share a location","rows":[]}
+after typing   {"typed":"Bandra",
+                "rows":["Gurunanak Marg (Turner Road), Mumbai — Bandra, ... India",
+                        "Bihar — Bandra, Muzaffarpur, Bihar, India",
+                        "Gornji Ramići — Bandra, ...",
+                        "Brijesnica Velika — Bandra, ...",
+                        "Madhya Pradesh — Bandra, Chaurai Tahsil, Chhindwara, Madhya Pradesh, India",
+                        "Madhya Pradesh — Bandra, Seoni Tahsil, Seoni, Madhya Pradesh, India"],
+                "said":["This browser is not allowed to see where you are.
+                         A place can still be searched for above."]}
+```
+
+Six real rows from OpenStreetMap, and one refusal line saying the true thing — the browser's own
+setting, which is the only refusal a person can act on. Choosing the last row enabled the same
+footer, and sending closed the sheet with a **LOCATION** bubble reading *Madhya Pradesh*
+(`plus-search.png`, `plus-search-sent.png`, both read).
+
+### The wire, verbatim
+
+Recorded by the stub before it answered, three sends across the two probes:
+
+```json
+{"kind":"location","body":"Shahid Major Kaustubh Rane flyover, Mumbai","payload":{"lat":19.076,"lng":72.8777,"accuracy_m":35},"client_id":"bcbcdf3c-…"}
+{"kind":"location","body":"Shahid Major Kaustubh Rane flyover, Mumbai","payload":{"lat":19.076,"lng":72.8777,"accuracy_m":2400},"client_id":"56ccd79e-…"}
+{"kind":"location","body":"Madhya Pradesh","payload":{"lat":22.2962668,"lng":79.6823517},"client_id":"9555889e-…"}
+```
+
+The third has **no `accuracy_m`**, which is the honest shape of a searched place: the browser gave
+no accuracy for a name somebody typed, so the key is absent rather than zero or invented. Every
+request carried the `client_id` the composer's idempotency relies on. The page's network log held
+nothing but the app's own calls to `127.0.0.1:5599` and the geocoder calls the shipped sheet makes
+by itself.
+
+### The round's own test
+
+`src/utils/place.test.ts` — **7 cases**, the only ones that could be written without a browser,
+because `myPlace`'s refusal vocabulary is the one part of `place.ts` that needs no DOM and no
+network. The browser is faked by defining `globalThis.navigator` (and restoring it in `afterEach`),
+every geocoder in the file is dead (`vi.mock("axios", …)` rejects), and the cases are: no
+`navigator` at all → `unsupported`; a `navigator` with no geolocation → `unsupported`; the
+specification's code 1 → `denied`; code 3 → `timeout`; code 2 and an undefined code 7 →
+`unavailable`; a real fix at 19.076/72.8777 with accuracy 35 and a dead geocoder → `{ok: true}` with
+the label `"19.0760, 72.8777"`, which is the case that proves a position no geocoder can name is
+still a position; and a fix whose `coords` carry no `accuracy` → `accuracy: null` rather than `0`.
+
+### Checks at the end of this pass
+
+```text
+npm run typecheck                PASS
+npm run lint                     PASS (eslint ., no warnings)
+npm test                         402/402 PASS (34 files) — the default pool, no workaround
+npm run build                    PASS
+```
+
+**Round 23's environment caveat no longer applies and was not carried forward.** `npm test` is
+`vitest run`, and the default pool that stopped all 33 suites at their first `describe` on
+2026-11-11 finished its worker bootstrap again on this run without anything being changed to make
+it: `package.json`, `vitest.config.ts` and the test files are as Round 23 left them. The suite
+grew by this round's one file and its 7 cases (395 → 402, 33 → 34 files). `npx vitest run
+--pool=vmForks` reads the same 402/402.
+
+Chunks: entry 514.83 kB (159.97 gzip), chat page **141.86 (37.84)** — 139.50 (37.08) before, since
+`LocationSheet`, the six rows and the two inputs ship inside the chat page's own chunk —
+EmojiPicker 97.70 (24.86), `lottie_light` 169.07 (47.41), ConvoLayout 90.07 (23.50), axios 83.49,
+stylesheet 137.30 (24.52), and **`place` 2.61 (1.18) as a chunk of its own** now that both the
+camera and the composer import it.
+
+### Not verified
+
+**The message was never delivered to a real backend.** No server was reached and the live API was
+never contacted, so what is verified is this client's request and the optimistic bubble it draws;
+that the backend *accepts* a location is read from `backend/apps/chat/{models,services}.py` —
+`Message.Kind.LOCATION` at `models.py:562`, in `EMBED_KINDS` at `services.py:67` and not in
+`MEDIA_KINDS` at `services.py:65`, so no asset is asked for and the coordinates travel in
+`payload` — and from the backend's own tests. It was not watched landing, and the marker that the
+send was accepted (`message.location_echo` in the stub) is the stub's answer, not the product's.
+
+The menu and the sheet were measured with a mouse, not a finger. **The menu has no test of its
+own**: with `environment: "node"` there is no DOM for a case to assert against, so the browser
+probe is the evidence, exactly as it is for the one-drawing fix in Round 23. The two probes cover
+the six rows, both file inputs' accept lists, the refusal, the search, the choice, the footer and
+the wire; they do not cover a *room* that refuses a kind — the phone's attach sheet shortens itself
+by the room's rule (`_showAttachmentSheet`'s `only`, `channel_allows` in `services.py`), and this
+composer cannot, because the web's `Channel` type is `{id, name, position}` with no rule on it.
+That is a pre-existing gap, unclosed and unfixed, and it is named here rather than left for
+somebody to find in a photos-only room. A searched place has no accuracy to send; if OpenStreetMap
+is unreachable the sheet says nothing came back rather than inventing a row.
+
+### One row this round did not remove
+
+The last commit's `ChatPage.tsx` carries a fifth row, **Ask the crowd**, opening a `PollComposer`
+(one question and up to six answers, `kind: "poll"`). The working copy the round edited does not
+have it: the panel that this round replaced held four rows, and `PollComposer`, `pollOpen` and
+`sendPoll` appear in no file in the tree. Checked rather than assumed, across every session
+transcript on this machine (115 files including subagents): **no edit to `ChatPage.tsx` removed
+that block** — the only edits to the file since the last commit are this session's own two small
+ones on 2026-11-11 and the seven of this round, and the panel text this round took as its starting
+point contained no poll row. The receiving half is intact and still wired (`PollMessage`, and
+`vote()` calling `chatService.vote`). Recorded as a `NOT IMPLEMENTED` gap against the last commit —
+and **not** against the phone, whose chat creates no polls either. It is left as found; whether
+that row returns is the owner's call, not this round's.
+
+### Read-only project check
+
+`app/lib/screens/place_sheet.dart` (the sheet this round ports), `app/lib/screens/chat.dart` (its
+attach sheet and its `_attachRow` gate) and `app/lib/place_probe.dart` were read and not written
+to; `backend/apps/chat/models.py` and `backend/apps/chat/services.py` were read for the location
+kind and not written to. Nothing outside `xelvic-web/` was created, edited or deleted.
+`xelvic-web/docs/*.md` was not touched. No request, address, body, header, timeout or response
+shape changed this round, and no endpoint was added, renamed or extended.
+
+## Round 25 — the convo's Vibes, driven in a real browser against a stub shelf (2026-11-12)
+
+**What was under test.** The owner's four asks of 2026-11-12: the chat header's Vibes panel's
+design, the four rail actions on it, whether the shelf reaches everybody or only followed people,
+and whether every feature of the Drops walk is in the panel too.
+
+**Why a stub, and what the stub is.** The panel's door and its `<aside>` are inline JSX inside
+`src/pages/ChatPage.tsx`, which is about 5,400 lines; the page cannot be mounted on its own, and
+`vitest.config.ts` is `environment: "node"`, so there is no DOM test that could reach it. The
+honest way to see it is the real app in a real browser, and the honest way to do that without
+touching a live account is to answer its API locally. `stub-vibes.mjs` (port 5611) answers CORS
+with credentials echoed, serves a stand-in clip from `/media/`, and answers the shelf with
+**three clips from three authors the reader does not follow** — Meera, Dev and Noor, none of them
+the reader — after writing every request body it receives to `sent.json`. It is scaffolding: it
+is trusted for the bytes the panel drew and for the bytes the app sent, and for nothing else.
+
+**Isolation.** The app under test was a second Vite server started with `npx vite --mode probe
+--port 5176` reading a mode-scoped `.env.probe`; the default-mode server already running on 5173
+does not load that file and was not restarted, not reconfigured and not used. `.env.probe` was
+deleted when the round finished, both servers were stopped, the orphaned Vite child holding 5176
+was killed by port, and 5173 was confirmed answering **200** on its original `.env` afterwards.
+The earlier accidental leak of a real dev-server session into a probe log — caused by writing
+`.env.local`, which restarts any server already running — was not repeated: `.env.local` is not
+in the tree, and `grep -l eyJ` over every probe log returned nothing.
+
+**What the probe read back.** `convo-vibes.mjs` (CDP, headless Chrome, `--window-size=1100,900`)
+opened `/app/convo/<threadId>` with a planted session and drove the page with real mouse and key
+events.
+
+| Question | Measurement |
+| --- | --- |
+| Is the door a control? | `BUTTON`, `title="Vibes"`, `aria-label="Open Vibes"`, `aria-expanded="false"` before the click, 40×40 |
+| Does the panel carry the walk's features? | bar `Close Vibes` / `Vibes` / `1 / 3` / `More`; slides `Meera's Vibe`, `Dev's Vibe`, `Noor's Vibe`; rail on every slide `["Felt","Comments","Share","Save","Unmute"]` with boxes `Felt 46x52`, `Comments 46x50`, `Share 46x49`, `Save 46x27`, `Unmute 46x27`; pad present; caption and prompts drawn |
+| Does the client narrow the shelf? | No. The only shelf request on the wire was `GET http://127.0.0.1:5176/api/v1/drops/vibes/?limit=8` (plus `POST …/seen/`), and all three strangers were drawn |
+| Does Felt reach the server? | `POST /api/v1/drops/vibes/aaaaaaa1-…/like/ {"on": true}` |
+| Does Save reach the server, and stick? | `POST /api/v1/saved/ {"kind":"vibe","id":"aaaaaaa1-…","on":true}`, then the glyph read `Saved`, `aria-pressed="true"` |
+| Does a respond reach the server? | `POST /api/v1/drops/vibes/aaaaaaa1-…/comments/ {"body":"from the vibes panel"}`; the panel was still mounted after the write |
+| Does Share open the app's own sheet? | `Share` / `Close` / `Send to Jaya` / `Another app…` / `Copy a link…` — the sheet only. Nothing was picked inside it, so **no share write was recorded**, and `POST /drops/vibes/<id>/share/` is read from `drops.service.ts` rather than measured |
+| Does a hold open the player, and keep it open? | timeline `["shut","shut","shut","shut","open","open","open","open","open","open"]`; panel then read `scrubber: true`, `0.5× / 1× / 1.5× / 2× speed`, `Next` on / `Replay` off, *When it ends — The next Vibe plays*, `Done` |
+| Is the panel reported as its own surface? | `POST /api/v1/reco/signals/` with `surface: "vibes"` and all three clips and their positions, once per opening |
+
+**A real defect, found by sampling during the press.** The first hold run showed the player
+opening while the finger was down and shutting immediately after it lifted. Cause: the browser
+sends a `click` when a press is released however long it was held, and `onTap` read that click as
+"put the player away". It was **pre-existing** in the committed `VibeViewer.tsx` — `onTap` at
+line 688, with `longFired` checked only in `onDouble` — and the newly shared component had
+inherited it. Fixed in `VibeSlide.tsx` with an early return while `longFired.current` is set,
+that mark being cleared by the next press and nothing else. The timeline above is the
+after-fix run.
+
+**Two probe bugs, recorded because they were bugs in the probe.** (1) The stub first answered
+`POST /saved/` with `{ok: true}`; `useSaved.toggle` reads `answer.saved`, so `undefined !== true`
+rolled every bookmark back a moment after it filled — fixed to `{saved: Boolean(body.on)}`, after
+which the glyph read `Saved`. (2) The stub first answered the respond write from its generic
+branch with `{}`; the real address is `POST /drops/vibes/{id}/comments/` and the sheet reads
+`answer.comment`, so the panel unmounted — fixed to return `{comment, count}`. Both were the
+stub's fault, not the app's, and both are the reason a probe exists.
+
+**What is not verified.** The stub's clip is a four-byte stand-in, so the panel's **video frames
+were never watched** — the chrome, the rail, the caption, the player, every glyph and every write
+are measured; the picture is not. Every measurement is against a local stub: **no live request
+was made and no real account was used**, so the live shelf's composition, live media and live
+moderation are **NOT VERIFIED**. The capture is a mouse and a keyboard, not a finger, so touch
+behaviour is **NOT VERIFIED**.
+
+**Checks run after this round's changes.** `npx tsc -b` — clean. `npx eslint .` — clean.
+`npm test` — 34 files, 402 tests, all passed. `npm run build` — succeeded; `ChatPage` 148.38 kB
+(39.73 kB gzip), `VibeSlide` 23.36 kB (7.62 kB gzip), `ConvoLayout` 90.03 kB (23.49 kB gzip),
+entry 514.78 kB (159.95 kB gzip), with the pre-existing "larger than 500 kB" warning unchanged.
+
+**Files this round touched, all inside `xelvic-web/`.** New: `src/features/drops/VibeSlide.tsx`,
+`src/features/convo/VibesPanel.tsx`. Edited: `src/features/drops/VibeViewer.tsx`,
+`src/pages/ChatPage.tsx`. Probe scaffolding lives outside the repository at
+`C:/Users/HP/xelvic-tmp/vibes-probe/` (`stub-vibes.mjs`, `convo-vibes.mjs`, `sent.json`, the PNG
+captures). Nothing under `xelvic/` — app, backend or iOS — was created, edited or deleted.
+
+## Round 26 — two panels measured side by side, and ninety stickers' ink measured (2026-11-12)
+
+**What was under test.** The owner's two asks of 2026-11-12: that the sticker sheet be **exactly the
+emoji picker's height and width**, and that **every sticker be drawn at one size**.
+
+**Why the running app.** Both the sheet and the picker are inline JSX in `src/pages/ChatPage.tsx`
+(about 5,400 lines) and `vitest.config.ts` is `environment: "node"`, so there is no DOM test that can
+reach them. The honest way to measure a box is to measure it in a browser: `panels.mjs` (CDP,
+headless Chrome, `--window-size=1280,900`) opened `/app/convo/<threadId>` against a loopback stub
+(`stub-panels.mjs`, port 5612) with a planted session, clicked the composer's
+`[aria-label="Add attachment"]`, and read both panels' boxes and every row's height back with
+`getBoundingClientRect`.
+
+**Isolation.** The app under test was a second Vite server — `npx vite --mode probe --port 5176
+--strictPort` reading a mode-scoped `.env.probe`. `.env.local` was **not** written (writing it
+restarts any server already running and leaked a real session once before); the default-mode server
+on 5173 does not load `.env.probe` and was never restarted or reconfigured. `.env.probe` was deleted
+when the round finished, both servers were stopped, the orphaned Vite child holding 5176 was killed
+by port, 5173 was confirmed answering **200** on its original `.env`, and `grep -l eyJ` over every
+probe log returned nothing.
+
+**The box, before and after.** Both panels were already the same width; the height differed by a
+whole row, and the sheet's grid had grown to absorb it:
+
+| panel | before | after |
+| --- | --- | --- |
+| emoji picker | 340 × 363 — rows 41 · 29 · 258 · 33 | 340 × 363 — rows 41 · 29 · 258 · 33 |
+| sticker sheet | 340 × 339 — rows 41 · 264 · 32 | **340 × 363 — rows 41 · 29 · 258 · 33** |
+
+Two further measurements are what made the fix structural rather than cosmetic: the sheet had **no
+title row at all** (the row the emoji picker spends on "Smileys & People"), and its pack bar was
+drawn **only when the shelf came back with more than one pack**, so a one-pack shelf lost another 32
+pixels and the box moved a second time. Both were measured, both were changed, and
+`src/components/ui/shelf.ts` now holds the four rows — `SHELF`, `SHELF_SEARCH` (41), `SHELF_TITLE`
+(29), `SHELF_GRID` (`min(258px, 42vh)`), `SHELF_FOOTER` (33) — which **both** panels import, so the
+two boxes agree by construction instead of by two sets of numbers kept in step by hand.
+
+**The stickers, measured off the real catalogue.** `ink.mjs` measured the ink box of ninety stickers
+taken from the live catalogue (`https://sticker.gaongram.in/api/stickers?limit=1000`, public, no
+token) by drawing each already-loaded `<img>` into a 128-pixel-wide canvas and scanning its alpha
+channel:
+
+- **49 of the 90 carry a transparent margin on at least one axis**;
+- their visible ink covered between **775 and 3843 square pixels**, and stood between **22 and 63
+  pixels** tall — a five-fold spread in area;
+- the worst case, `image-removebg-preview (3)`, a **512 × 279** file whose ink occupies **48% × 73%**
+  of it, was drawn at **31 × 25** inside a 63-pixel box.
+
+After the change, four stickers re-measured in the running app, every one with a longest ink edge of
+**63**:
+
+| sticker | file | ink box | before | after |
+| --- | --- | --- | --- | --- |
+| `image-removebg-preview (3)` | 512 × 279 | 48% × 73% | 31 × 25 | **63 × 52** |
+| `winged heart with golden halo` | 512 × 341 | 98% × 87% | 62 × 37 | **63 × 37** |
+| `winged heart with arrow` | 512 × 341 | 98% × 98% | 62 × 41 | **63 × 42** |
+| `yellow heart` | 512 × 512 | 88% × 78% | 55 × 49 | **63 × 56** |
+
+The cells themselves were never the problem and were re-measured to say so: **75 × 75 with a 63 × 63
+drawing box inside**, on every one of them.
+
+**What is not verified.** Every measurement is against a loopback stub, so **no live request and no
+real account were used**; the live shelf's composition is the server's deal. The capture is a mouse,
+not a finger — **touch behaviour is NOT VERIFIED**. The editor's own sticker shelf
+(`src/features/camera/PhotoEditor.tsx`) was **not** measured and **not** changed; the phone's
+`app/lib/screens/chat_sticker.dart` was read, not changed (`xelvic/` is read-only). This round is
+**not** a parity claim.
+
+**Checks run after this round's changes.** `npx tsc -b` — clean. `npx eslint .` — clean.
+`npm test` — 34 files, 402 tests, all passed. `npm run build` — succeeded in 5.87 s; `ChatPage`
+150.50 kB, `EmojiPicker` 97.30 kB, entry 514.78 kB (159.95 kB gzip), the pre-existing >500 kB
+warning unchanged.
+
+**Files this round touched, all inside `xelvic-web/`.** New: `src/components/ui/shelf.ts`,
+`src/components/media/StickerArt.tsx`. Edited: `src/features/convo/StickerSheet.tsx`,
+`src/features/emoji/EmojiPicker.tsx`, `src/pages/ChatPage.tsx`. Probe scaffolding lives outside the
+repository at `C:/Users/HP/xelvic-tmp/panels-probe/` (`stub-panels.mjs`, `panels.mjs`, `ink.mjs`,
+the PNG captures). Nothing under `xelvic/` — app, backend or iOS — was created, edited or deleted.
+
+## Round 27 — every sticker on a 602-cell shelf, counted as it draws (2026-11-12)
+
+**What was under test.** The owner's two asks of 2026-11-12: that **all** the stickers arrive, and
+that a **GIF section be added if the catalogue holds GIFs** — *"agar nahi hai to leave it kewal sabhi
+sticker ko laiye"*.
+
+**First question: are there GIFs?** Answered by paging the catalogue itself rather than by looking at
+a screen. `GET https://sticker.gaongram.in/api/stickers?limit=100&offset=N` answers **602 rows across
+seven pages** with **602 unique ids**, every row carrying the same seven keys (`id, packId, url,
+tags, animated, pack, match`). Counting the deciding one: **`animated: true` is 0 of 602.** There is
+no GIF on the shelf, so per the owner's own instruction **no GIF section was added** — a finding,
+recorded with its evidence, rather than an ask quietly skipped. One image was also fetched directly
+to read its headers: `content-type: image/png`, `content-length: 52764`, `cache-control: private,
+no-transform, immutable, max-age=2592000`, `access-control-allow-origin: *`.
+
+**Second question: was anything missing from the data?** No. `sticker-count.mjs` counted the cells
+in the running app and found **602 cells built, 0 broken** — every sticker the catalogue has was
+already on the shelf. What was missing was the **pictures**: `StickerArt` drew each one with
+`loading="lazy"`, which leaves a cell blank until it comes near the window it is scrolling in — a
+window **258 pixels tall**, over a grid **159 rows and 11,941 pixels** long, of which **16 cells**
+are visible at once.
+
+| where the shelf was | cells | drawn | blank | broken |
+| --- | --- | --- | --- | --- |
+| as it opens | 602 | 76 | 526 | 0 |
+| after 5 screens | 602 | 136 | 466 | 0 |
+| after 10 screens | 602 | 196 | 406 | 0 |
+| after 15 screens | 602 | 252 | 350 | 0 |
+| after 20 screens | 602 | 312 | 290 | 0 |
+| jumped to the very end (`scrollTop` 11,683) | 602 | 386 | **216** | 0 |
+
+`scroll-count.mjs` drove that scroll the way a person does — twenty steps, 90% of a window each,
+900 ms between them — to be sure the result was not merely an artefact of jumping to the bottom. Both
+roads ended with hundreds of blank cells, so both roads are the defect.
+
+**After the change, the same probes.** `StickerArt` gained an `eager` prop and `StickerSheet` turns it
+on 350 ms after the shelf opens and off again when it closes:
+
+| probe | reading |
+| --- | --- |
+| `sticker-count.mjs`, at rest | `{"cells":602,"loaded":602,"broken":0,"pending":0,"visibleNow":16,"firstBroken":[]}` |
+| `sticker-count.mjs`, after scrolling to the end | `{"cells":602,"loaded":602,"broken":0,"pending":0}` |
+| `scroll-count.mjs`, at the top and after screens 5, 10, 15, 20 and at the end | **602 / 602 / 0 / 0** at every checkpoint |
+
+**What it costs, with a cold cache.** `settle.mjs` counts the Cloudinary bytes as they arrive
+(`Network.loadingFinished` / `encodedDataLength`, keyed by request id), with a **fresh browser
+profile** each run so nothing is served from disk:
+
+| when | asked for eagerly | drawn | blank | files | MB |
+| --- | --- | --- | --- | --- | --- |
+| 2.1 s | 0 | 0 | 602 | 0 | 0.0 |
+| 4.2 s | 602 | 165 | 437 | 165 | 8.9 |
+| 7.5 s | 602 | **602** | **0** | **602** | **26** |
+
+**Exactly one request per sticker** — `asked` 602 and `files` 602 — so the ink measurement Round 26
+added costs **no request of its own**. Every picture answers `immutable, max-age=2592000`, so a warm
+re-open costs about nothing (the warm run reported `files: 0, mb: 0`).
+
+**Two probe bugs, recorded because they were bugs in the probe.** (1) `settle.mjs` first broke out of
+its loop at 0.4 s reporting `{"asked":0,...}` — it treated "no cells yet" as "finished drawing", so it
+now `continue`s until cells exist. (2) It reported `mb: 0` on a second run because `--user-data-dir`
+persisted between runs and the pictures came from cache; the cold-cache runs are the ones quoted
+above. Neither was the app's fault, and both are why the numbers above were taken twice.
+
+**What is not verified.** Every measurement is against a loopback stub, so **no live request and no
+real account were used**. The catalogue itself *was* read live, but only its JSON and one image's
+headers. The capture is a mouse and a wheel, not a finger — **touch scrolling on a phone-sized
+viewport is NOT VERIFIED**. A cold open's **26 MB over a slow connection was not measured**: the
+timings above are this machine on this connection, and a slow link will draw the shelf more slowly
+even though every sticker still arrives. The editor's own shelf
+(`src/features/camera/PhotoEditor.tsx`) still uses `loading="lazy"` and was **not** changed, so it
+still behaves as the composer's shelf did before this round; the phone's
+`app/lib/screens/chat_sticker.dart` is the same and was read, not changed. This is **not** a parity
+claim.
+
+**Checks run after this round's changes.** `npx tsc -b` — clean. `npx eslint .` — clean.
+`npm test` — 34 files, 402 tests, all passed. `npm run build` — succeeded in 5.49 s; `ChatPage`
+150.69 kB, `EmojiPicker` 97.30 kB, entry 514.78 kB (159.96 kB gzip), the pre-existing >500 kB warning
+unchanged.
+
+**Files this round touched, all inside `xelvic-web/`.** Edited:
+`src/components/media/StickerArt.tsx` (the `eager` prop; and the doc comment's byte figure corrected
+from a header-sample estimate of 54 MB to the measured 26 MB) and
+`src/features/convo/StickerSheet.tsx` (the deferred `eager` state). Nothing new. Nothing under
+`xelvic/` — app, backend or iOS — was created, edited or deleted.
+
+## Round 28 — the character over the composer, watched rising and falling on a real socket (2026-11-12)
+
+**What was under test.** The owner's ask of 2026-11-12: *"abhi jaise typing par charector typing
+indicator aa hai waise isme nahi aa raha hai, please ise fix kijiye"* — that the character the phone
+puts up while the other person writes should come up on the web too.
+
+**Why this round needed a socket, and not a stub API.** Every earlier convo probe in this report
+drove a page whose interesting behaviour was its own response to a click. This one is different: the
+character rises only on a `thread.typing` frame, and that frame arrives over `/ws/`. A stub that
+answers HTTP cannot answer this question at all, and planting the typer's state in the page would
+have measured the page against itself. So `stub-typing.mjs` (port 5612) speaks **WebSocket** as well
+as HTTP: a hand-rolled RFC 6455 `upgrade` (sha1 accept key, unmasked server text frames, close-frame
+handling), and `POST /__typing?on=1|0` makes the other participant start or stop writing by pushing
+the real frame down every open socket:
+
+```json
+{"event":"thread.typing","data":{"thread_id":"1111…","user_id":"2222…","typing":true,"ttl":5}}
+```
+
+The frame's shape is the backend's: `services.typing` sends `{"thread_id", "user_id", "typing",
+"ttl"}`, with `ttl` read from `RULES["TYPING_TTL_SECONDS"]` — **6** in `config/settings.py` — and the
+same number travels in the `ready` frame as `typing_ttl`. The stub sends `ttl: 5`; the app clears the
+typer after the frame's own `ttl` seconds, and that timer was **not exercised** by this probe (every
+wait below is 700 ms), so what the number does over six seconds is read from the code, not measured.
+
+**The figure's pictures are the stub's, on purpose.** Both figures it serves put their three poses at
+`http://127.0.0.1:5612/pose/{wait,typing,bio}` as labelled coloured squares — blue **W**, red **T**,
+green **B** — so a screenshot says *which* pose was drawn, and the page's `img.currentSrc` says
+*whose* it was. The app's own bundled robot could not have said either.
+
+**Isolation.** The app under test was a second Vite server — `npx vite --mode probe --port 5176
+--strictPort` reading a mode-scoped `.env.probe`. `.env.local` was **not** written; the default-mode
+server on 5173 does not load `.env.probe` and was never restarted or reconfigured. `.env.probe` was
+deleted when the round finished, both servers were stopped, the orphaned Vite child holding 5176 was
+killed by port, 5173 was confirmed answering **200** on its original `.env`, and `grep -l eyJ` over
+every probe log returned nothing.
+
+**What `peek.mjs` read back.** CDP, headless Chrome, `--window-size=1280,900`, on
+`/app/convo/<threadId>` with only the session planted. Five moments, each read from the DOM and then
+screenshotted:
+
+| the other participant | `data-peek` | opacity | transform | picture | above the seam | pose drawn |
+| --- | --- | --- | --- | --- | --- | --- |
+| nobody writing | `down` | 0 | `matrix(1,0,0,1,0,0)` | 84 × 84 | −1 px | their `typing` pose, already in the DOM |
+| writing (a figure staff set to `both`) | **`up`** | 1 | `matrix(1,0,0,1,0,-72.24)` | 84 × 84 | **71 px** | **their** `/pose/typing` |
+| stopped | `down` | 0 | `matrix(1,0,0,1,0,0)` | 84 × 84 | −1 px | — |
+| writing, wearing a figure set to `profile` | **`down`** | 0 | `matrix(1,0,0,1,0,0)` | 84 × 84 | −1 px | — |
+| writing, wearing a key the catalogue has no row for | **`up`** | 1 | `matrix(1,0,0,1,0,-72.24)` | 84 × 84 | 71 px | **the bundled** `/char/typing.png` |
+
+- **−72.24 is `0.86 × 84` exactly**, the phone's `kPeekAt` against its `kPeekSize`. The 71 px read
+  against the composer's own top edge is that number against a fractional layout edge, and the
+  picture's bottom stands **13 px below the seam** — the character stands *behind* the bar, which is
+  what the phone draws (`children: [Positioned, bar]`) and what the screenshots show: the field, the
+  attach button and the mic are drawn over the figure's lower body.
+- **The stub was asked for exactly one picture across the whole first pass — `/pose/typing`** — and
+  never `/char/typing.png`. That is the measurement that proves the drawn figure is *theirs* and not
+  the app's fallback; the pose URL alone could not have.
+- **The bundled rung is measured too**, because it is the rung most accounts will actually hit: an
+  account wearing a key the catalogue has no row for rises in the app's own figure at the same
+  84 × 84 and the same −72.24, with `pictures asked for: []` — nothing was fetched from the stub,
+  because the picture came from the app's own bundle.
+- **No words, in any of the five moments.** A DOM walk for any painted `<p>` or `<span>` containing
+  "typing" returned `[]` every time (the walk excludes clipped elements, because the screen reader's
+  copy is `sr-only` and would otherwise be counted as paint). What a reader who cannot see the figure
+  hears is a `role="status"` line: `"Jaya is typing..."` while the character is up, and `""` while it
+  is down — read at all five moments.
+
+**A probe bug, recorded because the first `profile` run looked like a product defect and was not.**
+The `placement: "profile"` pass initially showed the character rising, which reads exactly like a
+broken rule. It was the probe: `src/store/queryCache.ts` keeps the app's answers in **`sessionStorage`
+for thirty minutes, keyed by account id** (`xelvic.query-cache.<me.id>`), and the probe had been
+clearing the wrong storage under the wrong key, so the second pass was replaying the first pass's
+thread — still wearing the first pass's figure. With `sessionStorage.clear()` before each pass, the
+`profile` pass asks the server for `/catalogue/` and `/chat/threads/<id>/` afresh (read back from
+`Network.requestWillBeSent`) and the character stays down. The negative result is therefore a
+measurement and not an artefact, and the correction is why it is written down.
+
+**The round's own test.** `src/features/marketplace/model.test.ts` — **5 cases**, and the only ones
+that could be written without a DOM: the rule that decides whether a figure may stand over a composer
+is a pure function over staff's `placement` (`both`, `chat`, `profile`, `none`, and no row at all),
+because `vitest.config.ts` is `environment: "node"` and the component that draws the figure cannot be
+mounted in a case. The four values are pinned individually rather than sampled, since a rule that
+admitted three of the four would look right on the shop's own figures and be wrong on every theme's.
+Suite grew 34 files / 402 tests → **35 files / 407 tests**.
+
+**What is not verified.** Every measurement is against a loopback stub: **no live request was made
+for the typing frames and no real account was used**, so the character rising on a note that a *real*
+second account typed is **NOT VERIFIED** — what is verified is that the page draws the figure on the
+frame the backend is documented to send. Touch and a real phone were not used; the capture is a mouse
+at 1280 × 900. The middle rung of the phone's chain — the figure a **theme** ships — is not reachable
+from the web's catalogue at all and is **NOT IMPLEMENTED** (an account wearing no shop figure falls
+back to the bundled one); a theme's `figure_peek` size is on the theme's row and is not read. The
+editor's and the phone's own behaviour was not touched: `app/lib/screens/chat.dart` was read, not
+changed (`xelvic/` is read-only). This is **not** a parity claim.
+
+**Checks run after this round's changes.** `npx tsc -b` — clean. `npx eslint .` — clean.
+`npm test` — 35 files, 407 tests, all passed. `npm run build` — succeeded in 5.28 s; `ChatPage`
+149.76 kB (was 150.69 kB in Round 27), `ConvoLayout` 90.04 kB, `marks` 15.61 kB, entry 514.87 kB
+(159.98 kB gzip), the pre-existing >500 kB warning unchanged.
+
+**Files this round touched, all inside `xelvic-web/`.** New: `src/features/convo/TypingPeek.tsx`,
+`src/features/marketplace/model.test.ts`. Edited: `src/pages/ChatPage.tsx` (the composer wrapper made
+`relative isolate`, the peek as its first child, the visible typing line removed, the list's bottom
+inset), `src/types/api.ts` (`character` declared on `UserCard`), `src/features/marketplace/model.ts`
+(`figureOnChat`). Probe scaffolding lives outside the repository at
+`C:/Users/HP/xelvic-tmp/typing-probe/` (`stub-typing.mjs`, `peek.mjs`, the PNG captures). Nothing
+under `xelvic/` — app, backend or iOS — was created, edited or deleted. `xelvic-web/docs/*.md` was not
+touched.
+
+## Round 29 — both characters over the composer, driven by a gaze that arrives as a frame (2026-11-12)
+
+**What was under test.** The owner's ask of 2026-11-12: *"abhi app jaisa nahi aa raha hai aap me jo jo
+hai exact waisa hi hona chahiye aur usme typing aur wait 2 charector hai aur dono jaise work kar raha
+hai app me waise isme bhi karna chahiye"* — that the web carry **both** of the phone's two characters
+over the composer, `typing` and `wait`, working the way they work there.
+
+**Why Round 28's probe could not answer this, and what changed.** Round 28 pushed one fact down the
+socket: `thread.typing`. The `wait` character is not driven by that fact at all. It is driven by
+**where the other person is looking**, which arrives as a `focus` event, and the phone's half of that
+feature is `app/lib/looking.dart` (272 lines) plus `_watchOther`/`_sayLook` in `app/lib/screens/chat.dart`.
+The web had no such code — `grep` for it in `xelvic-web` found only `window.addEventListener("focus")`
+in an unrelated view — so this round had to port the feature before there was anything to measure.
+`stub-typing.mjs` therefore grew a second fact and, just as importantly, a **reader**: it now unmasks
+the frames the page *sends*.
+
+**The four frames, read off the backend rather than invented.** `ChatConsumer` tells the two outgoing
+`focus` shapes apart by `"users" in content` (`apps/chat/consumers.py:862-866`), so the list is the
+whole of what makes a frame a question:
+
+```json
+{"action":"focus","user":"2222…","kind":"chat","phase":"idle"}   // where I am (kind: chat | profile)
+{"action":"focus","users":["2222…"]}                             // who is looking at me
+{"action":"focus","kind":"none"}                                 // I am not on anything of yours
+{"event":"focus","data":{"user_id":"2222…","kind":"chat","phase":"idle","direction":null}}  // in
+```
+
+`kind: "none"` is answered as well as asked — `_focus_asked` answers it explicitly, because a missing
+answer would be read as a reason to keep the last character standing. The `ready` frame the stub
+writes on connect carries the real TTLs (`typing_ttl: 6, focus_ttl: 30, presence_ttl: 45`,
+`config/settings.py:1458,1553`), and it is **not decoration**: the page's first ask and its first word
+about where it is are both said before the socket is necessarily open (it is opened on an idle
+callback), and `ready` is what the app re-says them on. Without it a run would have measured a race.
+
+**What `gaze.mjs` read back.** CDP, headless Chrome, `--window-size=1280,900`, on
+`/app/convo/<threadId>` with only the session planted. The gaze was set **before** the convo opened, so
+the page cannot have learned it from a push — it is only knowable by asking, which is the ask path.
+`POST /__clear` empties the stub's frame log at the start of the run, so the repeat measurement is a
+delta and not a leftover. Every `data-pose` below is the component's own attribute; every pose URL is
+`img.currentSrc`:
+
+| the other participant | `data-peek` | `data-pose` | opacity | transform | pose drawn | above the seam | a screen reader hears |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| quiet, sitting on my convo | **`up`** | `wait` | 1 | `matrix(1,0,0,1,0,-72.24)` | `/pose/wait`, 84 × 84 | **71 px** | `Jaya has this convo open` |
+| writing on top of that | `up` | **`typing`** | 1 | `matrix(1,0,0,1,0,-72.24)` | `/pose/typing` | 71 px | `Jaya is typing...` |
+| stopped writing, still there | `up` | **`wait`** | 1 | `matrix(1,0,0,1,0,-72.24)` | `/pose/wait` | 71 px | `Jaya has this convo open` |
+| gone | **`down`** | `down` | 0 | `matrix(1,0,0,1,0,0)` | the pose it was drawn in is kept | −1 px | *(empty)* |
+| figure `profile`-placed, writing **and** watched | **`down`** | `down` | 0 | `matrix(1,0,0,1,0,0)` | `null` — nothing drawn | — | *(empty)* |
+| figure off the shelf | `up` | `wait` | 1 | `matrix(1,0,0,1,0,-72.24)` | **the bundled** `/char/wait.png` | 71 px | `Jaya has this convo open` |
+
+- **The second row is the asymmetry.** Writing wins over merely being somewhere of mine, so the pose
+  is `typing` while both facts are true — and the third row is the other half: when the writing stops
+  the figure does **not** go down, it returns to `wait`, because being on my convo is a fact that does
+  not come and go. A probe that only measured rows one and two could not tell a precedence rule from a
+  fallback chain.
+- **The `wait` picture was asked for while nobody was typing.** Across the first pass the stub was
+  asked for **two** pictures, `/pose/wait` and `/pose/typing`, and the `wait` one arrived with no
+  `thread.typing` frame in the run at all. That is the measurement that proves the second character is
+  driven by the gaze rather than by the absence of the first.
+- **The gone row keeps its pose.** `pose` still reads `/pose/wait` after the gaze is withdrawn, with
+  opacity 0 and the identity transform — that is `?? last` doing its job, and it is what makes the
+  figure slide *down* in the character it was standing in rather than blanking first.
+- **The bundled rung is measured too**, since it is the rung most accounts will hit: a key the
+  catalogue has no row for rises in the app's own figure at the same 84 × 84 and the same −72.24, with
+  `pictures asked for: ["/char/wait.png"]`.
+- **No painted words at any of the six moments.** The DOM walk for a visible `<p>`/`<span>` containing
+  "typing", "has this convo open" or "looking at your profile" returned `[]` every time (clipped
+  elements are excluded, because the screen reader's copy is `sr-only` and would otherwise be counted
+  as paint). The three sentences live only on a `role="status"` line.
+
+**The repeat, measured rather than assumed — and the bug that made it necessary.** A screen that asked
+once would lose the gaze the moment the server's thirty seconds ran out, and a screen that said its own
+word once would go quiet while it was still true. Both are repeated every fifteen seconds
+(`Looking.recheck` / `Looking.refresh`), and the first attempt to measure it printed *"8 asks and 9
+words about me, 0s"* — because the stub's `said` array had been accumulating since a **previous** run
+and the check was counting the total. The stub grew `POST /__clear`, the driver calls it at the start,
+and the check was rewritten to measure a delta from the count observed once the page had settled. The
+corrected run reads: **2 frames 8 seconds after the page settled** — one `ask` and one
+`{"kind":"chat","user":"2222…","phase":"idle"}`. Eight seconds is inside the fifteen-second interval
+because the interval had already been running before the page settled, which is the correct behaviour
+and not a shorter timer.
+
+**The convo's frames for one clean open, unmasked out of the socket by the stub:**
+
+```
+ask → say chat → left → ask → say chat → ask → say chat
+```
+
+The `left` is React **StrictMode double-invoking the effect in dev** — mount, cleanup, mount — and the
+teardown order is deliberate (unwatch first, then a **named** goodbye, so a goodbye for one person can
+never be read as somebody else's). A production mount runs the effect once. This is recorded as a
+dev-mode artefact and **not** claimed as correct behaviour.
+
+**The other direction is a different page.** Navigating to `/app/u/jaya` and reading the frames the
+**profile** said gives `{"kind":"profile","user":"2222…","phase":"idle"}`, so the profile half is not
+merely code that exists — it says the right place about the right person, and it reaches the socket
+from a page that had to load somebody first (`/auth/users/jaya/` is answered by the stub with
+`relation.self = false`).
+
+**The round's own tests.** `src/features/presence/looking.test.ts` — **11 cases** — and
+`src/features/convo/peek.test.ts` — **9 cases**. `vitest.config.ts` is `environment: "node"`, so the
+component that draws the figure cannot be mounted in a case; what can be tested is the rule, and that
+is why the rule was put in its own file rather than left inside `TypingPeek.tsx`. The `looking` cases
+pin `lookOf` against `"none"`, an unknown `kind` (a newer server naming a third place must leave the
+screen quiet rather than have the web invent a character it cannot draw), a non-string, and
+`undefined`; pin `staleGazes` at the boundary (believed at `STALE − 1`, dropped at `STALE`); and pin
+the two ratios that are the reason the constants exist at all —
+`GAZE_STALE_MS === GAZE_RECHECK_MS * 2`, and `GAZE_REFRESH_MS === 15_000` against a 30-second server
+window. The `peek` cases cover the `wait` pose on **both** a `chat` and a `profile` gaze, writing
+winning when both facts are true, the last pose being kept with `up: false`, a first frame with nobody
+there, the nullable-picture fallback, and the three sentences — including that writing wins in the
+words too. **One of these cases failed on first run and the fault was mine, not the code's**:
+`staleGazes(seen, 30_000)` was expected to drop an entry at `at: 500`, which is only 29.5 s old, so the
+fixture was wrong rather than the rule; it was corrected to `now = 60_000` with the entries at 0, 45 000
+and 20 000. Suite grew 35 files / 407 tests → **37 files / 428 tests**.
+
+**One deliberate deviation, recorded because it is a deviation.** The phone remembers "the last pose"
+as one of three files in its own bundle, which cannot go away while the app runs. The web's poses are
+shelf URLs that change the moment somebody changes their figure, so the memory is **keyed to the set of
+pictures it came from** — `memory.current?.art === art` in `TypingPeek.tsx`. Without that key, a figure
+change mid-convo would leave the character standing in the previous figure's pose.
+
+**What is not verified.** Every measurement is against a loopback stub: **no live request was made for
+the `focus` frames and no real second account was used**, so two live accounts looking at each other is
+**NOT VERIFIED** — what is verified is that the page asks, says and draws on the frames the backend is
+documented to send. The **30-second sweep runs only in unit tests**; no probe waited out a real lapse,
+and the server's own `stale` cleanup after a peer who vanishes without saying goodbye is exercised
+through `staleGazes` and not through an actual vanished peer. **Presence-watching is NOT IMPLEMENTED** —
+the phone also watches whether a partner is online, which is a different fact from where they are
+looking. Touch and a real phone were not used; the capture is a mouse at 1280 × 900. `xelvic/` was read
+and not changed. This is **not** a parity claim.
+
+**Checks run after this round's changes.** `npx tsc -b` — clean. `npx eslint .` — clean. `npm test` —
+37 files, 428 tests, all passed. `npm run build` — succeeded in 4.92 s; `ChatPage` 150.53 kB (was
+149.76 kB in Round 28; the rise is the watch/say wiring and it is reported as a rise), `ConvoLayout`
+90.04 kB, entry 517.35 kB (160.77 kB gzip), the pre-existing >500 kB warning unchanged.
+
+**Files this round touched, all inside `xelvic-web/`.** New: `src/features/presence/looking.ts`,
+`src/features/presence/looking.test.ts`, `src/features/convo/peek.ts`, `src/features/convo/peek.test.ts`,
+`src/context/looking.ts`, `src/providers/LookingProvider.tsx`, `src/hooks/useLooking.ts`. Edited:
+`src/features/convo/TypingPeek.tsx` (rewritten to take `{typing, gaze}` and to carry `data-peek` and
+`data-pose`), `src/pages/ChatPage.tsx` (the watch/say effect), `src/features/profile/PersonProfile.tsx`
+(says `profile`), `src/main.tsx` (the provider, inside `SocketProvider` and outside every page). Probe
+scaffolding lives outside the repository at `C:/Users/HP/xelvic-tmp/typing-probe/`
+(`stub-typing.mjs`, `gaze.mjs`, the PNG captures). Nothing under `xelvic/` — app, backend or iOS — was
+created, edited or deleted. `xelvic-web/docs/*.md` was not touched.
+
+## Round 30 — every chip in a real thread, measured one at a time (2026-11-12)
+
+**What was under test.** The owner's ask of 2026-11-12: *"ab chatscreen me jo chip banta hai jaise call
+ka, data ka etc ka wo sab jaise aap me hai exact waisa kijiye"* — that the five things a convo draws
+which are **not** messages each be the phone's own object. A blind edit would have been wrong: four of
+the five were already exact, and the fifth had never been drawn at all.
+
+**The probe.** `stub-chips.mjs` (loopback, port 5613) serves one thread carrying every chip the ask
+names: a question and two answers, a system note, a **missed** call note, a call note of mine that
+**ended**, a picture, and a PDF. `chips.mjs` drives headless Chrome over CDP against
+`npx vite --mode probe --port 5176` and reads each chip out of the element that paints. The stub's
+socket is real — a hand-rolled RFC 6455 server — so the call chip's press is read as a **frame the page
+said**, not as page state. Two `thread.gate` shapes are exercised (`/__gate?call=0|1`), which is the
+phone's `_callOpen` half of `_canCall`.
+
+**The chip's readings, from the browser.** Each row is the *plate* — the nearest ancestor carrying a
+1px border, which is the element that has the size, the radius and the fill:
+
+| chip | measured |
+| --- | --- |
+| the top strip | 159.77 × 29.75, radius **20**, `6px 12px 6px 11px`, icon 12 × 12 `rgb(107,107,123)`, gap 5 |
+| the day pill | 77.64 × 28.5, radius **20**, `5px 11px`, 11px/600 `rgb(107,107,123)`, tracking `0.2px`, air 10 above / 12 below |
+| a missed audio call | 201.19 × 39.5, radius **16**, `9px 13px`, icon 16 `rgb(217,43,43)`, gap 8, `Missed audio call` 13px/600 `rgb(217,43,43)`, `9:15 AM` 10px/400 `rgb(107,107,123)`, `inButton: true`, `cursor: pointer` |
+| my video call that ended | 195.67 × 39.5, same plate and metrics, ink `rgb(107,107,123)` |
+| a system note | 410.69 × 38.75, radius **16**, `9px 13px`, no icon, not a button |
+| the stamp over a picture | `11:02 AM`, 10px/400 `rgb(107,107,123)`, **4px** above the picture, 0px in from its left edge |
+| a PDF | 220 × 62.73, radius **14**, `12px`, a 32 × 32 `rgb(227,27,102)` glyph, gap 10, `Hall ticket final.pdf` 14px/700 `rgb(19,19,26)`, `application/pdf · 1.1 MB` 11px/400 `rgb(107,107,123)` |
+
+**The failure this round actually found, and how it was proven rather than reasoned.** A CDP dump of
+the message list — every row's `outerHTML`, with `<svg>` collapsed — printed `Missed audio call` and
+`Video call · 12:31` **wearing the bubble's own classes**, in `justify-start` and `justify-end` rows.
+`_write_log` (`apps/calls/services.py`) calls
+`chat.system_note(thread, call.caller, body, {"call": str(call.pk), "media": …, "outcome": …, "seconds": …})`
+— **one flat dictionary**, with `call` a *string* and `media`, `outcome` and `seconds` its **siblings**.
+The web's `callNote()` read `message.payload.call` as an object and looked for `media` inside it, so the
+guard never passed and every call in every thread fell through to the ordinary-bubble branch. The fix
+reads the payload flat, exactly as `callNoteOf` (`app/lib/calls.dart:3758`) does.
+
+**The second failure: it was not pressable.** The chip carried a comment asserting this client could
+not place a call. That stopped being true in Round 18. It is now a `<button>` under the phone's own
+`_canCall` rule — `thread.other.username` non-empty **and** `gate.can_call === true`. Tapping it with
+the gate open produced `frames the page said: [{"ring":"22222222-2222-4222-8222-222222222222","kind":"audio"}]`
+from the unmasked socket. With the gate shut it draws as a `<div>`, which is the phone's `onTap: null`.
+
+**Two defects in the probe itself, both mine, both worth recording** because each would have made the
+page look wrong when it was not: the stub wrote the call notes as `kind: "text"` where the backend
+writes `system` through `chat.system_note`, and its document asset used `mime_type` where the
+serializer's field is `mime`. Both were found by the dump, fixed, and the stub restarted. A third
+probe defect — the day pill reading `radius: 28.5px` on a `rounded-full` span, because a browser clamps
+`full` to half the height — is why that chip's radius was measured from the plate and changed to
+`rounded-[20px]` to match the phone's `DayMark`.
+
+**The sheet, which Round 31 also touched, measured in the same run:** `Message options` 18px,
+`11:05 AM` 11px/400 `rgb(107,107,123)`, `You` 9px, `ringing you now` 12px. The clock's **ink** sits
+**17px** from the panel's left edge and its box 1px — the 16px inset is internal padding, so the box's
+own left edge says nothing about it and the reading was taken with a `Range` over the text node.
+
+**The round's own tests.** `src/utils/format.test.ts` — **4 cases** pinning `mediaSize` against the
+phone's `formatMediaSize`: bytes left whole, `0` → `Unknown size`, `1` → `1 B`; one decimal below ten of
+a unit and none at or above (`1024` → `1.0 KB`, `1536` → `1.5 KB`, `10240` → `10 KB`, `1183744` →
+`1.1 MB`); the unit walk (`1024**2` → `1.0 MB`, `1024**3` → `1.0 GB`, `1024**4` → `1024 GB`); and the
+unknown word for `null`, `undefined`, `-5` and `NaN`. This is the house convention at work —
+`vitest.config.ts` is `environment: "node"`, so the pure rule is testable and the plate is measured in
+the browser instead. Suite grew 37 files / 428 tests → **38 files / 432 tests**.
+
+**What is not verified.** Everything above is against a **loopback stub**; **two live accounts were not
+used** and no real call was placed or received. A video call was drawn from a note but never placed.
+Only a PDF was measured, so the `Image`/`Video`/`Audio` labels and the `_fallbackType` path are read
+from `chat_media.dart` and **NOT VERIFIED**. The file chip's download was not confirmed to save a file
+against a real backend — it points at the media URL the API returns and nothing more is claimed. The
+phone's file-name size is an **inference**: `_FileRow` gives the name w700 and no `fontSize`, so it
+inherits Material's default 14, and that inheritance was not measured on a device. Touch and a real
+phone were not used; the capture is a mouse at 1280 × 900. `xelvic/` was read and not changed. This is
+**not** a parity claim.
+
+**Checks run after this round's changes.** `npx tsc -b` — clean. `npx eslint .` — clean. `npm test` —
+38 files, 432 tests, all passed. `npm run build` — succeeded in 4.93 s; `ChatPage` 151.10 kB (was
+150.53 kB in Round 29; the rise is the file-chip rebuild and it is reported as a rise), `ConvoLayout`
+90.04 kB, entry 517.58 kB (160.88 kB gzip), the pre-existing >500 kB warning unchanged.
+
+**Files this round touched, all inside `xelvic-web/`.** Edited: `src/pages/ChatPage.tsx` (the flat
+`callNote`, the pressable call plate, the rebuilt file chip, `fileDetails`, the day pill's radius,
+`sparkShotLine`'s `pb-[2px]`, the sheet's clock line), `src/utils/format.ts` (`mediaSize`),
+`src/types/api.ts` (`ThreadDetail.gate` typed as `ChatGate`). New: `src/utils/format.test.ts`. Probe
+scaffolding lives outside the repository at `C:/Users/HP/xelvic-tmp/chips-probe/` (`stub-chips.mjs`,
+`chips.mjs`, `dump.mjs`) with results in `C:/Users/HP/xelvic-tmp/chips-out/`. Nothing under `xelvic/` —
+app, backend or iOS — was created, edited or deleted. `xelvic-web/docs/*.md` was not touched.
+
+## Round 31 — the time a message carries (2026-11-12)
+
+**What was under test.** The owner's ask of 2026-11-12: *"abhi isme message ka time nahi dikhta jaise
+app me dikhta hai, please ise bhi fix kijiye"*.
+
+**The phone was read before anything was drawn, and it does not put a clock on a bubble.**
+`messageStateRow` (`chat.dart:579`): *"The time is not here either: it is read from the long-press menu
+now."* `_actions` (`chat.dart:5073`): *"the bubble no longer carries it under the words, so pressing a
+message is how anybody learns when it was sent. It sits at the top left, above the emoji, where a
+heading would."* The one message that carries a clock **on** the page is a picture, and above it rather
+than under it (`messageStamp`, 10px `X.dim`) — which the web already had, and which the probe confirmed
+at 10px/400 `rgb(107,107,123)`, 4px above the picture. **Adding a clock to a bubble would have been the
+wrong fix**: it would have made this client differ from the phone in the name of matching it.
+
+**What was changed instead.** The sheet now opens with the phone's own line as its **first child**,
+above the emoji row: `Padding(fromLTRB(16,0,16,6))` → `Align(centerStart)` → `Text(at, X.dim, 11)`,
+rendered as `<p className="px-4 pb-1.5 pt-3 text-[11px] text-dim">`. Measured in the open sheet:
+11px / 400 / `rgb(107,107,123)`, `top: 70`, ink **17px** in from the panel's left edge. A **duplicate
+9px clock inside the quote card**, sitting next to the sender's name, was removed — the phone has one
+time in that sheet and it is the 11px headline.
+
+**Why the web needs no `_menuClock`.** The phone's `clock()` answers `10:42` and appends `AM`/`PM`
+itself, because `10:42` at midnight reads as the morning. The web's `clock()`
+(`src/utils/format.ts:105`) is `Intl.DateTimeFormat(undefined, {hour: "numeric", minute: "2-digit"})`,
+which already answers **`11:05 AM`** and is locale-aware. So one function serves both the sheet and the
+picture stamp, and the two cannot disagree — which is the property the phone's comment is protecting.
+
+**What is not verified.** The sheet was measured on a **received** message; the phone's `_menuClock` is
+empty for an unsent outbox row, and that state was not opened. A 12-hour locale was the one exercised —
+under a 24-hour locale the web reads `23:05` where the phone would append `PM` to `10:42`-style output,
+and that divergence is **recorded rather than fixed**, because matching the phone exactly there would
+mean ignoring the viewer's own locale. `xelvic/` was read and not changed. This is **not** a parity
+claim.
+
+**Checks.** Same run as Round 30 — `tsc -b` clean, `eslint .` clean, 38 files / 432 tests, build clean.
+
+## Round 32 — the sound bubble, measured against the phone's own player (2026-11-12)
+
+**What was under test.** The owner's ask of 2026-11-12: *"Alright, please audio message bubble ka design
+exact app ke jaisa kijiye"*. The reference is `ChatAudioBubble`
+(`app/lib/screens/chat_audio.dart:1109`).
+
+**How the reading was taken.** The whole application was mounted in a headless Chrome against a
+**loopback stub** — `axios.defaults.adapter` replaced before `src/main.tsx` was imported, a quiet
+`WebSocket` that never opens, tokens in `sessionStorage` and a silent WAV built in the page for the
+asset's `content_url` — and the route forced to `/app/convo/t1`. The numbers below are the browser's
+own, read off the elements that paint.
+
+| | measured | the phone |
+| --- | --- | --- |
+| the player | **190 × 58** | `SizedBox(width: 150)` of track + a 40-wide control = 190 |
+| the control | 40 × 40, `rgb(43, 87, 198)` | a Material `IconButton`, 24 icon, `color: tone` |
+| the track box | **150 × 30** | `_track` = 150; `AudioWaveform.height` = 30 |
+| the bars | **56**, each **1.11** wide, `marginInline 0.776786`, radius 2 | `mostBars` 56; `thick = cell * 0.42`, `gap = (cell - thick) / 2` |
+| their colours | unplayed `rgb(168, 182, 214)` = `--dim`; played `--accent` = `rgb(43, 87, 198)` | `X.dim` / `tone` |
+| the readout | `0:00 / 0:02`, 10px `--dim` | `formatAudioTime(position) / formatAudioTime(duration)`, 10 `X.dim` |
+| the speed chip | **38 × 28**, 14px/500, `color-mix(in srgb, var(--ink) 38%, transparent)` | `minimumSize: Size(38, 28)`, foreground `tone` when active |
+| the received bubble it sits in | **220 × 84**, `rgb(18, 26, 44)`, `18px 18px 18px 6px`, `10px 14px 8px` | the convo's own in-wash and radii |
+
+**The tone came out right, and the reason is worth recording.** The phone's bubble takes an `accent`
+prop and the chat screen always names `convoAccent()`; the web passes nothing and reaches the same
+colour because `--accent` is already rebound to `var(--convo-accent)` inside the convo page. Measured
+as `rgb(43, 87, 198)` = `#2B57C6` on this theme.
+
+**What is not verified, and what is not matched.**
+
+- **NOT MATCHED — the speed chip before the first press.** The phone's comment is explicit: *"Always a
+  control: before the first press it chooses the speed that press will play at"*, held per sound in
+  `_speedChoice`/`speedOf`. The web's chip is `disabled={!held}`, so it answers only while this bubble
+  already holds the ear.
+- **NOT IMPLEMENTED — `InFront`.** The phone stops a note when the page it is drawn on stops being the
+  one being looked at. The web has the one-ear rule (`claimEar`/`holdsEar`/`releaseEar` in
+  [playback.ts](src/utils/playback.ts)) and no page gate.
+- **NOT IMPLEMENTED — the transfer controls.** `_transferControls` (Pending, Uploading, Retry,
+  Discard) are not drawn; the web draws an "Expired" line only.
+- **NOT IMPLEMENTED — the sender above a group's voice note.** `sender: mine ? null : sender` is not
+  ported.
+- **NOT VERIFIED — the control's own behaviour under a finger.** A silent WAV plays; no real recording
+  was heard, no seek was performed with a mouse, and no speed was cycled. The chip's `38 × 28` is a
+  box measurement, not a press.
+- One limitation of the harness itself: the probe's selector for the heart matched the play button a
+  second time (their boxes came back identical), so **no heart reading from this run is used**.
+
+**Checks.** `tsc -b` clean, `eslint .` clean, **40 files / 454 tests**, `npm run build` clean in
+5.14 s — `ChatPage` **156.50 kB**, `ConvoLayout` 90.04 kB, entry 517.76 kB (160.96 kB gzip). `xelvic/`
+was read and not changed. **This is not a parity claim.**
+
+## Round 33 — three sounds in one thread, measured side by side (2026-11-12)
+
+**What was under test.** The owner's ask of 2026-11-12: *"song message bubble aur audio message bubble
+do alag alag message bubble hai aur dono ka design alag alag hai app me, please aise hi isme bhi
+kijiye"*.
+
+**What the phone has, read first.** Three things, of which only two are bubbles: a `voice` line is
+`ChatAudioBubble`; an `audio` line is `_mediaBubble`'s `'audio'` arm →
+`ChatAudioFileRow` → `_FileRow(icon: Icons.audio_file_outlined)`; and a **song share is an ordinary
+text line** whose payload carries the track, drawn by `ChatTrackCard` with no panel behind it. The
+phone's `bare` rule explains the last one — a card *"brings its own"* edges — and the body words live
+in the final `else` of the content chain, so a card never repeats them.
+
+**The whole harness was pointed at one thread holding all three**, so the three designs were read in a
+single run rather than in three:
+
+| | measured | drawn by |
+| --- | --- | --- |
+| the shared song | **272 × 152.89**, `background rgba(0,0,0,0)`, `border rgba(0,0,0,0)`, **`border-radius 0`**, `padding 10px`; wave row 252 × 22; clock row 252 × 14.17 at 10.5px/600 `rgb(168, 182, 214)`; **26** bars at **2.5** wide, `margin 0px 0.8px`, radius 2, unplayed `color(srgb … / 0.16)`, heights **5.58 → 21.25** | `ChatTrackCard` |
+| the stamp over it | `mb-1 text-[10px] leading-none text-dim text-right`, 272 × 10, `margin-bottom: 4px`, 10px/400 `rgb(168, 182, 214)` | `messageStamp` |
+| the voice note | bubble **220 × 84**, `rgb(18, 26, 44)`, `18px 18px 18px 6px`, `10px 14px 8px`, holding the 190 × 58 player of Round 32 | `VoiceBubble` |
+| the sound file | bubble **250 × 88.73**, `rgb(15, 28, 60)`, `18px 18px 6px`, `10px 14px 8px`, holding a **220 × 62.73** row — `padding 12px`, `gap 10px`, `radius 14px`, a 32 × 32 `rgb(43, 87, 198)` glyph, name 14px/700 `rgb(226, 234, 251)`, details 11px/400 `rgb(168, 182, 214)` at `margin-top: 3px` | `ChatDocument kind="audio"` |
+| the body words | the song's bubble text reads `3:01 PM` + the card only — the sentence `Midnight City — M83` that the message carries is **not** drawn | `!hasCard` |
+
+**The accent split, which is the finding of the round.** The phone's `ChatTrackCard` has no `accent`
+parameter: it fills its play button with `X.accent`. Everything else in the thread takes
+`convoAccent()` = `X.theme.chatTint ?? X.accent`. On a theme where those differ, the song card and the
+sound bubbles are **different colours on purpose**. The web had one. Read in the same run, with the
+theme pinned to `alone` in dark mode:
+
+| variable | value |
+| --- | --- |
+| `--convo-accent` | `#2B57C6` |
+| `--palette-accent` | `#8FB4FF` |
+| `--accent` inside the song card (after its own rebind) | `#8FB4FF` |
+| `--accent` at the voice note's waveform | `#2B57C6` |
+| the card's play button, painted | `rgb(143, 180, 255)` |
+| the voice note's play glyph and the file card's glyph, painted | `rgb(43, 87, 198)` |
+
+**That reading only exists on a theme whose `chatTint` differs from its `accent`** — dark "Alone" is
+the one such theme this app ships. On every light theme the two values are equal, the rebind changes
+nothing visible, and a test that did not pin the theme would have proved nothing either way. The probe
+therefore pins `xelvic.theme = "alone"` and `xelvic.mode = "dark"`.
+
+**What is not verified, and what is not matched.**
+
+- **NOT VERIFIED — the heart's own box.** The probe's selector matched the play button a second time
+  and returned its box twice; no heart reading is claimed from this run. The phone's `LikeHeart` is an
+  `IconButton` with `constraints: BoxConstraints.tightFor(width: 34, height: 34)` around a 22 icon, and
+  the web's `size="md"` is the same pair — read from both sources, **not measured**.
+- **NOT VERIFIED — the waveform's own pixels against a real recording.** Both waves were drawn from
+  fixtures: the voice note's 90 samples came from the probe and the song's shape from `waveShape`.
+- **PARTIALLY MATCHED — the card's width.** `ConstrainedBox(minWidth: 220, maxWidth: 290)` and a
+  content-sized box on the phone; a flat `w-[272px] max-w-[76vw]` here. A long title widens the phone's
+  card and never this one.
+- **NOT MATCHED — the failure sentence.** The phone prints `store.stuck!`, the store's own words about
+  what went wrong; the web prints "Could not play that." No failure was provoked in this run, so even
+  that sentence was not seen on screen.
+- **NOT IMPLEMENTED — the file row's transfer states and its press.** Pending, Uploading, Retry and
+  Discard are absent, the name truncates to one line where the phone allows two, an unnamed file reads
+  "An audio file" where the phone uses `source.fileName`, and the `<a download>` downloads rather than
+  opening a local file.
+- **NOT MATCHED, unchanged this round — `ShareWho`'s name.** The phone reads the alias the reader gave
+  the person (`Aliases.it.name`); the web draws `name || username`.
+- **NOT VERIFIED — a real backend.** Three messages in one thread against a **loopback stub**; two live
+  accounts were not used, a sound file was measured as a WAV only, and no sound was heard.
+
+**Checks.** Same run as Round 32 — `tsc -b` clean, `eslint .` clean, **40 files / 454 tests**, build
+clean. The temporary probe at `xelvic-web/probe/` was deleted afterwards and all four checks were
+re-run with it gone; the dev server on 5173 still answers 200 and no `eyJ`-prefixed token appears in
+any artefact left in the tree. `xelvic/` was read and not changed. **This is not a parity claim.**
+
+## Round 34 — the group settings panel, driven as an owner and as a member (2026-11-13)
+
+**How it was driven.** The same harness as Round 33: a Vite server on `127.0.0.1:5178` in its own
+mode, an axios adapter stub answering the chat routes, a `QuietSocket` in place of `WebSocket`, a
+signed-in session written before `root.render`, and the provider tree copied from `main.tsx`. Headless
+Chrome (`--headless=new --virtual-time-budget=25000 --dump-dom`) runs the route, clicks the header's
+three dots, clicks the "Group settings" row, and then reports what it found. **The user's dev server on
+5173 was never touched and `.env.local` was never written.**
+
+**Owner run — what was on screen.** `switchCount 2`. The body read: `Sunday plan · Group settings · 5
+members · 3 channels · you are owner · How the group runs · owner · Open · Everybody in the group can
+send. · Invites are on · New people can join by a link or by hand. · Group photo · Channels 3 · #
+general Change · # notices Admins only · Words only Change · # photos Photos only Change · New channel
+· Invite links 2 · K7P2QX Used by 3 people. Share · AB12CD Turned off. Off · New invite link · Members
+5 · Me @me Owner · Ada @ada Admin · Omar @omar · Zoe @zoe · Shut @shut · Add people · Leave group ·
+Delete group`.
+
+**Owner run — the writes.** Clicking the first switch issued
+`PATCH /chat/threads/t1/room/ {"locked":true}`, and the switch then reported
+`{"label":"Locked","checked":"true"}` beside `{"label":"Invites are on","checked":"true"}`. Opening
+`# notices` produced six rule choices each with its line plus "Rename channel" and "Delete channel";
+choosing "Photos only" issued `PATCH /chat/threads/t1/channels/c2/ {"post":"admins","media":"photos"}`.
+The tick moved: "Photos only" carried `rgb(43, 87, 198)` with a white glyph while the others stayed at
+`rgba(43, 87, 198, 0.12)` with `rgb(43, 87, 198)`.
+
+**Member run (`?role=member&capped=1`).** `switchCount 0`. No "How the group runs", no "Group photo", no
+"Invite links", no "Add people", no "Delete group", no "Change" on any channel and no "New channel". The
+roster heading read `Members 5 of 4.3k` with the paged note under it, and the rows were
+`# general`, `# notices Admins only · Words only`, `# photos Photos only`, `Leave group`. Opening
+`# notices` still showed every rule — and tapping one changed nothing, because every icon background
+stayed at `0.12` alpha. That is the phone's behaviour for a member, not a broken control.
+
+**What this does not prove.** The stub answered every request with a hand-written body. No real server
+was involved, no avatar was uploaded, no invite was made or revoked, no role was changed, nobody was
+removed, and the group was not left or deleted. Those paths are wired to the phone's endpoints and were
+type-checked and linted, and are recorded as **NOT VERIFIED**.
+
+## Round 35 — the direct convo's ⋮, in three gate states (2026-11-13)
+
+**The three runs.** Same harness, one direct thread whose card carried `other: {id: "u-ada", username:
+"ada", name: "Ada"}`, driven with the gate set to open, to *they blocked me*
+(`blocked_by_me: false`), and to *I blocked them* (`blocked_by_me: true`).
+
+**The rows, in the open case.** The sheet read `A Ada @ada` at its head, then: `Rename on this device ·
+Only you see it, and their @handle stays as it is.` — `Pin to top · It stays above the rest of the
+list. · 1/3` — `Mute` — `Move to the vault` — `Media and files · Open` — `Wallpaper · Default` — `Convo
+theme · Default` — `Disappearing convo · Off` — `Block Ada` (in the danger colour) — `Clear convo` —
+`Trash convo`.
+
+**The rename, end to end.** Clicking the rename row opened a dialog reading `What do you call Ada? · A
+name only you see · Leave it empty to go back to their own name. · Cancel · Save`. Typing "Ada Lovelace"
+and pressing Save wrote `{"u-me|u-ada":"Ada Lovelace"}` to `localStorage` under `xelvic.names.mine`; the
+sheet head became `Ada Lovelace @ada`; the row became `Change the name on this device`; and the page
+behind it redrew to `AL Ada Lovelace … Say the first thing to Ada Lovelace.` — the header and the
+empty-state sentence both following the name. Reopening the dialog now offered `Use their own name`;
+pressing it wrote `{}` and the head went back to `Ada @ada`.
+
+**The block row, in the two blocked states.** With `blocked_by_me: false` (they blocked me) **no Block
+and no Unblock was drawn at all**. With `blocked_by_me: true` the row read `Unblock Ada` and was not in
+the danger colour. Before this round both states drew "Unblock Ada", which was a control that could not
+do anything in the first case.
+
+**What this does not prove.** A stub, one browser profile, one account id. Nothing was blocked or
+unblocked for real, and no second person existed.
+
+**Checks.** `tsc -b` clean, `eslint .` clean, **40 files / 454 tests**, build clean in 4.46 s
+(`ChatPage` 184.70 kB / 50.20 kB gzip, entry 518.93 kB / 161.21 kB gzip). The probe directory was
+deleted afterwards and all four checks were re-run without it; 5173 still answers 200.
+
+## Round 36 — the null dispatcher, in a browser (2026-11-14)
+
+Four cases were run against a loopback probe page served by the running dev server, with the real
+`ErrorBoundary` and the real `useToast`. The probe directory was deleted afterwards.
+
+**`case=render` — a hook-using component throwing during render.** Boundary text: `Something broke on
+this screen … PROBE ORIGINAL`. Console: `The above error occurred in the <Boom> component`. The error
+surfaced as itself. Same for `case=nohook` (a component that uses no hook) and `case=effect` (an error
+raised on the rerender after an effect). React's frame probe — which nulls the dispatcher and re-invokes
+the component — **does not** leak its own `TypeError`.
+
+**`case=outside` — a hook called outside render, in the same React copy.** `window.onerror`:
+`Invalid hook call. Hooks can only be called inside of the body of a function component.` This is the
+discriminating case: after the first render the dispatcher is React's `ContextOnlyDispatcher`, not
+`null`, so a hook in the wrong place does **not** produce the user's message.
+
+**`case=twocopy` — the React chunk loaded a second time, its `useContext` called while the first copy
+rendered.** Boundary text: `Something broke on this screen … Cannot read properties of null (reading
+'useContext')` — the user's screen, character for character. Console: two `Invalid hook call` warnings
+followed by `TypeError: Cannot read properties of null (reading 'useContext')` and `The above error
+occurred in the <TwoCopy> component`. **This is the reproduced crash.**
+
+**The recovery, on the same case.** First paint recorded `Putting this screen back together · React lost
+the thread of this screen, which nothing on the page can repair. Reloading it once for you.`;
+`performance.getEntriesByType("navigation")[0].type` came back `reload`, and `xelvic.render.retry` held
+the claim. After that reload the crash recurred and the boundary showed the honest "Something broke"
+screen **with no second reload** — the twenty-second window held.
+
+**What this does not prove.** These are synthetic cases in one browser profile against a stub-free page.
+Nothing was observed in the user's own tab, so the exact trigger there — which re-optimization, and
+when — remains **NOT VERIFIED**. What is verified is the discrimination (same copy ⇒ different message)
+and the recovery.
+
+**Checks.** `tsc -b` clean, `eslint .` clean, **41 files / 466 tests** (12 new, in
+[recover.test.ts](src/components/common/recover.test.ts)), build clean in 4.73 s (`ChatPage` 184.70 kB /
+50.20 kB gzip, entry 520.21 kB / 161.64 kB gzip). One chunk of the built bundle defines
+`ReactSharedInternals` — the production build has one React. The probe directory was deleted and all
+four checks re-run without it; 5173 still answers 200; no `.env.local` was written and `docs/` was not
+touched.
+
+## Round 37 — the component layer, inlined as Tailwind (2026-11-14)
+
+Three things were executed: a parity harness in a real browser, a read of the shipped stylesheet, and the
+four standing checks. The probe scripts and their output live outside the repository (in `%TEMP%`); the
+four temporary files this round wrote into `dist/` were deleted, and `dist/` is gitignored.
+
+**The harness.** 144 distinct class lists — the 299 sites collapse into 144 once the site's own classes
+are counted — were rendered twice in headless Chrome in one page: the **old** side as the original tokens
+(`btn btn-primary`, `chip`, `field`, …) against a stylesheet compiled from the app's own `index.css`, and
+the **new** side as the injected utilities plus the same site classes. ~60 computed properties were read
+per element, plus `::after` and `::placeholder`, in four states (base, hover, active, focus — the state
+pseudo-classes rewritten into marker classes at paren depth 0 so the page could hold all four at once, at
+the same 0,1,0 specificity, with `:disabled` left real and matched by the attribute) and again for 92
+disabled button pairs. **622 pairs, ~60 properties each.**
+
+**Result.** Every property agrees except the five deviations below. Two of them are serialization only
+(`transition-duration` prints as `0.16s` where the old rule listed it five times), three are named
+changes.
+
+| # | Deviation | What it is |
+| --- | --- | --- |
+| 1 | **Button colour easing** — real | `.btn` ran `transform` on `cubic-bezier(0.22,1,0.36,1)` and its colours on `ease`. A Tailwind `transition-*` carries one timing function, so all five properties now use the app's soft curve. Duration (160 ms) and the transform's easing are unchanged |
+| 2 | `transition-duration` | one value instead of five identical ones |
+| 3 | `border-radius` | `rounded-full` is `9999px` where `.icon-btn` said `100%` and `.chip` `999px`. Identical geometry for every element in the app: all 20 icon-button sizes are square (40×40, `size-9`, `size-8`, `size-7`) and a chip is 34 px tall |
+| 4 | Focused field's `box-shadow` | Tailwind's shadow utilities compose `var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)`, so two transparent zero layers come first. The ring itself measures `color(srgb 0.890196 0.105882 0.4 / 0.12) 0px 0px 0px 3px` — the old rule's own value |
+| 5 | Focused field's `outline` | `focus:outline-none` is `outline: 2px solid transparent; outline-offset: 2px` where `.field:focus` said `outline: none`. Invisible either way; in forced-colors the transparent outline is drawn in a system colour, the one context where it shows at all |
+
+**Two defects the harness caught before anything was applied.** (a) The first draft injected Tailwind's
+`transition` utility, which widened `transition-property` from the five properties the CSS named to
+Tailwind's whole colour/shadow/transform list — replaced with the exact lists, `transition-[transform,
+background-color,color,border-color,opacity]` and `transition-[background-color,color,transform]`. (b)
+`disabled:opacity-55` from the button base would have overridden the `disabled:opacity-45` that
+[RefineProfileView.tsx:471](src/features/settings/RefineProfileView.tsx#L471) asks for, because the
+injected utility is emitted later in the sheet; the injected class is now dropped whenever the site sets
+the same property, which is what the old layer order did. The same rule (drop the injected utility when
+the site already sets that property) is what keeps `min-h-[46px]`, `rounded-[14px]`, `h-12`, `size-9`,
+`py-1.5` and the rest behaving as they did.
+
+**The shipped stylesheet, read from a real page.** `vite preview` on a loopback port and headless Chrome
+over HTTP, with the class strings taken from the built source: the field measures `min-height: 40px`,
+`border: 1px rgb(227,227,236)`, `background: rgb(255,255,255)`, `padding: 0 16px` and a placeholder of
+`color(srgb 0.419608 0.419608 0.482353 / 0.8)` (dim at 80 %); focused, its border is `rgb(227,27,102)` and
+its ring `color(srgb 0.890196 0.105882 0.4 / 0.12) 0 0 0 3px`; a chip carrying `data-active="true"` takes
+the accent fill, accent border and white text at 34 px; a button is 44 px, radius 14 px, accent fill,
+white text, `padding: 0 17.6px`, `letter-spacing: -0.16px`, and at `disabled` `opacity: 0.55` with
+`cursor: not-allowed`; an icon button is 40×40, radius `9999px`, in `--dim`, with
+`transition-property: background-color, color, transform`; a card is radius 14 px over a 1 px line border;
+a skeleton is `color(srgb 0.89 0.89 0.925 / 0.58)` (the line at 58 %) with an `::after` at `translateX(
+-100%)` on the `shimmer` animation and `content: ""`. The built app itself was loaded from `vite preview`:
+the public page renders with no error screen, and a `Button` on it measures 36 px (its `size="sm"`),
+radius 14 px, accent fill.
+
+**Every class the app uses exists in the shipped stylesheet — except 32, all of them pre-existing.** A
+scan of all class-list positions in `src` found 1 878 distinct classes; 32 are absent from the built CSS
+and none of them was introduced this round: Tailwind v3 has no `shadow-xs`, `text-md` or
+`animate-float-up`, and the opacity steps `/12 /14 /22 /62 /72 /86 /88` are not in the default scale
+(`bg-white/12`, `text-white/86` … in `CallOverlay.tsx` and `VibeSlide.tsx`). One of them, `text-md`, sits
+in a class list this round touched — the two `SignInPage` inputs — but it was already in that site's own
+classes. **Reported, not fixed:** they are outside this round's request.
+
+**What was NOT executed.** No live backend was involved, no authenticated screen was opened, and no
+screen was reviewed by eye. The harness compares computed properties, which is a claim about styles, not
+about whether a screen looks right. Nothing under `xelvic/` was read or written; `xelvic-web/docs/` was
+not touched; no `.env.local` was written.
+
+**Checks.** `tsc -b` clean · `eslint .` clean · **41 files / 466 tests** · build clean in 4.33 s (entry
+524.82 kB / 162.40 kB gzip; `ChatPage` 187.15 kB / 50.48 kB). Built CSS 143 179 bytes; a search of it for
+the 15 removed class names returns 0, as does a scan of `src` for them in a class list.
+
+## Round 38 — the convo's own wallpaper and its own theme (2026-11-14)
+
+Two unit suites, a probe of the shipped stylesheet in headless Chrome, a boot of the built app and the
+four standing checks were executed. The probe files and Chrome profiles live in `%TEMP%`, outside the
+repository.
+
+**New tests — 12 in two new files.**
+
+[look.test.ts](src/features/convo/look.test.ts), 7 tests: a thread nobody gave a photo answers nothing
+and writes no row; a photo is kept and handed straight back with its opacity; a stored legacy `blob:` row
+is ignored, because a reload could not draw it; opacity is held between 0 and 1; the slider's write is
+debounced — at 0.8 then 0.6 then 0.4 the row still says 0.8, and says 0.4 after 200 ms of fake time; a
+clear removes both the cached picture and the row; and when `localStorage.setItem` throws (a full quota),
+`setOwnWall` answers `false` while the picture is still there for the session.
+
+[skin.test.ts](src/features/convo/skin.test.ts), 5 tests: `chosenTint(null)` and `("default")` answer
+`null`, so the theme stays in charge; a known key answers `TINT_HEX`; an unknown key answers `null` rather
+than a colour this build has never checked; a picked tint gives `convoBubbleRun === "none"` and a wash
+different from the theme's; and somebody else's bubble stays `palette.card`.
+
+**How the store is tested in a node environment.** vitest runs with `environment: "node"`, so the suite
+installs a small fake `Storage` with `vi.stubGlobal`, imports the module fresh (`vi.resetModules()` +
+dynamic `import`) for each case so its module-level cache cannot leak between tests, and uses fake timers
+for the 150 ms debounce. None of this depends on a DOM.
+
+**The browser probe.** Headless Chrome read a page carrying the same inline styles the components emit,
+against a copy of the app's built stylesheet. The report:
+
+```json
+{"ownImage":"url(\"data:image/gif;base64,...","ownSize":"cover","ownVeilOpacity":"0","own40Veil":"rgb(246, 246, 249)","own40VeilOpacity":"0.6","namedVeil":"rgb(246, 246, 249)","namedVeilOpacity":"0.78","tintBg":"rgb(14, 124, 140)","tintText":"rgb(14, 124, 140)","tintBorder":"rgb(14, 124, 140)","tintHalf":"rgba(14, 124, 140, 0.5)"}
+```
+
+Read as evidence: a photo is drawn as a `data:` background at `cover`; at full strength the page veil over
+it is `0`; at 40 % the veil is the page colour at `0.6` — the same composite as the phone's `Opacity` over
+`X.ink`, since a photo at `o` over the ground is the ground at `1 − o` over the photo; a built-in wall
+wears the page at `0.78`, matching `kWallScrim`; and the picked `#0E7C8C` reaches `bg-accent`,
+`text-accent`, `border-accent` and the hand-mixed `rgb(var(--accent-rgb) / 0.5)`.
+
+**The boot.** The built app was served with `vite preview` on a loopback port and `/signin` was loaded in
+headless Chrome: 14 783 bytes, zero occurrences of "Something broke" or "Cannot read properties", and the
+real QR screen — "Use Xvelic on your computer", "Scan this QR code", and the honest "Sign-in is temporarily
+unavailable / The server could not be reached." because nothing listens on `127.0.0.1:8000`. The preview was
+stopped by PID; the user's development server on 5173 was left alone and still answers 200.
+
+**What was NOT executed.** No authenticated chat was opened, no live backend was involved, no wallpaper or
+theme was picked through the UI in a browser, and no screen was reviewed by eye. The probe proves what the
+declarations compute to; it does not prove that a person sees the right thing, and it cannot exercise the
+optimistic overlay or the rollback, which have unit coverage only at the rules they call.
+
+**Checks.** `tsc -b` clean · `eslint .` clean · **43 files / 478 tests** · build clean in 4.54 s (entry
+524.99 kB / 162.41 kB gzip; `ChatPage` 188.12 kB / 50.88 kB; CSS 143.31 kB). `xelvic-web/docs/` untouched;
+nothing under `xelvic/` written.
+
+## Round 39 — the gap between two emoji (2026-11-14)
+
+A headless-Chrome measurement against the built stylesheet, three new unit tests and the four standing
+checks. The probe pages, the screenshots and the Chrome profiles live in `%TEMP%`, outside the repository.
+
+**New tests — 3, in an existing file.** [text.test.ts](src/features/emoji/text.test.ts) gained a
+describe for `onlyEmojiCount`, the function `bubbleType` and the single-emoji bubble read: `"😀"`
+→ 1, `"😀😀"` → 2, `"😀 😀"` → 2, `"hi 😀"` → 0,
+`"1"` → 0, `""` → 0; a joined or flagged emoji counts once, not by its code points
+(`👨‍👩‍👧‍👦`, `🇮🇳`, `❤️`,
+`1️⃣` → 1); and the premise the margin rule rests on — emoji typed next to each other are
+cut into one run each (`"😀😀"` → two runs, `"😀😀😀"` →
+three), which is what `runs[index + 1]?.art` reads. The total moved from 478 to **481** for exactly these
+three; no other file's count changed.
+
+**The measurement.** A page carrying the same class chain the component emits was loaded in headless Chrome
+against the built `index-*.css`, with Google's real artwork and again with the artwork left out so only the
+machine's glyph is drawn. Measured on the render, read back from `getBoundingClientRect`:
+
+```
+p-art-30   (artwork, 30px): box 34.50, drawn 41.19, margins 10.5px/10.5px/0px
+           pitch 45.00px = 1.500em, clearance 3.80px | pitch 45.00px = 1.500em, clearance 3.80px
+           artwork bottom 92.27 vs paragraph bottom 85.57 (overhang 6.70px)
+p-art-30-none (artwork, 30px): box 34.50, drawn 41.19, margins 0px/0px/0px
+           pitch 34.50px = 1.150em, clearance -6.70px | clearance -6.70px
+p-glyph-30 (machine glyph, 30px): box 34.50, drawn 41.19, margins 10.5px/10.5px/0px
+           pitch 45.00px = 1.500em, clearance 3.80px | clearance 3.80px
+p-glyph-30-none (machine glyph, 30px): pitch 34.50px = 1.150em, clearance -6.70px
+p-art-36   (artwork, 36px): box 41.39, drawn 49.44, margins 12.6px/12.6px/0px
+           pitch 53.98px = 1.500em, clearance 4.55px, overhang 8.05px
+p-art-42   (artwork, 42px): box 48.30, drawn 57.67, margins 14.7px/14.7px/0px
+           pitch 62.98px = 1.500em, clearance 5.31px, overhang 9.38px
+p-art-15   (artwork, 15px): box 17.25, drawn 20.61, margins 5.25px/5.25px/0px
+           pitch 22.50px = 1.500em, clearance 1.89px, overhang 3.36px
+p-glyph-15-none (machine glyph, 15px): pitch 17.25px = 1.150em, clearance -3.36px
+canvas 30px advance of one emoji: 41.19px = 1.3730em
+```
+
+Read as evidence: the box really is 1.15em, the drawing really is 1.373em (the machine glyph's own advance,
+which sizes the box's grid column), and the two were overlapping by 6.70 px at 30 px with nothing between
+them. With the shipped class the pitch is 1.500em at every size the bubble uses — 45.00 px at 30 px,
+53.98 at 36, 62.98 at 42, 22.50 at 15 — clearing the drawings by 3.80 / 4.55 / 5.31 / 1.89 px, and the
+last emoji of a row carries **0 px**. The glyph rows are the same numbers, so the fallback character is
+covered by the same rule rather than by luck. The overhang line is a pre-existing property of the drawing,
+not something this round's margin affects.
+
+**The margin this round first tried.** `mr-[0.1em]` — 3.00 px of box gap at 30 px — left the
+drawings overlapping by 3.70 px, which is why the owner's second picture still showed them stuck. It is
+recorded here rather than dropped: it is the reason the shipped value is 0.35em and not 0.1em.
+
+**Why the "before" rows set their margin inline.** No class for 0em or 0.1em is emitted by the build —
+tailwind emits only the classes the source names — so those rows carry `style="margin-right:…"`
+instead of a class that is not in the stylesheet. Measuring a vanished class would have reported 0.00 px and
+proved nothing.
+
+**The class survives merging.** `cn` is `twMerge(clsx(…))`, and `twMerge(INLINE, "mr-[0.35em]")`
+answers `"inline-grid size-[1.15em] align-[-0.2em] mr-[0.35em]"`, so the margin reaches the element the
+measurement above was taken from. The merged element is `relative place-items-center leading-none
+inline-grid size-[1.15em] align-[-0.2em] mr-[0.35em]` — `size-full` and `grid` from `EmojiArt` give way
+to the inline box, which is what makes the box 1.15em and the overflow the drawing's, not the box's.
+
+**What was NOT executed.** No authenticated chat, no live backend, no bubble looked at by eye. The probe
+proves what the shipped declarations compute to in the exact class chain; it cannot prove that a person sees
+the right thing, and it says nothing about how a long run of emoji wraps, which no rule here changes.
+
+**Checks.** `tsc -b` clean · `eslint .` clean · **43 files / 481 tests** · build clean in
+4.30 s (entry 524.99 kB / 162.41 kB gzip; `ChatPage` 188.81 kB / 51.15 kB; CSS 143.43 kB).
+`xelvic-web/docs/` untouched; nothing under `xelvic/` written.

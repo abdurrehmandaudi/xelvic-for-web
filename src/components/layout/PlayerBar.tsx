@@ -49,7 +49,7 @@ export function PlayerBar({ offset, compact = false }: { offset: "desktop" | "mo
             </span>
           </button>
           <div className="hidden items-center gap-1 sm:flex">
-            <button type="button" className="icon-btn text-[var(--nav-quiet)] hover:bg-[color-mix(in_srgb,var(--nav-ink)_10%,transparent)] hover:text-[var(--nav-ink)]" onClick={player.previous} aria-label="Previous track">
+            <button type="button" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] active:scale-[0.94] text-[var(--nav-quiet)] hover:bg-[color-mix(in_srgb,var(--nav-ink)_10%,transparent)] hover:text-[var(--nav-ink)]" onClick={player.previous} aria-label="Previous track">
               <SkipBack className="size-4" />
             </button>
             <button
@@ -66,7 +66,7 @@ export function PlayerBar({ offset, compact = false }: { offset: "desktop" | "mo
                 <Play className="ml-0.5 size-4 fill-current" />
               )}
             </button>
-            <button type="button" className="icon-btn text-[var(--nav-quiet)] hover:bg-[color-mix(in_srgb,var(--nav-ink)_10%,transparent)] hover:text-[var(--nav-ink)]" onClick={player.next} aria-label="Next track">
+            <button type="button" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] active:scale-[0.94] text-[var(--nav-quiet)] hover:bg-[color-mix(in_srgb,var(--nav-ink)_10%,transparent)] hover:text-[var(--nav-ink)]" onClick={player.next} aria-label="Next track">
               <SkipForward className="size-4" />
             </button>
           </div>
@@ -86,7 +86,7 @@ export function PlayerBar({ offset, compact = false }: { offset: "desktop" | "mo
               }}
             />
           </div>
-          <button type="button" className="icon-btn text-[var(--nav-quiet)] hover:bg-[color-mix(in_srgb,var(--nav-ink)_10%,transparent)] hover:text-[var(--nav-ink)]" onClick={player.close} aria-label="Stop player">
+          <button type="button" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent transition-[background-color,color,transform] duration-[160ms] active:scale-[0.94] text-[var(--nav-quiet)] hover:bg-[color-mix(in_srgb,var(--nav-ink)_10%,transparent)] hover:text-[var(--nav-ink)]" onClick={player.close} aria-label="Stop player">
             <X className="size-4" />
           </button>
         </div>

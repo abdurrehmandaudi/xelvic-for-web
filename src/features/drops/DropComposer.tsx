@@ -184,7 +184,7 @@ function PeoplePicker({
         onChange={(event) => setQuery(event.target.value)}
         placeholder={hint}
         maxLength={40}
-        className="field mt-2 min-h-9 py-1.5 text-[12px]"
+        className="w-full rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none mt-2 min-h-9 py-1.5 text-[12px]"
       />
       {settled.length >= 1 ? (
         <div className="mt-2 max-h-[180px] overflow-y-auto rounded-[10px] border border-line">
@@ -733,7 +733,7 @@ export function DropComposer({
             }
             rows={poll || pollOn ? 2 : 4}
             maxLength={2200}
-            className="field min-h-[104px] resize-y text-[14px] leading-6"
+            className="w-full rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-[104px] resize-y text-[14px] leading-6"
           />
         </label>
 
@@ -759,19 +759,19 @@ export function DropComposer({
               <div className="flex items-center gap-2">
                 <Headphones className="size-4 text-accent" />
                 <audio src={audioUrl} controls className="min-w-0 flex-1" />
-                <button type="button" className="icon-btn size-8" onClick={() => pickAudio(null)} aria-label="Remove recording">
+                <button type="button" className="inline-flex flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] size-8" onClick={() => pickAudio(null)} aria-label="Remove recording">
                   <X className="size-4" />
                 </button>
               </div>
             ) : null}
             <label>
-              <span className="field-label">Title</span>
+              <span className="mb-[0.45rem] block text-[0.78rem] font-bold tracking-[0.01em] text-dim">Title</span>
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 maxLength={140}
                 placeholder="What is it called?"
-                className="field min-h-10 py-2 text-[12px]"
+                className="w-full rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-[12px]"
               />
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -897,12 +897,12 @@ export function DropComposer({
                     }}
                     placeholder={`Answer ${index + 1}`}
                     maxLength={80}
-                    className="field min-h-9 flex-1 py-1.5 text-[12px]"
+                    className="w-full rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-9 flex-1 py-1.5 text-[12px]"
                   />
                   {options.length > 2 ? (
                     <button
                       type="button"
-                      className="icon-btn size-9"
+                      className="inline-flex flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] size-9"
                       onClick={() => setOptions(options.filter((_, position) => position !== index))}
                       aria-label={`Remove answer ${index + 1}`}
                     >
@@ -971,7 +971,7 @@ export function DropComposer({
 
         <div className="flex flex-wrap items-center gap-1.5">
           {vibe || wantsClip ? (
-            <label className="chip cursor-pointer">
+            <label className="inline-flex min-h-[34px] items-center gap-[0.4rem] whitespace-nowrap rounded-full border border-line bg-card px-[0.8rem] text-[0.78rem] font-bold text-dim data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-on-accent cursor-pointer">
               <Clapperboard className="size-3.5" />
               {clip ? "Replace clip" : "Clip"}
               <input
@@ -986,7 +986,7 @@ export function DropComposer({
             </label>
           ) : null}
           {!vibe && !sound && !note && !wantsClip ? (
-            <label className="chip cursor-pointer">
+            <label className="inline-flex min-h-[34px] items-center gap-[0.4rem] whitespace-nowrap rounded-full border border-line bg-card px-[0.8rem] text-[0.78rem] font-bold text-dim data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-on-accent cursor-pointer">
               <ImagePlus className="size-3.5" />
               Photo
               <input
@@ -1002,7 +1002,7 @@ export function DropComposer({
             </label>
           ) : null}
           {sound ? (
-            <label className="chip cursor-pointer">
+            <label className="inline-flex min-h-[34px] items-center gap-[0.4rem] whitespace-nowrap rounded-full border border-line bg-card px-[0.8rem] text-[0.78rem] font-bold text-dim data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-on-accent cursor-pointer">
               <Music2 className="size-3.5" />
               {audio ? "Replace recording" : "Recording"}
               <input
@@ -1019,7 +1019,7 @@ export function DropComposer({
           {!vibe && !sound && !poll && !note && !answering ? (
             <button
               type="button"
-              className="chip"
+              className="inline-flex min-h-[34px] items-center gap-[0.4rem] whitespace-nowrap rounded-full border border-line bg-card px-[0.8rem] text-[0.78rem] font-bold text-dim data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-on-accent"
               data-active={pollOn}
               onClick={() => setPollOn((value) => !value)}
             >
@@ -1030,12 +1030,12 @@ export function DropComposer({
 
         {sound ? (
           <label className="block">
-            <span className="field-label">Cover <span className="font-normal opacity-60">optional</span></span>
+            <span className="mb-[0.45rem] block text-[0.78rem] font-bold tracking-[0.01em] text-dim">Cover <span className="font-normal opacity-60">optional</span></span>
             <div className="flex items-center gap-2">
               {coverUrl ? (
                 <img src={coverUrl} alt="Chosen cover" className="size-10 rounded-[8px] object-cover" />
               ) : null}
-              <label className="chip cursor-pointer">
+              <label className="inline-flex min-h-[34px] items-center gap-[0.4rem] whitespace-nowrap rounded-full border border-line bg-card px-[0.8rem] text-[0.78rem] font-bold text-dim data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-on-accent cursor-pointer">
                 <ImagePlus className="size-3.5" />
                 {cover ? "Replace cover" : "Add a cover"}
                 <input
@@ -1059,13 +1059,13 @@ export function DropComposer({
 
         {vibe ? (
           <label>
-            <span className="field-label">Sound <span className="font-normal opacity-60">optional</span></span>
+            <span className="mb-[0.45rem] block text-[0.78rem] font-bold tracking-[0.01em] text-dim">Sound <span className="font-normal opacity-60">optional</span></span>
             <input
               value={music}
               onChange={(event) => setMusic(event.target.value)}
               maxLength={80}
               placeholder="Track — artist"
-              className="field min-h-10 py-2 text-[12px]"
+              className="w-full rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-[12px]"
             />
           </label>
         ) : null}
@@ -1073,12 +1073,12 @@ export function DropComposer({
         {!vibe && !sound && !poll ? (
           <div className="grid gap-2 sm:grid-cols-2">
             <label>
-              <span className="field-label">Place <span className="font-normal opacity-60">optional</span></span>
-              <input value={place} onChange={(event) => setPlace(event.target.value)} maxLength={60} placeholder="Where was this?" className="field min-h-10 py-2 text-[12px]" />
+              <span className="mb-[0.45rem] block text-[0.78rem] font-bold tracking-[0.01em] text-dim">Place <span className="font-normal opacity-60">optional</span></span>
+              <input value={place} onChange={(event) => setPlace(event.target.value)} maxLength={60} placeholder="Where was this?" className="w-full rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-[12px]" />
             </label>
             <label>
-              <span className="field-label">Tag <span className="font-normal opacity-60">optional</span></span>
-              <input value={tag} onChange={(event) => setTag(event.target.value)} maxLength={20} placeholder="A word for it" className="field min-h-10 py-2 text-[12px] uppercase" />
+              <span className="mb-[0.45rem] block text-[0.78rem] font-bold tracking-[0.01em] text-dim">Tag <span className="font-normal opacity-60">optional</span></span>
+              <input value={tag} onChange={(event) => setTag(event.target.value)} maxLength={20} placeholder="A word for it" className="w-full rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-[12px] uppercase" />
             </label>
           </div>
         ) : null}
@@ -1088,7 +1088,7 @@ export function DropComposer({
             <div className="flex items-center gap-2">
               <Music2 className="size-4 text-accent" />
               <audio src={trackUrl} controls className="min-w-0 flex-1" />
-              <button type="button" className="icon-btn size-8" onClick={() => setTrack(null)} aria-label="Remove the sound">
+              <button type="button" className="inline-flex flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] size-8" onClick={() => setTrack(null)} aria-label="Remove the sound">
                 <X className="size-4" />
               </button>
             </div>
@@ -1097,13 +1097,13 @@ export function DropComposer({
               onChange={(event) => setTrackTitle(event.target.value)}
               maxLength={120}
               placeholder="What is it called?"
-              className="field mt-2 min-h-9 py-1.5 text-[12px]"
+              className="w-full rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none mt-2 min-h-9 py-1.5 text-[12px]"
             />
           </div>
         ) : null}
 
         {!vibe && !sound && !poll && pictures.length ? (
-          <label className="chip cursor-pointer">
+          <label className="inline-flex min-h-[34px] items-center gap-[0.4rem] whitespace-nowrap rounded-full border border-line bg-card px-[0.8rem] text-[0.78rem] font-bold text-dim data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-on-accent cursor-pointer">
             <Music2 className="size-3.5" />
             {track ? "Replace the sound" : "Sound behind it"}
             <input

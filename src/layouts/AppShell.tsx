@@ -309,13 +309,13 @@ export function AppShell() {
             <span className="text-[15px] font-extrabold tracking-[-0.04em]">Xelvic</span>
           </PrefetchLink>
           <div className="ml-auto flex items-center gap-0.5">
-            <PrefetchLink to="/app/search" className="icon-btn" aria-label="Search">
+            <PrefetchLink to="/app/search" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Search">
               <Search className="size-[18px]" />
             </PrefetchLink>
-            <PrefetchLink to="/app/alerts" className="icon-btn" aria-label="Notifications">
+            <PrefetchLink to="/app/alerts" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Notifications">
               <Bell className="size-[18px]" />
             </PrefetchLink>
-            <PrefetchLink to="/app/sparks" className="icon-btn" aria-label="Rewards and themes">
+            <PrefetchLink to="/app/sparks" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Rewards and themes">
               <Sparkles className="size-[18px]" />
             </PrefetchLink>
             {user ? (
@@ -340,7 +340,7 @@ export function AppShell() {
           aria-label="Main navigation"
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
-        <div className="glass-nav flex items-center justify-around rounded-[22px] px-1.5 py-1.5">
+        <div className="border border-nav-edge-38 bg-nav-glass shadow-[0_1px_2px_rgb(var(--nav)/0.08),0_18px_48px_rgb(var(--nav)/0.22)] backdrop-blur-[22px] backdrop-saturate-[1.4] flex items-center justify-around rounded-[22px] px-1.5 py-1.5">
           {primary.map((item) => (
             <PrefetchNavLink
               key={item.to}

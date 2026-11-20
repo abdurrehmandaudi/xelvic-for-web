@@ -212,8 +212,8 @@ export function EditDrop({
         <div className="space-y-3 px-4 py-5" aria-hidden>
           {reading ? (
             <>
-              <div className="skeleton h-40 w-full rounded-[14px]" />
-              <div className="skeleton h-24 w-full rounded-[12px]" />
+              <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-40 w-full rounded-[14px]" />
+              <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-24 w-full rounded-[12px]" />
             </>
           ) : (
             <p className="text-[13px] text-dim">{trouble ?? "This post could not be read."}</p>
@@ -264,17 +264,17 @@ export function EditDrop({
           {dropIsSound(drop) ? (
             <>
               <label className="block">
-                <span className="field-label">Name</span>
+                <span className="mb-[0.45rem] block text-[0.78rem] font-bold tracking-[0.01em] text-dim">Name</span>
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   maxLength={140}
                   placeholder="What is it called?"
-                  className="field min-h-10 py-2 text-[13px]"
+                  className="w-full rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-[13px]"
                 />
               </label>
               <div>
-                <p className="field-label">Category</p>
+                <p className="mb-[0.45rem] block text-[0.78rem] font-bold tracking-[0.01em] text-dim">Category</p>
                 <div className="mt-1.5 flex flex-wrap gap-2">
                   {SOUND_KINDS.map((kind) => {
                     const on = soundKind === kind.key;
@@ -301,21 +301,21 @@ export function EditDrop({
           ) : null}
 
           <label className="block">
-            <span className="field-label">Words</span>
+            <span className="mb-[0.45rem] block text-[0.78rem] font-bold tracking-[0.01em] text-dim">Words</span>
             <textarea
               value={body}
               onChange={(event) => setBody(event.target.value)}
               rows={4}
               maxLength={4000}
               placeholder="Say something"
-              className="field min-h-[96px] resize-y text-[14px] leading-6"
+              className="w-full rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-[96px] resize-y text-[14px] leading-6"
             />
             <span className="mt-1 block text-end text-[10px] text-dim">{body.length}/4000</span>
           </label>
 
           {editsPlace(drop) ? (
             <label className="block">
-              <span className="field-label">
+              <span className="mb-[0.45rem] block text-[0.78rem] font-bold tracking-[0.01em] text-dim">
                 Place <span className="font-normal opacity-60">optional</span>
               </span>
               <input
@@ -323,7 +323,7 @@ export function EditDrop({
                 onChange={(event) => setPlace(event.target.value)}
                 maxLength={60}
                 placeholder="Where was this?"
-                className="field min-h-10 py-2 text-[13px]"
+                className="w-full rounded-control border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-[13px]"
               />
             </label>
           ) : null}

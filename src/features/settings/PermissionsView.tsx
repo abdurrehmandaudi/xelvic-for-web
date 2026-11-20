@@ -229,7 +229,7 @@ export function PermissionsView() {
         <div className="px-5 pb-5 pt-2">
           <button
             type="button"
-            className="btn btn-secondary w-full"
+            className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 w-full"
             onClick={() => setExplaining(null)}
           >
             {t("Got it")}

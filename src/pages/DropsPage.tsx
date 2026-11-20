@@ -81,7 +81,7 @@ function Aside() {
         </Link>
       ) : null}
 
-      <div className="card overflow-hidden">
+      <div className="rounded-control border border-line bg-card overflow-hidden">
         <div className="flex items-center justify-between px-4 pb-2 pt-3.5">
           <p className="text-[12px] font-extrabold tracking-tight">Recent convos</p>
           <Link to="/app/convo" className="text-[10px] font-bold text-accent hover:underline">Open</Link>
@@ -90,10 +90,10 @@ function Aside() {
           <div className="space-y-3 px-4 pb-4" aria-hidden>
             {[0, 1, 2].map((row) => (
               <div key={row} className="flex items-center gap-2.5">
-                <div className="skeleton size-9 rounded-full" />
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] size-9 rounded-full" />
                 <div className="flex-1 space-y-1.5">
-                  <div className="skeleton h-2.5 w-24 rounded-full" />
-                  <div className="skeleton h-2 w-32 rounded-full" />
+                  <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-2.5 w-24 rounded-full" />
+                  <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-2 w-32 rounded-full" />
                 </div>
               </div>
             ))}
@@ -105,7 +105,7 @@ function Aside() {
               const title = thread.title || person?.name || person?.username || "Convo";
               return (
                 <Link key={thread.id} to={`/app/convo/${thread.id}`} className="flex items-center gap-2.5 px-4 py-2.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]">
-                  <Avatar user={person} name={title} src={thread.avatar} size={32} online={person?.online} />
+                  <Avatar user={person} name={title} src={thread.avatar} size={32} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
                       <span className="truncate text-[11.5px] font-bold">{title}</span>
@@ -139,7 +139,7 @@ function Aside() {
         </Link>
       </div>
 
-      <div className="mt-3 card p-3.5">
+      <div className="rounded-control border border-line bg-card mt-3 p-3.5">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-extrabold">Your shelf</p>
           <Link to="/app/settings?section=appearance" className="text-[9.5px] font-bold text-dim hover:text-ink">Themes</Link>
@@ -624,7 +624,7 @@ export function DropsPage() {
         subtitle="The room you keep"
         actions={
           <>
-            <Link to="/app/alerts" className="icon-btn" aria-label="Notices">
+            <Link to="/app/alerts" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Notices">
               <Bell className="size-[18px]" />
             </Link>
             <Button
@@ -685,28 +685,28 @@ export function DropsPage() {
             {feed.isLoading ? (
               <div className="space-y-3" aria-hidden>
                 {[0, 1, 2].map((row) => (
-                  <div key={row} className="card p-4">
+                  <div key={row} className="rounded-control border border-line bg-card p-4">
                     <div className="flex items-center gap-3">
-                      <div className="skeleton size-10 rounded-full" />
+                      <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] size-10 rounded-full" />
                       <div className="flex-1 space-y-2">
-                        <div className="skeleton h-3 w-32 rounded-full" />
-                        <div className="skeleton h-2.5 w-24 rounded-full" />
+                        <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-32 rounded-full" />
+                        <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-2.5 w-24 rounded-full" />
                       </div>
                     </div>
                     <div className="mt-4 space-y-2">
-                      <div className="skeleton h-3 w-full rounded-full" />
-                      <div className="skeleton h-3 w-3/4 rounded-full" />
+                      <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-full rounded-full" />
+                      <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-3/4 rounded-full" />
                     </div>
-                    <div className="skeleton mt-3 h-48 w-full rounded-xl" />
+                    <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] mt-3 h-48 w-full rounded-xl" />
                   </div>
                 ))}
               </div>
             ) : feed.isError ? (
-              <div className="card">
+              <div className="rounded-control border border-line bg-card">
                 <ErrorState error={feed.error} onRetry={() => void feed.refetch()} />
               </div>
             ) : woven.length === 0 ? (
-              <div className="card">
+              <div className="rounded-control border border-line bg-card">
                 <EmptyState
                   icon={<Sparkles className="size-6" />}
                   title={caughtUp ? "You've seen the whole feed" : "Nothing here yet"}
@@ -717,7 +717,7 @@ export function DropsPage() {
                   }
                   action={
                     <div className="flex gap-2">
-                      <Link to="/app/search" className="btn btn-primary">Find people</Link>
+                      <Link to="/app/search" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105">Find people</Link>
                       <Button variant="secondary" icon={<Plus className="size-4" />} onClick={() => openComposer("drop")}>Post something</Button>
                     </div>
                   }

@@ -523,13 +523,13 @@ export function MomentsPage() {
         title="Moments"
         actions={
           <>
-            <button type="button" className="icon-btn" onClick={() => setPollOpen(true)} title="Ask a poll" aria-label="Ask a poll">
+            <button type="button" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" onClick={() => setPollOpen(true)} title="Ask a poll" aria-label="Ask a poll">
               <BarChart3 className="size-[18px]" />
             </button>
-            <button type="button" className="icon-btn" onClick={() => setTextOpen(true)} title="Write a note" aria-label="Write a note">
+            <button type="button" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" onClick={() => setTextOpen(true)} title="Write a note" aria-label="Write a note">
               <PenLine className="size-[18px]" />
             </button>
-            <button type="button" className="icon-btn" onClick={openAdd} title="Add to your moments" aria-label="Add to your moments">
+            <button type="button" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" onClick={openAdd} title="Add to your moments" aria-label="Add to your moments">
               <ImagePlus className="size-[18px]" />
             </button>
           </>
@@ -541,8 +541,8 @@ export function MomentsPage() {
           <div className="no-scrollbar flex gap-3 overflow-hidden px-3.5 py-1 md:px-0" aria-hidden>
             {[0, 1, 2, 3].map((row) => (
               <div key={row} className="w-[86px] shrink-0">
-                <div className="skeleton h-[129px] rounded-[14px]" />
-                <div className="skeleton mt-1.5 h-2.5 w-12 rounded-full" />
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-[129px] rounded-[14px]" />
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] mt-1.5 h-2.5 w-12 rounded-full" />
               </div>
             ))}
           </div>

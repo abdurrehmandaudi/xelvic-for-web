@@ -1,28 +1,31 @@
-/**
- * The composer's emoji picker: the whole of Unicode, drawn with Google's own
- * artwork, with the animated third of it moving.
- *
- * The panel that stood here drew twelve emoji in a 232px box. This one draws a
- * page per group (169–386 tiles), searches by name across all 1906, keeps the
- * last two dozen handed over at the top, and can put any of the five skin tones
- * on the emoji that take one. What a tile *is* — the character, the drawing,
- * whether it moves — is `EmojiArt`'s job; this file is the page around it.
- *
- * **What travels is plain text.** A pick lands on `onPick` as an ordinary
- * emoji character, which is what the composer puts in the message. The drawings
- * and the animations never leave this panel: they are how the tile looks, not
- * what is sent, so a message keeps its emoji on a device that has never heard
- * of Lottie and Google's CDN is never asked to serve anything to a reader.
- */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
+import {
+  FaBurger,
+  FaClockRotateLeft,
+  FaFaceSmile,
+  FaFlag,
+  FaFutbol,
+  FaHand,
+  FaHeart,
+  FaLightbulb,
+  FaPaw,
+  FaPlaneDeparture,
+} from "react-icons/fa6";
 import { cn } from "@/utils/cn";
 import { STORAGE_KEYS } from "@/constants/storage";
+import {
+  SHELF,
+  SHELF_FOOTER,
+  SHELF_GRID,
+  SHELF_SEARCH,
+  SHELF_TITLE,
+  SHELF_TITLE_TEXT,
+} from "@/components/ui/shelf";
 import { EmojiArt } from "./EmojiArt";
 import {
   artOf,
   EMOJI_GROUPS,
-  GROUP_MARKS,
   groupRows,
   RECENT_LIMIT,
   rememberRecent,
@@ -31,6 +34,19 @@ import {
   shownChar,
   type EmojiRow,
 } from "./model";
+
+/** One real icon for each group, in the table's own order. */
+const GROUP_ICONS = [
+  FaFaceSmile,
+  FaHand,
+  FaPaw,
+  FaBurger,
+  FaPlaneDeparture,
+  FaFutbol,
+  FaLightbulb,
+  FaHeart,
+  FaFlag,
+] as const;
 
 /** The shelf of recent emoji, as this device last left it. */
 function readRecent(): string[] {
@@ -125,14 +141,11 @@ export function EmojiPicker({
   return (
     <div
       ref={root}
-      className={cn(
-        "flex w-[336px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[16px] border border-line bg-card shadow-[0_12px_34px_rgba(17,17,26,0.16)]",
-        className,
-      )}
+      className={cn(SHELF, className)}
       role="dialog"
       aria-label="Emoji"
     >
-      <div className="flex items-center gap-2 border-b border-line px-2.5 py-2">
+      <div className={SHELF_SEARCH}>
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-dim" />
           <input
@@ -140,21 +153,13 @@ export function EmojiPicker({
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search emoji"
             aria-label="Search emoji"
-            className="h-8 w-full rounded-full border border-line bg-card pl-8 pr-3 text-[12px] font-medium text-ink outline-none transition placeholder:text-dim focus:border-accent"
+            className="h-8 w-full rounded-md border border-line bg-card pl-8 pr-3 text-[12px] font-medium text-ink outline-none transition placeholder:text-dim focus:border-accent"
           />
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex size-8 shrink-0 items-center justify-center rounded-full text-dim transition hover:bg-[var(--accent-soft)] hover:text-ink"
-          aria-label="Close emoji"
-        >
-          <X className="size-4" />
-        </button>
       </div>
 
-      <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-2">
-        <p className="truncate text-[11px] font-bold text-dim">{title}</p>
+      <div className={SHELF_TITLE}>
+        <p className={SHELF_TITLE_TEXT}>{title}</p>
         {toneReady && !searching ? (
           <button
             type="button"
@@ -206,7 +211,7 @@ export function EmojiPicker({
         </div>
       ) : null}
 
-      <div className="max-h-[min(258px,42vh)] overflow-y-auto overscroll-contain px-2.5 pb-1">
+      <div className={SHELF_GRID}>
         {rows.length ? (
           <div className="grid grid-cols-8 gap-1">
             {rows.map((row) => {
@@ -217,7 +222,7 @@ export function EmojiPicker({
                   key={`${row[0]}-${char}`}
                   type="button"
                   onClick={() => pick(row)}
-                  className="grid size-9 place-items-center rounded-[9px] text-[22px] transition hover:bg-[var(--accent-soft)] active:scale-95"
+                  className="grid size-9 place-items-center text-[22px] transition-all active:scale-95"
                   title={row[1]}
                   aria-label={row[1]}
                 >
@@ -237,7 +242,7 @@ export function EmojiPicker({
         )}
       </div>
 
-      <div className="flex items-center gap-0.5 border-t border-line px-2 py-1.5">
+      <div className={SHELF_FOOTER}>
         <button
           type="button"
           onClick={() => {
@@ -245,39 +250,46 @@ export function EmojiPicker({
             setQuery("");
           }}
           className={cn(
-            "grid size-7 shrink-0 place-items-center rounded-[8px] text-[15px] transition",
+            "grid size-6 shrink-0 place-items-center rounded-[5px] transition",
             !searching && shelf === "recent"
-              ? "bg-[var(--accent-soft)] ring-1 ring-accent"
-              : "hover:bg-[var(--accent-soft)]",
+              ? "bg-[var(--accent-soft)] text-accent ring-1 ring-accent"
+              : "text-dim hover:bg-[var(--accent-soft)] hover:text-accent",
           )}
           title="Recent"
           aria-label="Recent emoji"
           aria-pressed={!searching && shelf === "recent"}
         >
-          🕘
+          <FaClockRotateLeft className="size-[14px]" aria-hidden />
         </button>
-        {EMOJI_GROUPS.map((name, index) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => {
-              setGroup(index);
-              setShelf("group");
-              setQuery("");
-            }}
-            className={cn(
-              "grid size-7 shrink-0 place-items-center rounded-[8px] text-[15px] transition",
-              !searching && shelf === "group" && group === index
-                ? "bg-[var(--accent-soft)] ring-1 ring-accent"
-                : "hover:bg-[var(--accent-soft)]",
-            )}
-            title={name}
-            aria-label={name}
-            aria-pressed={!searching && shelf === "group" && group === index}
-          >
-            {GROUP_MARKS[index] ?? "•"}
-          </button>
-        ))}
+        {EMOJI_GROUPS.map((name, index) => {
+          const Mark = GROUP_ICONS[index];
+          return (
+            <button
+              key={name}
+              type="button"
+              onClick={() => {
+                setGroup(index);
+                setShelf("group");
+                setQuery("");
+              }}
+              className={cn(
+                "grid size-6 shrink-0 place-items-center rounded-[5px] transition",
+                !searching && shelf === "group" && group === index
+                  ? "bg-[var(--accent-soft)] text-accent ring-1 ring-accent"
+                  : "text-dim hover:bg-[var(--accent-soft)] hover:text-accent",
+              )}
+              title={name}
+              aria-label={name}
+              aria-pressed={!searching && shelf === "group" && group === index}
+            >
+              {Mark ? (
+                <Mark className="size-[14px]" aria-hidden />
+              ) : (
+                <span className="text-[14px]">•</span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

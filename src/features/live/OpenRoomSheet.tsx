@@ -162,7 +162,7 @@ export function OpenRoomSheet({
               onChange={(event) => setTitle(event.target.value)}
               maxLength={140}
               placeholder="Late Night Talk"
-              className="field w-full"
+              className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full"
             />
           </label>
           <label className="block">
@@ -172,7 +172,7 @@ export function OpenRoomSheet({
               onChange={(event) => setNote(event.target.value)}
               maxLength={200}
               placeholder="Open mic. Anyone can speak."
-              className="field w-full"
+              className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full"
             />
           </label>
         </div>
@@ -209,7 +209,7 @@ export function OpenRoomSheet({
             onChange={(event) => setTags(event.target.value)}
             maxLength={80}
             placeholder="Design, Startup"
-            className="field w-full"
+            className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full"
           />
         </label>
 

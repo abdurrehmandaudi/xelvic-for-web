@@ -1,11 +1,15 @@
 import api from "@/config/axios";
 import type {
   Asset,
+  Channel,
   ChatGate,
   ConvoCatalog,
+  GroupRoom,
+  Invite,
   Message,
   MessagePoll,
   Page,
+  Roster,
   ThreadCard,
   ThreadDetail,
   UserCard,
@@ -146,6 +150,140 @@ export const chatService = {
   createGroup: async (title: string, members: string[]): Promise<{ thread: ThreadCard }> => {
     const response = await api.post<{ thread: ThreadCard }>("/chat/groups/", { title, members });
     return response.data;
+  },
+
+  // ---- a group's own furniture --------------------------------------------
+
+  /** What a group is called. Admins only; the server refuses anybody else. */
+  renameGroup: async (threadId: string, title: string): Promise<{ thread: ThreadDetail }> => {
+    const response = await api.patch<{ thread: ThreadDetail }>(
+      `/chat/threads/${threadId}/group/`,
+      { title },
+    );
+    return response.data;
+  },
+
+  /** The group's face. A file, so its own route and its own verb. */
+  setGroupAvatar: async (threadId: string, form: FormData): Promise<{ thread: ThreadDetail }> => {
+    const response = await api.post<{ thread: ThreadDetail }>(
+      `/chat/threads/${threadId}/avatar/`,
+      form,
+    );
+    return response.data;
+  },
+
+  clearGroupAvatar: async (threadId: string): Promise<{ thread: ThreadDetail }> => {
+    const response = await api.delete<{ thread: ThreadDetail }>(
+      `/chat/threads/${threadId}/avatar/`,
+    );
+    return response.data;
+  },
+
+  /**
+   * The two switches, and the rooms they belong to.
+   *
+   * One route for both because they are one question — how this group runs —
+   * and a body carries only the switch that moved.
+   */
+  room: async (
+    threadId: string,
+    patch: { locked?: boolean; invites_on?: boolean },
+  ): Promise<GroupRoom> => {
+    const response = await api.patch<GroupRoom>(`/chat/threads/${threadId}/room/`, patch);
+    return response.data;
+  },
+
+  /** The rooms, and making another one. Anybody in the group may read them. */
+  channels: async (threadId: string): Promise<{ channels: Channel[] }> => {
+    const response = await api.get<{ channels: Channel[] }>(`/chat/threads/${threadId}/channels/`);
+    return response.data;
+  },
+
+  createChannel: async (threadId: string, name: string): Promise<{ channel: Channel }> => {
+    const response = await api.post<{ channel: Channel }>(
+      `/chat/threads/${threadId}/channels/`,
+      { name },
+    );
+    return response.data;
+  },
+
+  /** A rename, a rule change, or both — the sheet sends whichever moved. */
+  updateChannel: async (
+    threadId: string,
+    channelId: string,
+    patch: { name?: string; post?: string; media?: string },
+  ): Promise<{ channel: Channel }> => {
+    const response = await api.patch<{ channel: Channel }>(
+      `/chat/threads/${threadId}/channels/${channelId}/`,
+      patch,
+    );
+    return response.data;
+  },
+
+  removeChannel: async (threadId: string, channelId: string): Promise<{ removed: string }> => {
+    const response = await api.delete<{ removed: string }>(
+      `/chat/threads/${threadId}/channels/${channelId}/`,
+    );
+    return response.data;
+  },
+
+  /** Every link into a group, live and dead. The list is an admin's to read. */
+  invites: async (threadId: string): Promise<{ invites: Invite[] }> => {
+    const response = await api.get<{ invites: Invite[] }>(`/chat/threads/${threadId}/invites/`);
+    return response.data;
+  },
+
+  makeInvite: async (threadId: string): Promise<{ invite: Invite }> => {
+    const response = await api.post<{ invite: Invite }>(`/chat/threads/${threadId}/invites/`, {});
+    return response.data;
+  },
+
+  revokeInvite: async (threadId: string, inviteId: string): Promise<{ invite: Invite }> => {
+    const response = await api.delete<{ invite: Invite }>(
+      `/chat/threads/${threadId}/invites/${inviteId}/`,
+    );
+    return response.data;
+  },
+
+  /** One page of the roster, searched on the server so the cut cannot hide anybody. */
+  members: async (threadId: string, q?: string): Promise<Roster> => {
+    const response = await api.get<Roster>(
+      `/chat/threads/${threadId}/members/`,
+      q ? { params: { q } } : undefined,
+    );
+    return response.data;
+  },
+
+  addMembers: async (threadId: string, members: string[]): Promise<{ thread: ThreadDetail }> => {
+    const response = await api.post<{ thread: ThreadDetail }>(
+      `/chat/threads/${threadId}/members/`,
+      { members },
+    );
+    return response.data;
+  },
+
+  setMemberRole: async (
+    threadId: string,
+    userId: string,
+    role: "member" | "admin",
+  ): Promise<{ thread: ThreadDetail }> => {
+    const response = await api.patch<{ thread: ThreadDetail }>(
+      `/chat/threads/${threadId}/members/${userId}/`,
+      { role },
+    );
+    return response.data;
+  },
+
+  removeMember: async (threadId: string, userId: string): Promise<{ thread: ThreadDetail }> => {
+    const response = await api.delete<{ thread: ThreadDetail }>(
+      `/chat/threads/${threadId}/members/${userId}/`,
+    );
+    return response.data;
+  },
+
+  /** The whole group, gone. 204 and nothing else. */
+  deleteGroup: async (threadId: string): Promise<void> => {
+    await api.post(`/chat/threads/${threadId}/delete/`, {});
   },
 
   // ---- messages -----------------------------------------------------------

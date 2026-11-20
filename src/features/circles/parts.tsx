@@ -262,7 +262,7 @@ export function PostButton({ day, onPost }: { day: CircleDay; onPost: () => void
   }
   const Glyph = kindGlyph(task.kind);
   return (
-    <button type="button" onClick={onPost} className="btn btn-primary min-h-[46px] w-full rounded-[14px] text-[13px]">
+    <button type="button" onClick={onPost} className="inline-flex select-none items-center justify-center gap-2 px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105 min-h-[46px] w-full rounded-[14px] text-[13px]">
       <Glyph className="size-[18px]" aria-hidden />
       {kindAsk(task.kind)}
     </button>

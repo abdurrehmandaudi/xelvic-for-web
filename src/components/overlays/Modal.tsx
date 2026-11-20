@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useId, useRef, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
@@ -99,29 +99,29 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         className={cn(
-          "relative flex max-h-[92dvh] w-full flex-col overflow-hidden border border-line bg-card shadow-2xl animate-fade-up",
-          "rounded-t-[24px] sm:rounded-[20px]",
+          "relative flex max-h-[92dvh] w-full flex-col overflow-hidden border border-line bg-card shadow-xl animate-fade-up",
+          "rounded-t-[24px] sm:rounded-xl",
           sizes[size],
           size === "full" && "sm:rounded-none",
           className,
         )}
       >
         {title ? (
-          <header className="flex items-start gap-4 border-b border-line px-5 py-4">
+          <header className="flex items-start gap-4 border-b border-line px-5 py-1.5">
             <div className="min-w-0 flex-1">
               <h2 id={titleId} className="text-lg font-extrabold tracking-tight">
                 {title}
               </h2>
-              {description ? <p className="mt-0.5 text-xs leading-5 text-dim">{description}</p> : null}
+              {description ? <p className="text-xs leading-5 text-dim">{description}</p> : null}
             </div>
             {hideClose ? null : (
-              <button type="button" onClick={onClose} className="icon-btn -mr-2 -mt-1" aria-label="Close">
-                <X className="size-4" />
+              <button type="button" onClick={onClose} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] -mr-2 -mt-1" aria-label="Close">
+                <X className="size-5" />
               </button>
             )}
           </header>
         ) : null}
-        <div className="min-h-0 flex-1 overflow-y-auto scroll-area">{children}</div>
+        <div className="[scrollbar-width:thin] [scrollbar-color:color-mix(in_srgb,var(--dim)_30%,transparent)_transparent] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-dim-26 min-h-0 flex-1 overflow-y-auto">{children}</div>
         {footer ? <footer className="border-t border-line px-5 py-3">{footer}</footer> : null}
       </div>
     </div>,
@@ -146,6 +146,7 @@ export function ConfirmDialog({
   body,
   note,
   confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
   destructive,
   loading,
   icon,
@@ -157,6 +158,7 @@ export function ConfirmDialog({
   body?: string;
   note?: string;
   confirmLabel?: string;
+  cancelLabel?: string;
   destructive?: boolean;
   loading?: boolean;
   /**
@@ -193,18 +195,104 @@ export function ConfirmDialog({
         </div>
       ) : null}
       <div className="flex justify-end gap-2 px-5 pb-5 pt-2">
-        <button type="button" className="btn btn-secondary" onClick={onClose}>
-          Cancel
+        <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5" onClick={onClose}>
+          {cancelLabel}
         </button>
         <button
           type="button"
-          className={cn("btn", destructive ? "btn-danger" : "btn-primary")}
+          className={cn("inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55", destructive ? "border border-bad-24 bg-bad-10 text-bad" : "border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105")}
           onClick={onConfirm}
           disabled={loading}
         >
           {loading ? "Working..." : confirmLabel}
         </button>
       </div>
+    </Modal>
+  );
+}
+
+export function PromptDialog({
+  open,
+  onClose,
+  onSubmit,
+  onReset,
+  resetLabel = "Use name",
+  title,
+  label,
+  placeholder,
+  note,
+  initial = "",
+  submitLabel = "Save",
+  maxLength,
+  loading,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (value: string) => void;
+  onReset?: () => void;
+  resetLabel?: string;
+  title: string;
+  label?: string;
+  placeholder?: string;
+  note?: string;
+  initial?: string;
+  submitLabel?: string;
+  maxLength?: number;
+  loading?: boolean;
+}) {
+  const [value, setValue] = useState(initial);
+  const fieldId = useId();
+
+  useEffect(() => {
+    if (open) setValue(initial);
+  }, [open, initial]);
+
+  const trimmed = value.trim();
+
+  return (
+    <Modal open={open} onClose={onClose} title={title} size="sm">
+      <form
+        className="px-4 py-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!trimmed) return;
+          onSubmit(trimmed);
+        }}
+      >
+        {label ? (
+          <label className="mb-1.5 block text-[11px] font-bold text-dim" htmlFor={fieldId}>
+            {label}
+          </label>
+        ) : null}
+        <input
+          id={fieldId}
+          className="w-full min-h-10 border border-line bg-card px-4 py-1 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none rounded-lg"
+          value={value}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          autoComplete="off"
+          onChange={(event) => setValue(event.target.value)}
+        />
+        {note ? <p className="mt-2 text-[12px] leading-5 text-dim">{note}</p> : null}
+        <div className="mt-4 flex justify-end gap-2">
+          {onReset ? (
+            <button
+              type="button"
+              className="inline-flex min-h-10 select-none items-center justify-center gap-2 rounded-lg px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mr-auto"
+              onClick={onReset}
+              disabled={loading}
+            >
+              {resetLabel}
+            </button>
+          ) : null}
+          <button type="button" className="inline-flex min-h-10 select-none items-center justify-center gap-2 rounded-lg px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="inline-flex min-h-10 select-none items-center justify-center gap-2 rounded-lg px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105" disabled={!trimmed || loading}>
+            {loading ? "Working..." : submitLabel}
+          </button>
+        </div>
+      </form>
     </Modal>
   );
 }

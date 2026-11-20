@@ -11,9 +11,18 @@ const LIMITS: Record<string, number> = {
 };
 
 export function kindOf(file: File): Asset["kind"] {
-  if (file.type.startsWith("image/")) return "image";
-  if (file.type.startsWith("video/")) return "video";
-  if (file.type.startsWith("audio/")) return "audio";
+  const mime = (file.type || "").toLowerCase();
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  // A picker that could not name the type — a clip dragged out of an archive,
+  // or one this browser has no entry for — is read off its ending instead. A
+  // video filed as a document is refused by the server with "the contents do
+  // not match its type", which is a true sentence about a file that was fine.
+  if (/\.(mp4|m4v|mov|webm|mkv|avi|3gp)$/i.test(file.name)) return "video";
+  if (/\.(jpe?g|png|gif|webp|heic|heif|avif|bmp)$/i.test(file.name)) return "image";
+  if (/\.(mp3|m4a|m4b|aac|wav|ogg|oga|opus|flac|amr)$/i.test(file.name))
+    return "audio";
   return "doc";
 }
 

@@ -2,20 +2,28 @@ import { describe, expect, it } from "vitest";
 import { giveBack, MOST_MOVING, spare, wanted } from "./motion";
 
 describe("whether an emoji should be moving", () => {
-  it("moves a tile in the picker while it is on screen", () => {
-    expect(wanted("tile", true, false)).toBe(true);
-    expect(wanted("tile", false, false)).toBe(false);
+  it("leaves a tile in the picker still while it is merely on screen", () => {
+    // The owner's report about the panel, after the same one about the thread:
+    // *"usme emoji animate continue hote hi rahte please ise aisa kijiye ki
+    // kewal hover karne par hi emoji animate kare"*. A grid where every tile
+    // runs is the whole page moving, not a preview.
+    expect(wanted(true, false)).toBe(false);
   });
 
   it("leaves an emoji in a message still while it is merely on screen", () => {
-    // The owner's own report: a thread where every bubble animates for as long
-    // as it is in view is a thread that cannot be read.
-    expect(wanted("text", true, false)).toBe(false);
+    // The owner's first report: a thread where every bubble animates for as
+    // long as it is in view is a thread that cannot be read.
+    expect(wanted(true, false)).toBe(false);
   });
 
-  it("moves an emoji in a message while a pointer is on it", () => {
-    expect(wanted("text", true, true)).toBe(true);
-    expect(wanted("text", false, true)).toBe(true);
+  it("moves either of them while a pointer is resting on it", () => {
+    expect(wanted(true, true)).toBe(true);
+  });
+
+  it("keeps it still once it has been scrolled out of the page", () => {
+    // Not a rule about the pointer: a drawing that is off the page has no
+    // business running, whatever else is true of it.
+    expect(wanted(false, true)).toBe(false);
   });
 });
 

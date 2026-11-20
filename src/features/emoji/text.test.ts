@@ -1,11 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { EMOJI, artOf, rowOf, toned } from "./model";
-import { drawingOf, splitEmoji } from "./text";
+import { drawingOf, onlyEmojiCount, splitEmoji } from "./text";
 
 /** What a body was cut into, as texts, so a case reads as the sentence did. */
 const pieces = (text: string) => splitEmoji(text).map((run) => run.text);
 /** Just the runs something can be drawn for. */
 const drawn = (text: string) => splitEmoji(text).filter((run) => run.art);
+
+describe("counting a body that is only emoji", () => {
+  it("counts one emoji and stops at any words", () => {
+    expect(onlyEmojiCount("😀")).toBe(1);
+    expect(onlyEmojiCount("😀😀")).toBe(2);
+    expect(onlyEmojiCount("😀 😀")).toBe(2);
+    expect(onlyEmojiCount("hi 😀")).toBe(0);
+    expect(onlyEmojiCount("1")).toBe(0);
+    expect(onlyEmojiCount("")).toBe(0);
+  });
+
+  it("counts a joined or flagged emoji once, not by its code points", () => {
+    expect(onlyEmojiCount("👨‍👩‍👧‍👦")).toBe(1);
+    expect(onlyEmojiCount("🇮🇳")).toBe(1);
+    expect(onlyEmojiCount("❤️")).toBe(1);
+    expect(onlyEmojiCount("1️⃣")).toBe(1);
+  });
+});
 
 describe("cutting a message into text and emoji", () => {
   it("finds nothing in an empty body", () => {
@@ -30,6 +48,11 @@ describe("cutting a message into text and emoji", () => {
 
   it("finds an emoji at each end, with no empty pieces around them", () => {
     expect(pieces("👋 hi 😀")).toEqual(["👋", " hi ", "😀"]);
+  });
+
+  it("cuts emoji typed next to each other into one run each", () => {
+    expect(pieces("😀😀")).toEqual(["😀", "😀"]);
+    expect(pieces("😀😀😀").length).toBe(3);
   });
 
   it("keeps a variation selector with the emoji it belongs to", () => {

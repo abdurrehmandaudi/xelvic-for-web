@@ -25,6 +25,19 @@
 
 const holders = new Set<HTMLMediaElement>();
 
+const listeners = new Set<() => void>();
+
+function announce(): void {
+  for (const listener of listeners) listener();
+}
+
+export function subscribeEar(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 /** Take the ear. Whatever was playing gives it up first. */
 export function claimEar(element: HTMLMediaElement): void {
   for (const other of holders) {
@@ -37,11 +50,13 @@ export function claimEar(element: HTMLMediaElement): void {
     }
   }
   holders.add(element);
+  announce();
 }
 
 /** Give the ear up, without claiming it for anybody else. */
 export function releaseEar(element: HTMLMediaElement): void {
   holders.delete(element);
+  announce();
 }
 
 /** Whether this element is the one being heard — for a caller that has to ask. */

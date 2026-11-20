@@ -197,7 +197,7 @@ export function AddToMemories({
             {into ? (
               <button
                 type="button"
-                className="btn btn-primary"
+                className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105"
                 disabled={!picks.length || busy}
                 onClick={() => void addTo(into)}
               >
@@ -206,7 +206,7 @@ export function AddToMemories({
             ) : (
               <button
                 type="button"
-                className="btn btn-primary"
+                className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105"
                 disabled={!picks.length}
                 onClick={() => setStep("where")}
               >
@@ -219,7 +219,7 @@ export function AddToMemories({
             <span className="min-w-0 flex-1 truncate text-[11.5px] text-dim">
               {stage || `${picks.length} ${picks.length === 1 ? "picture" : "pictures"}`}
             </span>
-            <button type="button" className="btn btn-primary" onClick={() => void makeNew()} disabled={busy}>
+            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105" onClick={() => void makeNew()} disabled={busy}>
               {busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : null} Keep
             </button>
           </div>
@@ -233,7 +233,7 @@ export function AddToMemories({
           {awaiting.isLoading ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-hidden>
               {[0, 1, 2, 3, 4, 5].map((row) => (
-                <div key={row} className="skeleton aspect-square rounded-[12px]" />
+                <div key={row} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] aspect-square rounded-[12px]" />
               ))}
             </div>
           ) : awaiting.isError ? (
@@ -286,7 +286,7 @@ export function AddToMemories({
           {shelf.isLoading ? (
             <div className="space-y-2 p-2" aria-hidden>
               {[0, 1].map((row) => (
-                <div key={row} className="skeleton h-12 rounded-[12px]" />
+                <div key={row} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-12 rounded-[12px]" />
               ))}
             </div>
           ) : (
@@ -344,7 +344,7 @@ export function AddToMemories({
             maxLength={24}
             autoFocus
             placeholder="What do you call it?"
-            className="field"
+            className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none"
             aria-label="Memory name"
           />
           <div>

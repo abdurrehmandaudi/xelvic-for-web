@@ -14,10 +14,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: "btn-primary",
-  secondary: "btn-secondary",
-  ghost: "btn-ghost",
-  danger: "btn-danger",
+  primary: "border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105",
+  secondary:
+    "border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5",
+  ghost: "border border-transparent text-ink hover:[&:not(:disabled)]:bg-ink-5",
+  danger: "border border-bad-24 bg-bad-10 text-bad",
 };
 
 const sizes: Record<Size, string> = {
@@ -33,7 +34,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   return (
     <button
       ref={ref}
-      className={cn("btn", variants[variant], sizes[size], full && "w-full", className)}
+      className={cn(
+        "inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em]",
+        "transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft",
+        "active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55",
+        variants[variant],
+        sizes[size],
+        full && "w-full",
+        className,
+      )}
       disabled={disabled || loading}
       {...props}
     >

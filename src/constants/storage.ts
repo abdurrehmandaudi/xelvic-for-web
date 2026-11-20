@@ -24,6 +24,12 @@ export const STORAGE_KEYS = {
   theme: "xelvic.theme",
   mode: "xelvic.mode",
 
+  /**
+   * The names this browser has given other people, keyed per account. The
+   * phone keeps the same list under the same key.
+   */
+  names: "xelvic.names.mine",
+
   /** Client state that belongs to this device rather than to the account. */
   soundMuted: "xelvic.sound.muted",
   vibesEnd: "xelvic.vibes.end",
@@ -41,6 +47,8 @@ export const STORAGE_KEYS = {
    * fresh ones are on their way. Per-account — see `store/queryCache.ts`.
    */
   queryCache: "xelvic.query-cache",
+
+  renderRetry: "xelvic.render.retry",
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

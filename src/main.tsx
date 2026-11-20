@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { CallProvider } from "@/providers/CallProvider";
 import { NoticeProvider } from "@/features/notices/NoticeProvider";
+import { LookingProvider } from "@/providers/LookingProvider";
 import { PlayerProvider } from "@/providers/PlayerProvider";
 import { PreferencesProvider } from "@/providers/PreferencesProvider";
 import { SocketProvider } from "@/providers/SocketProvider";
@@ -71,13 +72,19 @@ createRoot(document.getElementById("root")!).render(
               <PreferencesProvider>
                 <ThemeProvider>
                   <SocketProvider>
-                    <NoticeProvider>
-                      <CallProvider>
-                        <PlayerProvider>
-                          <App />
-                        </PlayerProvider>
-                      </CallProvider>
-                    </NoticeProvider>
+                    {/* Inside the socket, because every word it says is a frame
+                        on it — and outside every page, because a convo and a
+                        profile are two screens that both have to say where they
+                        are, and only one of them is on screen at a time. */}
+                    <LookingProvider>
+                      <NoticeProvider>
+                        <CallProvider>
+                          <PlayerProvider>
+                            <App />
+                          </PlayerProvider>
+                        </CallProvider>
+                      </NoticeProvider>
+                    </LookingProvider>
                   </SocketProvider>
                 </ThemeProvider>
               </PreferencesProvider>

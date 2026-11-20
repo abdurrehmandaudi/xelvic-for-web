@@ -117,9 +117,51 @@ export function shelfRowFromOwn(raw: Sticker): ShelfSticker | null {
 let shelfCache: ShelfSticker[] | null = null;
 let shelfPending: Promise<ShelfSticker[]> | null = null;
 let serviceDown = false;
+let shelfSink: ((rows: ShelfSticker[]) => void) | null = null;
+
+const SHELF_KEY = "xelvic.stickers.shelf.v1";
+
+function usableShelf(rows: unknown): ShelfSticker[] | null {
+  if (!Array.isArray(rows)) return null;
+  const list = rows.filter(
+    (row): row is ShelfSticker =>
+      Boolean(
+        row &&
+          typeof row === "object" &&
+          typeof (row as ShelfSticker).id === "string" &&
+          typeof (row as ShelfSticker).url === "string" &&
+          (row as ShelfSticker).url,
+      ),
+  );
+  return list.length ? list : null;
+}
+
+function keptShelf(): ShelfSticker[] | null {
+  if (shelfCache) return shelfCache;
+  try {
+    const raw = sessionStorage.getItem(SHELF_KEY);
+    if (!raw) return null;
+    const rows = usableShelf(JSON.parse(raw));
+    if (rows) shelfCache = rows;
+    return rows;
+  } catch {
+    return null;
+  }
+}
+
+function keepShelf(rows: ShelfSticker[]) {
+  shelfCache = rows;
+  try {
+    sessionStorage.setItem(SHELF_KEY, JSON.stringify(rows));
+  } catch {
+    // A full or refused store still leaves the tab's own copy standing.
+  }
+}
 
 /** The service's shelf, read a page at a time until it runs out. */
-async function askService(): Promise<ShelfSticker[]> {
+async function askService(
+  onPage?: (rows: ShelfSticker[]) => void,
+): Promise<ShelfSticker[]> {
   const rows: ShelfSticker[] = [];
   let offset = 0;
   while (offset < SHELF) {
@@ -140,6 +182,7 @@ async function askService(): Promise<ShelfSticker[]> {
       if (row) rows.push(row);
     }
     offset += PAGE;
+    if (rows.length) onPage?.(rows.slice());
     // A page shorter than the one asked for is the end when the service does
     // not say how many there are.
     if (list.length < PAGE) break;
@@ -227,17 +270,23 @@ export function shelvesOf(
  */
 export const stickersService = {
   /** Every sticker on the shelf, from wherever the shelf is being read. */
-  shelf: async (): Promise<ShelfSticker[]> => {
-    const kept = shelfCache;
-    if (kept) return kept;
+  shelf: async (
+    onRows?: (rows: ShelfSticker[]) => void,
+  ): Promise<ShelfSticker[]> => {
+    if (onRows) shelfSink = onRows;
+    const kept = keptShelf();
+    if (kept) {
+      shelfSink?.(kept);
+      return kept;
+    }
     const running = shelfPending;
     if (running) return running;
     shelfPending = (async () => {
       if (!serviceDown) {
         try {
-          const rows = await askService();
+          const rows = await askService((page) => shelfSink?.(page));
           if (rows.length) {
-            shelfCache = rows;
+            keepShelf(rows);
             return rows;
           }
           // An empty answer is a refusal like any other: the near road is the
@@ -251,10 +300,14 @@ export const stickersService = {
       // Only a shelf with something on it is kept. Caching an empty one would
       // pin a picker with no stickers in it for the rest of the session over
       // what was a moment's bad connection.
-      if (rows.length) shelfCache = rows;
+      if (rows.length) {
+        keepShelf(rows);
+        shelfSink?.(rows);
+      }
       return rows;
     })().finally(() => {
       shelfPending = null;
+      shelfSink = null;
     });
     return shelfPending;
   },
@@ -275,7 +328,13 @@ export const stickersService = {
   forget: (): void => {
     shelfCache = null;
     shelfPending = null;
+    shelfSink = null;
     serviceDown = false;
+    try {
+      sessionStorage.removeItem(SHELF_KEY);
+    } catch {
+      // Nothing stored, nothing to forget.
+    }
   },
 };
 

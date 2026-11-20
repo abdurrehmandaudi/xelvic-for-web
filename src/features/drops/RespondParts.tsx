@@ -120,7 +120,7 @@ export function RespondMedia({ asset }: { asset: Asset }) {
 function RespondAudio({ src }: { src: string | null }) {
   const media = useMediaUrl(src);
   if (!src) return null;
-  if (media.loading) return <div className="skeleton h-10 w-[240px] max-w-full rounded-full" />;
+  if (media.loading) return <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-10 w-[240px] max-w-full rounded-full" />;
   if (media.failed || !media.src) return <p className="text-[12px] text-dim">This sound could not be loaded.</p>;
   return <audio controls src={media.src} className="h-10 w-full max-w-[260px]" />;
 }

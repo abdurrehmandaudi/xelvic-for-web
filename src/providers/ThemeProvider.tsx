@@ -212,7 +212,7 @@ function persist(key: string, value: string) {
 }
 
 /** The three channels of a colour, for `rgb(var(--x) / <alpha>)`. */
-function rgbChannels(hex: string): string {
+export function rgbChannels(hex: string): string {
   const value = hex.replace("#", "");
   const six =
     value.length === 3
@@ -239,6 +239,23 @@ function toneColors(palette: ThemePalette): string[] {
     .map((name) => toneNamed(name))
     .filter((tone): tone is Tone => Boolean(tone))
     .map((tone) => (palette.isDark ? tone.pill : tone.on));
+}
+
+export function convoPalette(palette: ThemePalette): ConvoPalette {
+  return {
+    accent: palette.accent,
+    page: palette.page,
+    card: palette.card,
+    line: palette.line,
+    ink: palette.ink,
+    dim: palette.dim,
+    chatTint: palette.chatTint,
+    tones: toneColors(palette),
+    bubbleOut: palette.bubbleOut,
+    bubbleOutText: palette.bubbleOutText,
+    bubbleIn: palette.bubbleIn,
+    bubbleInText: palette.bubbleInText,
+  };
 }
 
 /**
@@ -341,21 +358,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // material's question rather than the theme's — a yellow lifted until it
     // shows on charcoal is a yellow that disappears on grey.
     const pill = bar.dark ? palette.accentPill : palette.accent;
-    const convoPalette: ConvoPalette = {
-      accent: palette.accent,
-      page: palette.page,
-      card: palette.card,
-      line: palette.line,
-      ink: palette.ink,
-      dim: palette.dim,
-      chatTint: palette.chatTint,
-      tones: toneColors(palette),
-      bubbleOut: palette.bubbleOut,
-      bubbleOutText: palette.bubbleOutText,
-      bubbleIn: palette.bubbleIn,
-      bubbleInText: palette.bubbleInText,
-    };
-    const convo = convoColors(convoPalette);
+    const forConvo = convoPalette(palette);
+    const convo = convoColors(forConvo);
     // The app's green and red, as words on the app's own surface: the light
     // pair held to read on white, the night pair lifted until they read on a
     // dark card. A theme may name its own, which is what `paletteWithTokens`
@@ -431,11 +435,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // `app/lib/convo_theme.dart`: the theme's own `chatTint` where it named
       // one, and the theme's accent otherwise. `--convo-accent-rgb` is the same
       // colour in channels, for the places that mix it by hand.
-      "--convo-accent": convoPalette.chatTint ?? palette.accent,
-      "--convo-accent-rgb": rgbChannels(convoPalette.chatTint ?? palette.accent),
+      "--convo-accent": forConvo.chatTint ?? palette.accent,
+      "--convo-accent-rgb": rgbChannels(forConvo.chatTint ?? palette.accent),
+      "--palette-accent": palette.accent,
       "--convo-bubble-wash": convo.convoBubbleWash,
       "--convo-bubble-edge": convo.convoBubbleEdge,
       "--convo-bubble-run": convo.convoBubbleRun,
+      "--convo-bubble-corner": convo.convoBubbleCorner,
       "--convo-out-ink": convo.convoOutInk,
       "--convo-out-dim": convo.convoOutDim,
       "--convo-in-wash": convo.convoInWash,

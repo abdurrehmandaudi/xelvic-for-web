@@ -56,7 +56,11 @@ export function AuthedImage({
   aspect,
   quiet,
 }: AuthedImageProps) {
-  const [near, setNear] = useState(() => Boolean(src && /^(data:|blob:)/i.test(src)));
+  // In hand already — a `data:` address the tab made, or bytes this tab has
+  // read before — is drawn on the first frame rather than a skeleton for one.
+  const [near, setNear] = useState(() =>
+    Boolean(src && (/^(data:|blob:)/i.test(src) || peekMedia(src))),
+  );
   const anchor = useRef<HTMLElement | null>(null);
   const attach = useCallback((node: HTMLElement | null) => {
     anchor.current = node;
@@ -121,7 +125,7 @@ export function AuthedImage({
     ) : (
       <div
         ref={attach}
-        className={cn("skeleton overflow-hidden", className)}
+        className={cn("relative bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] overflow-hidden", className)}
         style={aspect ? { aspectRatio: aspect } : undefined}
         aria-label={alt}
         role="img"
@@ -159,6 +163,8 @@ interface AuthedVideoProps {
   /** Draw nothing, rather than a skeleton, while the bytes are crossing. */
   quiet?: boolean;
   onEnded?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
   /**
    * The element itself, for the two screens that drive a clip rather than hand
    * it to the browser's own controls — the Vibes reel, which pauses on a tap,
@@ -167,6 +173,8 @@ interface AuthedVideoProps {
    */
   videoRef?: Ref<HTMLVideoElement>;
   onTimeUpdate?: () => void;
+  onReady?: () => void;
+  priority?: boolean;
 }
 
 /**
@@ -191,10 +199,23 @@ export function AuthedVideo({
   preload = "metadata",
   quiet,
   onEnded,
+  onPlay,
+  onPause,
   videoRef,
   onTimeUpdate,
+  onReady,
+  priority,
 }: AuthedVideoProps) {
-  const media = useMediaUrl(src);
+  // A clip the browser is asked to play, or that a screen drives by hand, is
+  // wanted now. Any other clip — a card in a convo somebody has scrolled to,
+  // most of all — waits until it is within reach of the screen: the bytes of a
+  // clip are the largest thing in a thread, and a column of them asked for on
+  // mount is a minute of download for cards nobody has looked at.
+  const eager = Boolean(autoPlay || controls || videoRef);
+  const [near, setNear] = useState(
+    () => eager || Boolean(src && (/^(data:|blob:)/i.test(src) || peekMedia(src))),
+  );
+  const anchor = useRef<HTMLElement | null>(null);
   const own = useRef<HTMLVideoElement | null>(null);
   const attach = useCallback(
     (node: HTMLVideoElement | null) => {
@@ -204,6 +225,45 @@ export function AuthedVideo({
     },
     [videoRef],
   );
+  const hold = useCallback(
+    (node: HTMLElement | null) => {
+      anchor.current = node;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!src || near || eager) return;
+    if (peekMedia(src)) {
+      setNear(true);
+      return;
+    }
+    const node = anchor.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setNear(true);
+      return;
+    }
+    const watcher = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setNear(true);
+          watcher.disconnect();
+        }
+      },
+      { rootMargin: "1600px 0px" },
+    );
+    watcher.observe(node);
+    return () => watcher.disconnect();
+  }, [src, near, eager]);
+
+  const media = useMediaUrl(src, near, priority);
+  const ready = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!media.src || ready.current === media.src) return;
+    ready.current = media.src;
+    onReady?.();
+  }, [media.src, onReady]);
 
   // A clip unmounted mid-play must give the ear back, or the next clip would
   // claim an ear that is already free — harmless — or leave this element in the
@@ -227,9 +287,13 @@ export function AuthedVideo({
     // A feed draws the clip's own still underneath and lets it show through:
     // a skeleton over that would hide the preview the still exists for.
     return quiet ? (
-      <div className={className} aria-hidden />
+      <div ref={hold} className={className} aria-hidden />
     ) : (
-      <div className={cn("skeleton bg-solid/20", className)} aria-hidden />
+      <div
+        ref={hold}
+        className={cn("relative overflow-hidden after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] bg-solid/20", className)}
+        aria-hidden
+      />
     );
   }
   return (
@@ -244,8 +308,14 @@ export function AuthedVideo({
       loop={loop}
       playsInline={playsInline}
       preload={preload}
-      onPlay={(event) => claimEar(event.currentTarget)}
-      onPause={(event) => releaseEar(event.currentTarget)}
+      onPlay={(event) => {
+        claimEar(event.currentTarget);
+        onPlay?.();
+      }}
+      onPause={(event) => {
+        releaseEar(event.currentTarget);
+        onPause?.();
+      }}
       onEnded={(event) => {
         releaseEar(event.currentTarget);
         onEnded?.();

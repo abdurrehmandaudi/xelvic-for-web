@@ -18,6 +18,7 @@ import { EmptyState, ErrorState, PageSkeleton } from "@/components/ui/States";
 import { cn } from "@/utils/cn";
 import { relativeTime } from "@/utils/format";
 import { spacesService } from "@/services/spaces.service";
+import { ApiError } from "@/utils/errors";
 import { OpenRoomSheet } from "@/features/live/OpenRoomSheet";
 import { crowdLine } from "@/features/live/parts";
 import { useSocketEvent } from "@/hooks/useSocket";
@@ -93,7 +94,11 @@ export function LivePage() {
     queryKey: ["rooms", shelf],
     queryFn: () => spacesService.shelf(shelf),
     staleTime: 15_000,
+    retry: false,
   });
+  const offline =
+    rooms.error instanceof ApiError &&
+    (rooms.error.status === 404 || rooms.error.code === "not_found");
 
   useSocketEvent(["room.new", "room.update", "room.gone"], () => {
     void queryClient.invalidateQueries({ queryKey: ["rooms"] });
@@ -140,10 +145,18 @@ export function LivePage() {
 
         {rooms.isLoading ? (
           <PageSkeleton rows={3} />
+        ) : rooms.isError && offline ? (
+          <div className="rounded-control border border-line bg-card">
+            <EmptyState
+              icon={<Radio className="size-6" />}
+              title="Live rooms are not on this server"
+              body="The rooms API is not deployed here yet, so nothing can be opened or joined."
+            />
+          </div>
         ) : rooms.isError ? (
-          <div className="card"><ErrorState error={rooms.error} onRetry={() => void rooms.refetch()} /></div>
+          <div className="rounded-control border border-line bg-card"><ErrorState error={rooms.error} onRetry={() => void rooms.refetch()} /></div>
         ) : !rows.length ? (
-          <div className="card">
+          <div className="rounded-control border border-line bg-card">
             <EmptyState
               icon={<Radio className="size-6" />}
               title={shelf === "live" ? "Nobody is on air" : shelf === "upcoming" ? "Nothing announced" : shelf === "mine" ? "You have not opened a room" : "No rooms have ended yet"}

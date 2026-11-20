@@ -77,6 +77,7 @@ const PREFETCHERS: Record<string, Prefetcher> = {
       queryKey: ["rooms", "live"],
       queryFn: () => spacesService.shelf("live"),
       staleTime: 15_000,
+      retry: false,
     });
   },
 };

@@ -7,14 +7,14 @@ import {
   Heart,
   ImageOff,
   MapPin,
-  MessageCircle,
   Pause,
   Play,
-  Share2,
   Tag,
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { FaRegCommentDots } from "react-icons/fa6";
+import { FiShare2 } from "react-icons/fi";
 import { Avatar } from "@/components/ui/Avatar";
 import { AuthedImage, AuthedVideo } from "@/components/media/Media";
 import { Modal } from "@/components/overlays/Modal";
@@ -279,13 +279,13 @@ export function DropCard({
         label="Comments"
         count={comments}
         onClick={() => setCommentsOpen(true)}
-        glyph={<MessageCircle className="size-[19px]" />}
+        glyph={<FaRegCommentDots className="size-[19px]" />}
       />
       <Act
         label="Share"
         count={shares}
         onClick={() => setShareOpen(true)}
-        glyph={<Share2 className="size-[19px]" />}
+        glyph={<FiShare2 className="size-[19px]" />}
       />
       <Act
         label={saved ? "Saved" : "Save"}
@@ -301,7 +301,7 @@ export function DropCard({
     <article
       ref={seen}
       className={cn(
-        "card overflow-hidden transition duration-200",
+        "rounded-control border border-line bg-card overflow-hidden transition duration-200",
         detailed ? "rounded-[20px]" : "rounded-[16px] hover:shadow-[0_12px_32px_rgb(19_19_26_/_0.06)]",
       )}
     >
@@ -343,7 +343,7 @@ export function DropCard({
         <button
           type="button"
           onClick={() => setMenuOpen(true)}
-          className="icon-btn -mr-1.5 size-9"
+          className="inline-flex flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] -mr-1.5 size-9"
           aria-label="Post options"
         >
           <EllipsisVertical className="size-4" />

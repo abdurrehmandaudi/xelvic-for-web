@@ -180,12 +180,12 @@ export function AudienceSheet({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search a name or @handle"
-              className="field h-10 w-full"
+              className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none h-10 w-full"
             />
             {people.isLoading ? (
               <div className="space-y-2 py-1" aria-hidden>
                 {[0, 1, 2].map((row) => (
-                  <div key={row} className="skeleton h-12 rounded-[12px]" />
+                  <div key={row} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-12 rounded-[12px]" />
                 ))}
               </div>
             ) : people.isError ? (
@@ -232,7 +232,7 @@ export function AudienceSheet({
                     key={String(person.id)}
                     type="button"
                     onClick={() => toggle(person)}
-                    className="chip inline-flex items-center gap-1"
+                    className="min-h-[34px] whitespace-nowrap rounded-full border border-line bg-card px-[0.8rem] text-[0.78rem] font-bold text-dim data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-on-accent inline-flex items-center gap-1"
                     aria-label={`Remove ${person.name || person.username}`}
                   >
                     {person.name || person.username}
@@ -414,12 +414,12 @@ export function AudienceMenu({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search a name or @handle"
-                className="field h-9 w-full"
+                className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none h-9 w-full"
               />
               {people.isLoading ? (
                 <div className="space-y-1.5" aria-hidden>
                   {[0, 1, 2].map((row) => (
-                    <div key={row} className="skeleton h-10 rounded-[10px]" />
+                    <div key={row} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-10 rounded-[10px]" />
                   ))}
                 </div>
               ) : people.isError ? (
@@ -470,7 +470,7 @@ export function AudienceMenu({
                       key={String(person.id)}
                       type="button"
                       onClick={() => toggle(person)}
-                      className="chip inline-flex items-center gap-1"
+                      className="min-h-[34px] whitespace-nowrap rounded-full border border-line bg-card px-[0.8rem] text-[0.78rem] font-bold text-dim data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-on-accent inline-flex items-center gap-1"
                       aria-label={`Remove ${person.name || person.username}`}
                     >
                       {person.name || person.username}
@@ -564,12 +564,12 @@ export function MentionSheet({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search a name or @handle"
-          className="field h-10 w-full"
+          className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none h-10 w-full"
         />
         {people.isLoading ? (
           <div className="space-y-2" aria-hidden>
             {[0, 1, 2].map((row) => (
-              <div key={row} className="skeleton h-12 rounded-[12px]" />
+              <div key={row} className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-12 rounded-[12px]" />
             ))}
           </div>
         ) : people.isError ? (

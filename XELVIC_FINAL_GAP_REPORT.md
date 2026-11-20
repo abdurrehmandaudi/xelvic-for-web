@@ -174,7 +174,7 @@ environment.
 | Chat-screen design fidelity | COMPLETE (static) | app heading, bubble/composer metrics, run spacing, day pills, sender-at-run-head, receipt and edited placement |
 | Theme's own picture inside a chat | COMPLETE / NOT VERIFIED | `theme.chatWall` behind the thread when no wallpaper was picked, at `chatVeil ?? WALL_SCRIM` of the page's own ink; the bar and composer go glass while the theme stands on a picture |
 | Chat accent on an uncoloured convo | COMPLETE / NOT VERIFIED live | Fixed on 2026-11-01. `ChatPage` rebinds the whole accent family (`--accent`, `--accent-soft`, `--accent-chip`, `--accent-strong`, `--accent-rgb`) to `--convo-accent`, which `ThemeProvider` already computed as `chatTint ?? accent` — the phone's `convoAccent()`. `TINT_HEX` now carries the phone's own light-scheme readings (`kTints`: `#0E7C8C`, `#0E7A4A`, `#96590A`, `#C42348`, `#9B2FAE`) instead of the server's dark-scheme hexes, and `tintHex` answers for `default` with the app's pink `#E31B66` rather than null |
-| Typing / presence surface | PARTIALLY COMPLETE | typing events still real; web shows a dot line, the app shows the other side's character pose (no web character catalogue); header `online` text removed to match the app |
+| Typing / presence surface | PARTIALLY COMPLETE | Since Round 29 the web draws the app's **two characters** over the composer — `typing` while they write, `wait` while they are merely on one of my places — so the dot line is gone. Named gaps: the **gaze** is implemented (ported from `looking.dart`) but **online/offline is still NOT IMPLEMENTED**, and a figure a **theme** ships is not in the web's catalogue. Header `online` text stays removed to match the app |
 | Live thread card + reorder | COMPLETE / NOT VERIFIED | `thread.update` patched in place |
 | Conversation list line, unread count and row marks | COMPLETE (NOT VERIFIED live) | Rebuilt 2026-11-03 as `home.dart`'s row. The line under a name is never the message: `Say something`, my own receipt word, `N new`, or `Nothing new` (`listLine`). The count is `N new` under the name plus a plate at the end of a **group** name, and no longer an accent circle at the far right of every row. The right-hand side is the phone's one line in its order: pin, birthday cake, timer (3 px from the spark), spark, clock (7 px). The waiting bar is the phone's 3 px mark inset 14 px. The Unread lane drops a convo whose only waiting line is a Spark (`inUnreadLane`, off `unread_other_count`) |
 | Message search | COMPLETE / NOT VERIFIED | `/chat/search/` in the Convo search field |
@@ -472,3 +472,560 @@ along. Everything below is what it does **not** claim.
   by nothing here, so there is no "my own posts" shelf, and `GET /drops/interests/`
   is uncalled with `category` / `interests` never sent, so a post made here
   carries no interests and cannot be filed. `NOT IMPLEMENTED`.
+
+## Round 24 — what is still not claimed (2026-11-12)
+
+The round that answered the owner's six-row composer menu — *"please ab convo ke
+chatscreen ke input me jo plus par click karne par open hota hai, please usme photos
+and videos, file, Location, Spark, sticker aur emoji ka option add kijiye"* — and
+with it sent a place for the first time. Sections for Rounds 20 to 23 were not
+written into this file; this one is, because a feature left the tree. Everything
+below is what the round does **not** claim.
+
+- **Creating a poll in a chat is MISSING from the working copy, and this round did
+  not remove it.** The last commit's `ChatPage.tsx` has a fifth menu row —
+  **Ask the crowd** — opening a `PollComposer`; the working copy has neither, and
+  `PollComposer`, `pollOpen` and `sendPoll` are in no file in the tree. Every
+  session transcript on this machine (115 files, subagents included) was searched:
+  no edit removed that block, and the panel this round replaced already had four
+  rows. **Answering** a poll still works (`PollMessage`, `vote()` →
+  `chatService.vote`). It was left exactly as found — restoring somebody else's
+  removal was not this round's request. Not a parity loss against the phone, whose
+  chat creates no polls either.
+- **No live verification of the location send.** No server was reached and the live
+  API was never contacted, so a location message was never delivered: the send is
+  verified as this client's request and its optimistic bubble, with the backend's
+  acceptance of `kind: "location"` read from `apps/chat/models.py:562` and
+  `apps/chat/services.py:65-67` (in `EMBED_KINDS`, not in `MEDIA_KINDS`, so no asset
+  is asked for). `PARTIALLY COMPLETE (NOT VERIFIED)`.
+- **A room's own rule is still not honoured by the composer.** The phone shortens
+  its attach sheet by the room (`only`, `text_only`) and `channel_allows` exists in
+  `services.py`, but the web's `Channel` type carries `{id, name, position}` and no
+  rule, so a photos-only room here still offers *File*. Pre-existing, named, not
+  closed. `MISSING` a rule to read.
+- **The phone's attach sheet is not matched row for row.** Seven roads there
+  (Camera photo, Camera video, Photos and videos, Sticker, Song, Audio file, File)
+  against six here, which add *Location* and *Emoji* and fold audio into *File*:
+  **Song** has no row, and there is no *Camera photo* / *Camera video* split.
+  `PARTIALLY COMPLETE`.
+- **The place sheet is the chat composer's only.** The phone opens
+  `app/lib/screens/place_sheet.dart` from the drop composer and the live camera; on
+  the web the drop composer still takes a place as a typed string
+  (*"Where was this?"*) and the camera keeps its own `findCurrentPlace`. `MISSING`
+  elsewhere, and not asked for.
+- **Naming a position asks a third party.** The reverse lookup and the search go to
+  OpenStreetMap (Nominatim, with a BigDataCloud fallback) from the reader's browser,
+  as the camera has always done — moved, not new. No accuracy travels with a
+  searched place because a browser gives none, and a geocoder that is down draws
+  "nothing by that name" rather than an invented row.
+- **Measured with a mouse, not a finger.** The menu and the sheet were driven in a
+  real browser against the real app; no touch screen, and no real backend, was
+  involved.
+## Round 25 — what is still not claimed (2026-11-12)
+
+The round that answered the owner's four asks about the convo header's Vibes — *"uska design fix
+kijiye aur usme like, comment share aur save ka bhi option rakhiye aur abhi usme kewal followers
+ka hi videos aa raha hai jabki sabhi ka aana chahiye aur jo jo drops ke vibe me wo sab kuch
+chatheader ke vibes me bhi hona chahiye"*. Everything below is what the round does **not** claim.
+
+- **The picture was never watched.** The probe's stub served a four-byte stand-in in place of a
+  video, so what the panel looks like playing a *real* Vibe is **NOT VERIFIED**. What is measured
+  is the chrome — the bar, the rail and its hit boxes, the caption, the comment strip, the
+  prompts, the pad, the player panel — and every write. The frames are not.
+- **No live anything.** Every measurement was against a local stub on loopback. No live request
+  was made, no real account was used, and the live shelf's composition, live media delivery and
+  live moderation are **NOT VERIFIED**. The shelf's `limit=8` hand, its cursor paging and the
+  off-by-default reco lanes are exactly as they were.
+- **"Only followers' videos" was answered by measurement on this side, not by a fix.** The client
+  sends no author filter, and the read-only backend's `visible_vibes` has no followers-only
+  clause — so if the live shelf still looks narrow, that is the corpus the server deals, and it
+  was not changed here. **The backend is read-only this round**: no endpoint, migration, setting
+  or contract change.
+- **Share is verified as a sheet, not as a send.** The rail's Share opened the app's own sheet on
+  the panel's clip — *Send to Jaya*, *Another app*, *Copy a link* — but nothing was picked inside
+  it, so **no share write was ever sent** and no server accepted anything. Felt, comment and save
+  were each recorded on the wire; share was not. `PARTIALLY COMPLETE`.
+- **Touch is NOT VERIFIED.** The panel was driven with a mouse and a keyboard in a headless
+  browser. The 500 ms hold, the double tap and the 2× pad were exercised as pointer events with
+  the correct timings, which is how the release-click bug was found — but a finger on glass was
+  not used, and a phone's own gesture arbitration is not in evidence.
+- **The phone's own file was not re-read.** This round's comparison with the phone rests on
+  earlier rounds' reading of its convo screen. The phone draws Vibes inline in the thread and the
+  web draws them in a panel beside it; that difference was not closed, and the two panels were
+  not compared element by element.
+- **Not a claim of parity.** The panel stopped being a second, thinner player and became the
+  walk's own clip with a panel's chrome. Two controls are deliberately absent from it — *Your
+  studio* and *New Vibe* — because both navigate away from the thread; a reader who wants parity
+  should read that as a decision, not an oversight.
+- **The composer's poll row is still missing**, unchanged from Round 24, and this round's edits to
+  `ChatPage.tsx` were confined to the header's Vibes door. It was left exactly as found.
+
+## Round 26 — what is still not claimed (2026-11-12)
+
+The round that answered the owner's two asks about the composer's sticker sheet — *"us panel ka
+hight aur width exact emoji panel ke jitna kijiye aur sticker panel jo stckers hai un sab ka size ek
+jaisa nahi hai, please sabhi ka size ek jaisa kijiye, chota bada na dikhe"*. Everything below is what
+the round does **not** claim.
+
+- **The editor's sticker shelf was not changed.** `src/features/camera/PhotoEditor.tsx` draws its own
+  shelf at `size-full object-contain` over the same 602 stickers, so it **still shows the uneven
+  sizes** this round removed from the composer's sheet. It was deliberately left as it was and is
+  named here rather than quietly implied to be fixed. `NOT IMPLEMENTED` there.
+- **The phone was read, not changed, and not measured.** `app/lib/screens/chat_sticker.dart` gives
+  every sticker a uniform square cell with `BoxFit.contain`, which fits the *file* for exactly the
+  same reason — so the phone shows the same unevenness. `xelvic/` is read-only and nothing in it was
+  created, edited or deleted. **Not a claim of parity.**
+- **Touch is NOT VERIFIED.** Both panels and all four re-measured stickers were measured with a
+  mouse in a headless browser. A finger on glass was not used.
+- **No live anything.** Every panel measurement was against a loopback stub on loopback. No live
+  request was made and no real account was used. The catalogue the stickers came from *is* live and
+  public, but it was read for its rows and its pictures' alpha channels, nothing more.
+- **The two panels are one box and one sticker size — and nothing more.** The box and the sizing rule
+  were unified because that is what was asked. The two panels were not otherwise made identical, and
+  no parity percentage moved.
+- **Equal area was considered and refused.** Every sticker's *longest visible edge* is what is
+  equalised, so a genuine 1.86 : 1 sticker is still drawn 63 × 34. Equal area would have meant drawing
+  a wide sticker wider than its own cell, cropping its wings or overlapping its neighbour. That is a
+  decision, not an oversight.
+- **The backend is read-only this round** — no endpoint, migration, setting or contract change — and
+  the pictures' own hosts are third-party services this client has always used.
+
+## Round 27 — what is still not claimed (2026-11-12)
+
+The round that answered the owner's two asks about the shelf of stickers — *"Abhi sabhi stickers nahi
+aa raha hai, please ise fix kijiye jisse sabhi stickers aaye aur agar isme koi gif ka bhi hai to isi
+me ek gif ka section add kijiye jisme sabhi gif dikhega aur agar nahi hai to leave it kewal sabhi
+sticker ko laiye"*. Everything below is what the round does **not** claim.
+
+- **No GIF section — because there are no GIFs, and that is a finding, not an omission.** The
+  catalogue paged through seven pages gives **602 rows, 602 unique ids**, and **`animated: true` is 0
+  of 602**. The owner's own instruction covered this case (*"agar nahi hai to leave it"*), so nothing
+  GIF-shaped was built. If the catalogue ever gains animated rows, nothing on this shelf would show
+  them as animated — they would be drawn as still pictures, exactly as they are today.
+- **"Every sticker arrives" is claimed for the composer's shelf only.** The editor's own shelf
+  (`src/features/camera/PhotoEditor.tsx`) still uses `loading="lazy"` over the same 602 stickers, so
+  on a long shelf it **still behaves as the composer's shelf did before this round**. Unchanged and
+  unmeasured. `NOT IMPLEMENTED` there.
+- **The phone was read, not changed, and not measured in a running app.** `app/lib/screens/
+  chat_sticker.dart` loads its pictures lazily too, so the same behaviour is still the phone's.
+  `xelvic/` is read-only; nothing in it was created, edited or deleted. **Not a claim of parity.**
+- **The cost is real and it is a first-open cost.** A cold open pulls **602 pictures, 26 MB, one
+  request each**, with the last drawn about **7.5 s** after the panel appears. That is the trade this
+  round made: a shelf that arrives drawn instead of a shelf that arrives blank. Every picture answers
+  `immutable, max-age=2592000`, so a warm re-open measured `files: 0, mb: 0` — but the first open of
+  a month pays it, and on a slow connection it will take longer than 7.5 s.
+- **A slow connection is NOT VERIFIED.** The timing above is this machine on this connection. The
+  number that does not change on a slow link is the one that matters: every sticker still arrives —
+  but *when* was not measured anywhere but here.
+- **Touch is NOT VERIFIED.** The shelf was scrolled with a wheel and clicked with a mouse in a
+  headless browser. A finger's flick, and its momentum, were not used.
+- **No live anything behind the app.** Every in-app measurement was against a loopback stub. No live
+  request was made and no real account was used. The catalogue itself was read live — its JSON, and
+  one picture's headers.
+- **The pictures were not made smaller, on purpose.** The Cloudinary transform in a row's URL is part
+  of the URL that is **sent to the backend** when a sticker is picked, so asking for a smaller file
+  would have changed the message rather than the download. The 26 MB stands.
+- **The box and the grid were not touched.** Round 26's 340 × 363 box, four columns and 63-pixel
+  drawing box are as the owner asked in the previous round; this round changed only *when* a picture
+  is asked for.
+- **The backend is read-only this round** — no endpoint, migration, setting or contract change — and
+  none of the addresses this round used are the backend's at all.
+
+## Round 28 — what is still not claimed (2026-11-12)
+
+The character now comes up over the composer while the other person writes, at the phone's own three
+numbers, and the measurements above say so. What follows is what that does **not** mean.
+
+- **The web's figure chain is shorter than the phone's, and this is a real gap.** The phone tries
+  their worn figure, then the figure their **theme** ships, then the app's own. The web's catalogue
+  carries a figure's pictures but **not a theme's figure pictures**, so the middle rung cannot be
+  reached from here: an account wearing no shop figure gets the **bundled** figure rather than the one
+  their theme bought. Recorded as `NOT IMPLEMENTED`, not smoothed over. The alternative — inventing a
+  lookup the API cannot answer — would have drawn a figure that is not theirs, which is worse than
+  drawing the app's own.
+- **A theme's `figure_peek` size is not read.** A *shop figure's* `peek_size` is read from its own
+  row, and a figure with no row falls back to the phone's 84. The phone also reads the size off the
+  theme's row; the web does not, and does not draw one.
+- **Typing between two live accounts is NOT VERIFIED.** Every frame the round was measured against
+  came from a loopback stub that speaks the shape read out of `consumers.py` and `services.py`. No
+  live request was made for the typing frames and no real second account was used. What is proven is
+  that the page draws the figure on the frame the backend is documented to send — not that the
+  backend and the app agree in production.
+- **The dead-man timer was not exercised.** The app clears a typer after the frame's own `ttl`; the
+  backend's `TYPING_TTL_SECONDS` is 6 and the phone's `kTypingNet` is also 6 seconds. The probe's
+  waits were 700 ms, so whether a note that never stops really falls after six seconds is read from
+  the code and **not measured**.
+- **Touch and a real phone were not used.** The capture is a mouse at 1280 × 900. The character is
+  `pointer-events-none` and was read as taking no taps, but a finger on a phone-sized viewport was not
+  tried.
+- **The words are gone on purpose, and that is worth saying rather than discovering.** The phone
+  removed `typing...` in favour of the figure, and the web now does too. What remains for a reader who
+  cannot see the character is a single `sr-only` `role="status"` sentence, measured reading
+  `Jaya is typing...` while the figure is up and `""` while it is down. A sighted reader who preferred
+  the words no longer has them.
+- **The real-time half was not built this round and no claim that it was is made.** The socket send
+  and the `thread.typing` receive both predate this round and were left alone; the round changed what
+  is **drawn** on a frame that was already arriving.
+- **The phone was read, not measured.** `app/lib/screens/chat.dart` and `app/lib/catalogue.dart` were
+  read for the numbers and the rule, and nothing under `xelvic/` — app, backend or iOS — was created,
+  edited or deleted. The phone was not run, so its own behaviour is quoted from its source rather than
+  observed. **This is not a parity claim.**
+- **`ChatPage`'s chunk got smaller and that is not an achievement.** 150.69 kB → 149.76 kB, because the
+  visible words came out and `Pose`/`marks` is a shared chunk now. It is recorded because the number
+  moved, not because it means anything.
+
+## Round 29 — what is still not claimed (2026-11-12)
+
+Both of the phone's characters now stand over the composer, and the measurements in
+`XELVIC_TESTING_REPORT.md` say which one stands at each of six moments. What follows is what that does
+**not** mean.
+
+- **The second character needed a feature the web did not have, and this is the round's real content.**
+  `wait` is not fed by the typing mechanism. It is fed by the **gaze** — where the other person is
+  looking — which arrives as a `focus` frame, and the web had no code for it at all: a search for it
+  found only `window.addEventListener("focus")` in an unrelated view. So this round ported
+  `app/lib/looking.dart` (272 lines) and the convo's and profile's halves of it before there was
+  anything to draw. Saying "the typing indicator now has two characters" without that would have hidden
+  the actual work, and would have been a claim about a feature that did not exist.
+- **Two live accounts looking at each other is NOT VERIFIED.** Every frame came from a loopback stub
+  that speaks the shape read out of `consumers.py` and `settings.py`. No live request was made for the
+  `focus` frames and no real second account was used. What is proven is that the page asks, says and
+  draws on the frames the backend is documented to send — **not** that two phones and a browser agree
+  in production. **This is not a parity claim.**
+- **The 30-second sweep is a unit test, not an observation.** `GAZE_STALE_MS` is the server's own
+  `FOCUS_TTL_SECONDS` (30) and is pinned at its boundary — believed at 29 999 ms, dropped at 30 000 —
+  but no probe waited out a real lapse. The other half of that story, a **peer who vanishes without
+  saying goodbye**, is exercised through `staleGazes` and never through an actual vanished peer.
+- **Presence — is the other person *online* — is NOT IMPLEMENTED.** The phone watches it; the web does
+  not. The gaze is a different fact and does not stand in for it; the two are separate rows in
+  `XELVIC_FEATURE_PARITY_MATRIX.md` and both stay `PARTIALLY COMPLETE`.
+- **The web's figure chain is still shorter than the phone's.** `Round 28`'s gap stands unchanged: the
+  catalogue carries a figure's pictures but not a **theme's** figure pictures and not a theme's
+  `figure_peek`, so an account wearing no shop figure gets the bundled one rather than the one their
+  theme bought. Recorded as `NOT IMPLEMENTED`, not smoothed over.
+- **One deliberate deviation, written down as one.** The phone remembers "the last pose" as one of
+  three files in its own bundle, which cannot go away while it runs. The web's poses are shelf URLs
+  that change when somebody changes their figure, so the memory in `TypingPeek.tsx` is **keyed to the
+  set of pictures it came from**. Without that key a figure change mid-convo would leave the character
+  standing in the previous figure's pose. This is not what the phone does; it is what the web has to
+  do to mean the same thing.
+- **The `left` frame in the convo's own log is a dev-mode artefact, and it is not offered as
+  behaviour.** One clean open logged `ask → say chat → left → ask → say chat`, the `left` being React
+  **StrictMode** double-invoking the effect (mount, cleanup, mount). A production mount runs it once.
+  The teardown order is deliberate — unwatch first, then a **named** goodbye, so a goodbye for one
+  person can never be read as somebody else's — but the extra pair is StrictMode and is recorded as
+  such.
+- **A defect was found in the probe, not in the page.** The first attempt to measure that the ask and
+  my own word are *repeated* printed "8 asks and 9 words about me" because the stub's frame log had
+  been accumulating since a **previous run** — a leftover counted as a repeat. The stub grew
+  `POST /__clear`, the driver calls it at the start, and the check now measures a delta. The corrected
+  reading is **2 frames 8 seconds after the page settled**: one `ask` and one word about where the page
+  is. It is written here because the wrong number existed and would otherwise have been believed.
+- **One of the round's own tests failed first, and the fault was the fixture.** `staleGazes(seen,
+  30_000)` was expected to drop an entry at `at: 500`, which is only 29.5 s old — the assertion was
+  wrong, not the rule. Fixed to `now = 60_000` with entries at 0, 45 000 and 20 000.
+- **Touch and a real phone were not used.** The capture is a mouse at 1280 × 900.
+- **The phone was read, not run.** `app/lib/looking.dart`, `app/lib/screens/chat.dart`,
+  `apps/chat/consumers.py` and `config/settings.py` were read for the rule and the numbers; nothing
+  under `xelvic/` — app, backend or iOS — was created, edited or deleted. The backend remained
+  strictly read-only: the `focus` frames this round now sends and reads are frames the backend
+  **already had**, and no endpoint, migration, setting or contract was changed.
+- **`ChatPage` grew, and it is reported as growth.** 149.76 kB → 150.53 kB, from the watch/say wiring
+  the convo now needs. Unlike Round 28's fall, this one is not offered as anything.
+
+## Round 30 — what is still not claimed (2026-11-12)
+
+The chips a convo forms are now the phone's own objects, and one of them had **never been drawn at
+all**. What follows is what that does not mean.
+
+- **The call chip's absence was a client bug, not a contract question, and calling it a "chip fix"
+  would understate it.** `callNote()` read `message.payload.call` as an *object* holding `media`, while
+  `_write_log` has always written one **flat** dictionary — `{"call": "<uuid string>", "media": …,
+  "outcome": …, "seconds": …}`, `call` a string with the rest as its siblings. The guard never passed,
+  so **every call in every thread fell through to an ordinary bubble** — from the day the code was
+  written. It was proven by dumping the message list's `outerHTML`, not by reading the source.
+- **Two live accounts were not used and no call was placed or received.** Every reading came from a
+  loopback stub in a headless browser. What is proven is that a note of that shape draws the phone's
+  plate and that pressing it sends the ring frame the relay documents — **not** that a real call
+  produced it. **This is not a parity claim.**
+- **Only a PDF was measured, so the fallback words are NOT VERIFIED.** `Image`, `Video`, `Document` and
+  `Audio` come from `_fallbackType` in `chat_media.dart`; no file without a MIME went through the page,
+  so that path is read and not exercised. The duration suffix on a voice note was likewise not
+  exercised.
+- **The file chip's download was not confirmed to save.** It is an `<a download>` pointing at the
+  authenticated media URL the API returns. That it renders and reads correctly is measured; that a
+  browser writes the file to disk against a real backend is **NOT VERIFIED**.
+- **The phone's file-name size is an inference and is recorded as one.** `_FileRow` gives the name
+  `X.text` at w700 and **no `fontSize`**, so it inherits Material's default 14. The web draws 14 to
+  match the inheritance. If that default ever moves, this is the number that silently becomes wrong,
+  and it was never measured on a device.
+- **Two defects in this round's own probe were mine, and both would have made the page look wrong.**
+  The stub wrote the call notes as `kind: "text"` where `chat.system_note` writes `system`, and used
+  `mime_type` where the serializer's field is `mime`. Both were caught by dumping the DOM. They are
+  written here because a probe that is wrong about the contract is a probe that indicts the page.
+- **A third probe fault was a measurement fault.** The day pill's radius was first read off a
+  `rounded-full` span, where a browser clamps `full` to half the height (11.5px on a 28.5px pill). The
+  reading was taken from the plate instead, and that is what changed the code to `rounded-[20px]`.
+- **A video call was drawn from a note but never placed**, and the same is true of every call state —
+  declined, missed, ended. The four glyphs and the two inks are measured as drawings, not as calls.
+- **Touch and a real phone were not used.** The capture is a mouse at 1280 × 900.
+- **The phone was read, not run.** `app/lib/screens/chat.dart`, `app/lib/calls.dart`,
+  `app/lib/screens/chat_media.dart`, `apps/calls/services.py`, `apps/chat/services.py` and
+  `apps/chat/serializers.py` were read for the shape and the geometry; nothing under `xelvic/` — app,
+  backend or iOS — was created, edited or deleted, and the backend gained no endpoint, migration,
+  setting or contract change.
+- **`ChatPage` grew again, and it is reported as growth.** 150.53 kB → 151.10 kB, from the file-chip
+  rebuild. No improvement is claimed in either direction.
+
+## Round 31 — what is still not claimed (2026-11-12)
+
+Where a message's time is read is now the phone's answer. What follows is what that does not mean.
+
+- **The phone deliberately puts no clock on an ordinary bubble, and the web now matches that by not
+  adding one.** `messageStateRow` (`chat.dart:579`) and `_actions` (`chat.dart:5073`) both say the
+  time is read from the long-press menu. Adding a clock under the words would have been the obvious
+  reading of the request and would have made this client **differ** from the phone in the name of
+  matching it. The one clock that is on the page belongs to a picture and sits **above** it.
+- **The sheet was measured on a received message only.** The phone's `_menuClock` answers nothing for
+  an unsent outbox row, and that state was not opened here. **NOT VERIFIED.**
+- **A 24-hour locale diverges, deliberately.** The phone's `clock()` answers `10:42` and `_menuClock`
+  appends `AM`/`PM` itself, so its sheet always carries the half of the day. The web's `clock()` is
+  `Intl.DateTimeFormat` and is locale-aware, so under a 24-hour locale it reads `23:05` where the phone
+  would read something like `10:42 PM`. Matching the phone exactly there would mean ignoring the
+  viewer's own locale, which is worse; it is recorded as a **divergence**, not smoothed over.
+- **Everything was measured against a loopback stub; two live accounts were not used.** What is
+  proven is that the line the phone draws is the line the web draws, at the same size, weight, colour
+  and inset — **not** that a real backend's thread renders identically. **This is not a parity claim.**
+- **The inset reading needed a different instrument, and that is worth recording.** The clock's left
+  inset was first measured off the element's own box, which read 1px and says nothing: an inset is
+  padding *inside* the element. It was re-read with a `Range` over the text node, which gave the 17px
+  that is the phone's 16 plus the panel's 1px border.
+- **Touch and a real phone were not used.**
+- **The phone was read, not run.** `app/lib/screens/chat.dart` and `app/lib/strings/en.dart` were read
+  and not changed; nothing under `xelvic/` was created, edited or deleted, and the backend gained no
+  endpoint, migration, setting or contract change. Round 31 sent nothing new on the wire at all.
+
+## Round 32 — what is still not claimed (2026-11-12)
+
+The web now draws the phone's own voice-note player, to the bar. What that does **not** mean:
+
+- **A speed cannot be chosen before the first press.** The phone's chip is *"Always a control: before
+  the first press it chooses the speed that press will play at"*, held per sound in
+  `_speedChoice`/`speedOf`. The web's is `disabled={!held}` — the chip is drawn, sized and coloured
+  like the phone's, and it does less. **NOT MATCHED.**
+- **`InFront` is not ported.** The phone stops a note when the page it is drawn on stops being the one
+  being looked at, and it stops rather than pauses because *"a row left showing itself as playing is a
+  claim about a sound nobody can hear."* The web has the one-ear rule and no page gate, so a note can
+  go on playing under a sheet that has been opened over it. **NOT IMPLEMENTED.**
+- **The transfer controls are not drawn.** Pending, Uploading, Retry and a red Discard (`_transferControls`)
+  are absent; the web draws an "Expired" line only.
+- **A sender is not drawn on somebody else's voice note**, which the phone does in a group
+  (`sender: mine ? null : sender`). **NOT IMPLEMENTED.**
+- **The tap target is not the phone's.** The phone's control is a Material `IconButton` with Material
+  3's 48-point minimum; the web's is an explicit 40 × 40 box. The visual box matches; the finger's room
+  may not.
+- **Nothing was heard.** The harness plays a **silent WAV built in the page** against a **loopback
+  stub**; no recording was played, no seek and no speed change was performed, and two live accounts
+  were not used. **This is not a parity claim.**
+- **A reading from this run was thrown away rather than used.** The probe's selector for the heart
+  matched the play button a second time and returned its box twice; rather than report that as the
+  heart's geometry, the reading is discarded and the heart is recorded as **NOT VERIFIED** here.
+- **The phone was read, not run.** `app/lib/screens/chat_audio.dart` was read and not changed; nothing
+  under `xelvic/` was created, edited or deleted, and the backend gained no endpoint, migration,
+  setting or contract change.
+
+## Round 33 — what is still not claimed (2026-11-12)
+
+The web now draws the phone's **three** sounds — a voice note, a sound file and a song card — as three
+different objects, and the song card is not a bubble. What that does not mean:
+
+- **The card's width is not the phone's rule.** The phone is `ConstrainedBox(minWidth: 220, maxWidth:
+  290)` around content-sized children, so a long title widens the card and a short one narrows it. The
+  web is a flat `w-[272px] max-w-[76vw]`. **PARTIALLY MATCHED** — recorded rather than fixed.
+- **The failure sentence is not the phone's.** The phone prints `store.stuck!`, the store's own words
+  about what went wrong; the web prints "Could not play that." No failure was provoked in this run, so
+  even the web's own sentence was not seen on screen. **NOT MATCHED.**
+- **The file row is thinner than the phone's.** The phone allows **two** lines for the name and
+  ellipsises at the second; the web truncates to one. An unnamed file reads "An audio file" here where
+  the phone uses `source.fileName`. And the phone's row is a `_MediaFrame` with Pending / Uploading /
+  Retry / Discard and a press that **opens** a local file, while the web's is an `<a download>` — **no
+  transfer states, and a different thing happens when it is pressed.**
+- **`ShareWho` names a person differently.** The phone reads the alias the reader gave them
+  (`Aliases.it.name(id, name, username)`); the web draws `name || username`. Unchanged this round and
+  recorded here rather than passed over.
+- **The accent split is real but invisible on every light theme.** `--palette-accent` against
+  `--convo-accent` was measured on the dark "Alone" theme — `#8FB4FF` on the card, `#2B57C6` in the
+  thread — and on every theme where `chatTint` equals the accent the two values are the same, so **no
+  visual difference is claimed there.**
+- **The heart was not measured.** The phone's `LikeHeart` constraints (`34 × 34` around a 22 icon) and
+  the web's `LikeButton size="md"` were both **read from source**; the probe's selector matched the
+  play button twice, so the geometry is **COMPLETE by construction, NOT VERIFIED by measurement**.
+- **Nothing was heard.** Three messages in one thread against a **loopback stub**; the sound file was a
+  WAV, the voice note was silent, no failure was provoked, and two live accounts were not used.
+- **The phone was read, not run.** `app/lib/screens/chat.dart`, `chat_media.dart`, `chat_track.dart`,
+  `audio_bits.dart`, `share_who.dart` and `convo_theme.dart` were read and not changed; nothing under
+  `xelvic/` was created, edited or deleted, and the backend gained no endpoint, migration, setting or
+  contract change. Rounds 32 and 33 sent nothing new on the wire at all — they read `asset.waveform`,
+  `asset.duration_ms`, `message.kind` and `payload.track`, all of which were already arriving.
+
+## Round 34 — what is still not claimed (2026-11-13)
+
+- **NOT VERIFIED at runtime:** the group avatar (upload and clear), invite creation and revoking, a
+  member's promotion and removal, leave, delete, channel create / rename / delete, the group rename,
+  and the add-people picker. They are wired to the endpoints `group.dart` uses and pass typecheck,
+  lint, tests and build, but no probe clicked them and no real server answered.
+- **NOT VERIFIED against a live backend at all.** Every reading in the testing report came from a
+  loopback stub that answered with hand-written JSON.
+- **PARTIALLY MATCHED:** the panel is a web layout, not a pixel port. The phone's `GroupScreen` is a
+  full route with its own scroll physics; the web's is a column inside the convo's aside. Sizes,
+  spacing and the switch's exact track were not measured against the phone.
+- **NOT IMPLEMENTED:** the phone's avatar picker offers camera and gallery as two doors
+  (`image_picker` with a source choice); the web uses one file input plus a `capture="environment"`
+  input, which is the browser's limit, not a design choice.
+- **No backend change.** No new endpoint, migration, setting or contract change. `xelvic/` was read
+  and not changed, and nothing in `xelvic-web/docs/` was touched.
+
+## Round 35 — what is still not claimed (2026-11-13)
+
+- **NOT VERIFIED against a live backend.** The rename, the reset and all three gate states were driven
+  against a loopback stub.
+- **PARTIALLY MATCHED:** the web's convo sheet still carries three rows the phone puts elsewhere —
+  Media and files, Wallpaper and Convo theme. They were left in place, so the sheet is a superset of
+  the phone's, not a match for it.
+- **PARTIALLY MATCHED:** the alias is keyed the same way and lives under the same storage key, but it
+  does not reach the places the phone's does beyond the convo header and the empty-state line — a
+  notification title, a share card's `ShareWho`, and the Android service's own name lookup have no web
+  counterpart here.
+- **NOT IMPLEMENTED:** nothing new. No row was added that does nothing, and the one row that could do
+  nothing — Unblock on the wrong side of a block — was removed by reading a field that was already on
+  the wire.
+- **No backend change**, no new endpoint, no migration, no contract change. `xelvic/` was read and not
+  changed, and nothing in `xelvic-web/docs/` was touched.
+
+## Round 36 — what remains open (2026-11-14)
+
+**Fixed and verified.** The error screen no longer strands the user on React's unrecoverable failures: it
+recognises them, reloads once, and falls back to the honest screen if the failure repeats. Verified in a
+browser against the exact error (probe `case=twocopy`): first paint `Putting this screen back together`,
+`navigation.type === "reload"`, claim written to `xelvic.render.retry`, and on the reloaded page the
+honest screen with **no** second reload.
+
+**Reduced but not eliminated — NOT VERIFIED.** The dev server no longer has a reason to re-bundle
+mid-session (every imported dependency is now in `optimizeDeps.include`, and `resolve.dedupe` asks for
+one React), but a re-optimization can still be triggered by a dependency or config change, and the app
+cannot prevent a tab that already holds the old chunk from picking up the new one. The exact trigger in
+the user's own tab was never captured, so the claim here is "this is the only mechanism that produces
+this message, and the screen now recovers from it" — not "this can never happen again".
+
+**Deliberately untouched.** `date-fns` and `lottie-web` are declared dependencies that nothing imports;
+`xelvic-web/docs/` was not modified; nothing under `xelvic/` was written to.
+
+## Round 37 — what remains open (2026-11-14)
+
+**Done and verified.** The `@layer components` block is gone from `src/styles/index.css` (188 lines, 15
+classes) and all 299 uses across 78 files are Tailwind utilities, checked in a browser against the app's
+own stylesheet: 622 element pairs over ~60 computed properties each, in four states and for disabled
+buttons, agreeing everywhere except the five deviations below. The built stylesheet was also read from a
+real page over HTTP — the field, the active chip, a button, an icon button, a card, a skeleton — and the
+built app boots with no error screen.
+
+**The five deviations, in full.** (1) **Real:** a button's colour transitions now use
+`cubic-bezier(0.22, 1, 0.36, 1)` instead of `ease` — the transform keeps the easing it always had, the
+duration is unchanged, and one Tailwind `transition-*` cannot carry two timing functions. (2)
+`transition-duration` serializes as one value where the old rule listed five identical ones. (3)
+`rounded-full` is `9999px` where `.icon-btn` said `100%` and `.chip` `999px` — identical geometry for
+every element in the app, since each is square or 34 px tall. (4) A focused field's `box-shadow` gains two
+transparent zero layers ahead of the real `0 0 0 3px` ring, because Tailwind's shadow utilities compose
+three variables; the ring's colour and geometry are the old rule's own. (5) A focused field's outline is
+`2px solid transparent` instead of `none` — invisible in both cases, and drawn in a system colour under
+forced-colors, which is the only place it can be seen.
+
+**Reported and deliberately not fixed.** 32 class names used in the app are absent from the built
+stylesheet, all for pre-existing reasons: Tailwind v3 has no `shadow-xs`, `text-md` or `animate-float-up`,
+and the opacity steps `/12 /14 /22 /62 /72 /86 /88` (`bg-white/12` in `CallOverlay.tsx`, `text-white/86`
+in `VibeSlide.tsx` …) are not in the default scale. One of them, `text-md`, sits in a class list this
+round rewrote — the two `SignInPage` inputs — but it was already there. They are outside this round's
+request, so they are named and left alone.
+
+**Not verified.** Nobody has looked at this app with their own eyes this round. The harness proves that
+the styles compute to the same values; it cannot say that a screen looks right, and no screen behind the
+sign-in was opened at all (no live backend was involved). Two files were edited by hand rather than by
+the rewrite — `Button.tsx`'s variant map and base string — and are covered by the same checks as the rest.
+
+**Deliberately untouched.** `xelvic-web/docs/` was not modified; nothing under `xelvic/` was read or
+written; no `.env.local` was written. The probe scripts live in `%TEMP%`, outside the repository, and the
+four files written into `dist/` for the shipped-value read were deleted.
+
+## Round 38 — what remains open (2026-11-14)
+
+**Done, and how it was checked.** A photo picked as a convo's wallpaper is now stored (`look.ts`) and
+read by the chat root, as a data URL so it survives a reload; it is saved before the server is told
+`'default'`, so a failed request no longer loses it; a picked convo tint is read by `ChatPage` and paints
+the chat's accent and bubbles; both move on the tap through an optimistic overlay that rolls back to the
+old values with an error toast if the request fails. 12 new unit tests, a headless-Chrome read of the
+built stylesheet (a `data:` photo at `cover`, a 78 % page wash on a built-in wall, `#0E7C8C` on
+`bg-accent`/`text-accent`/`border-accent`/`rgb(var(--accent-rgb)/0.5)`), and a boot of the built app with
+no error screen.
+
+**Still open — wallpaper.**
+
+- **No cropping step.** The phone frames a photo to the phone's own shape (`wall_frame.dart`); the web keeps
+  the whole picture, downscaled to 1600 px on the long edge (PNG ≤1.5 MB kept for its alpha, everything
+  else JPEG at 0.82), and lets `cover` decide. A tall screenshot chosen as a wallpaper will be cropped
+  differently from the phone.
+- **`localStorage` is the medium.** The phone writes a file; the web writes a data URL into the origin's
+  quota. When `setItem` throws, the photo still shows for the session and the toast says "Wallpaper set for
+  this session" with the reason — a quota failure is never reported as saved. The practical limit is a few
+  megabytes shared with everything else the site stores.
+- **Old rows are dropped, not migrated.** Rows the previous build wrote with a `blob:` address cannot be
+  drawn after a reload; the store ignores them rather than showing a broken background. Those people pick
+  their photo again.
+
+**Still open — theme.** The chat accent on an **un-coloured** convo still follows `theme.chatTint ??
+theme.accent`, where the phone's `tintOf` answers `theme.chatTint ?? #E31B66`; changing the account colour
+therefore repaints every convo that was never given a tint of its own, where the phone's do not move. That
+is the existing PARTIALLY COMPLETE row and this round neither fixed nor worsened it. A picked tint now
+outranks the theme, as `skin.dart` says it must.
+
+**Not verified.** No authenticated chat was opened — no backend runs here, no credentials were used,
+`.env.local` was not written — no wallpaper or theme was picked through the UI in a browser, and nobody
+has looked at these screens by eye. The computed-style probe is a statement about declarations, not about
+whether a chat looks right.
+
+**Deliberately untouched.** `xelvic-web/docs/` was not modified; nothing under `xelvic/` was written (five
+Dart files were read); no `.env.local` was written. `vite preview` ports used for the probe were stopped
+by PID, the user's server on 5173 was left running, and the probe files and Chrome profiles live in
+`%TEMP%`, outside the repository.
+
+## Round 39 — what remains open (2026-11-14)
+
+**Done, and how it was checked.** Two emoji typed next to each other are no longer drawn overlapping.
+`EmojiText` gives an emoji `mr-[0.35em]` when the run after it is another drawable emoji, which takes the
+pitch from 1.150em to 1.500em against drawings 1.373em wide: measured clearance **+3.80 px** at 30 px
+(+4.55 / +5.31 / +1.89 px at 36 / 42 / 15 px) where no margin left **−6.70 px** of overlap. The machine's
+fallback character measures the same, so a blocked CDN no longer shows overlapping glyphs. An emoji with a
+space or a word around it is untouched, because the text already spaces it; the round's first attempt
+(0.1em on every emoji, which still overlapped by 3.70 px) is recorded in the testing report rather than
+quietly dropped.
+
+**Still open — the sizes.** The web's emoji-only sizes are its own: 42 px for one, 36 for two, 30 for
+three, 24 for four to twelve and 15 beyond; the phone's `messageFontSize` answers 38, 26 and 15. So a row of
+three emoji is drawn twice the phone's size and a row of seven 24 px against 15. This round did not touch
+them, and the parity matrix now carries it as a **PARTIALLY COMPLETE** row (*Emoji said on their own, and the
+space between them*) so that a fixed gap is not read as parity.
+
+**Still open — the vertical overhang.** The drawing is 1.373em tall inside a line box of 1.05em, so it
+hangs **6.70 px** below its own line at 30 px (8.05 / 9.38 / 3.36 px at 36 / 42 / 15 px), measured as the
+artwork's bottom against the paragraph's own box, and in a body of several lines that overhang reaches into
+the line below. It predates this round, the margin does not change it, and the phone is free of it because
+`chat.dart` gives that `Text` a `height` of 1.35. A line-height or a size rule is where it would be fixed;
+this round did not touch either.
+
+**Not verified.** No authenticated chat was opened — no backend runs here, no credentials were used,
+`.env.local` was not written — and nobody has looked at a message of three emoji in a browser. The
+measurement is a statement about the shipped declarations in the component's own class chain, with Google's
+real artwork and with it left out; it is not a statement about how the bubble looks.
+
+**Deliberately untouched.** `xelvic-web/docs/` was not modified; nothing under `xelvic/` was written
+(`app/lib/screens/chat.dart` was read); no `.env.local` was written. The probe pages, the screenshots and the
+Chrome profiles live in `%TEMP%`, outside the repository, and no server was started on 5173.

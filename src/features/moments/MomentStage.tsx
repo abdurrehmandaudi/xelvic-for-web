@@ -231,7 +231,7 @@ function Picture({
           )}
         />
       ) : (
-        <div className="skeleton absolute inset-0" aria-hidden />
+        <div className="overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] absolute inset-0" aria-hidden />
       )}
     </div>
   );

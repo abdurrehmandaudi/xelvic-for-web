@@ -14,9 +14,9 @@ import {
   MoreVertical,
   Radio,
   Send,
-  Share2,
   Video,
 } from "lucide-react";
+import { FiShare2 } from "react-icons/fi";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog, Modal } from "@/components/overlays/Modal";
@@ -380,7 +380,7 @@ export function RoomPage() {
     <div className="min-h-dvh pb-[calc(100px+env(safe-area-inset-bottom,0px))] md:pb-24">
       <header className="sticky top-0 z-30 border-b border-line bg-[color-mix(in_srgb,var(--page)_90%,transparent)] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-[1100px] items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => window.history.back()} className="icon-btn -ml-2" aria-label="Back">
+          <button type="button" onClick={() => window.history.back()} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] -ml-2" aria-label="Back">
             <ArrowLeft className="size-5" />
           </button>
           {room ? (
@@ -412,7 +412,7 @@ export function RoomPage() {
                 <button
                   type="button"
                   onClick={() => setMenuOpen((open) => !open)}
-                  className="icon-btn"
+                  className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]"
                   aria-label="Room menu"
                   aria-expanded={menuOpen}
                   aria-haspopup="menu"
@@ -457,9 +457,9 @@ export function RoomPage() {
         {roomQuery.isLoading ? (
           <PageSkeleton rows={3} />
         ) : roomQuery.isError && !room ? (
-          <div className="card"><ErrorState error={roomQuery.error} onRetry={() => void roomQuery.refetch()} /></div>
+          <div className="rounded-control border border-line bg-card"><ErrorState error={roomQuery.error} onRetry={() => void roomQuery.refetch()} /></div>
         ) : !room ? (
-          <div className="card"><EmptyState icon={<Radio className="size-6" />} title="This room is not here" body="It may have ended or the link may be wrong." action={<Link to="/app/live" className="btn btn-primary">Back to Live</Link>} /></div>
+          <div className="rounded-control border border-line bg-card"><EmptyState icon={<Radio className="size-6" />} title="This room is not here" body="It may have ended or the link may be wrong." action={<Link to="/app/live" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105">Back to Live</Link>} /></div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
             <div className="space-y-4">
@@ -653,7 +653,7 @@ export function RoomPage() {
                         say();
                       }}
                     >
-                      <input value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={300} placeholder="Say something to the room" className="field h-10 min-w-0 flex-1" />
+                      <input value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={300} placeholder="Say something to the room" className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none h-10 min-w-0 flex-1" />
                       <Button type="submit" size="sm" disabled={!draft.trim()} icon={<Send className="size-3.5" />}>Send</Button>
                     </form>
                   ) : (
@@ -789,7 +789,7 @@ export function RoomPage() {
             className="flex w-full items-center gap-3 rounded-[12px] px-2 py-2.5 text-left transition hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]"
           >
             <span className="flex size-[34px] items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent">
-              <Share2 className="size-4" />
+              <FiShare2 className="size-4" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[12.5px] font-bold">Share outside</span>

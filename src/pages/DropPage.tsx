@@ -36,31 +36,31 @@ export function DropPage() {
         title="Drop"
         back
         actions={
-          <Link to="/app/drops" className="icon-btn" aria-label="Back to the feed">
+          <Link to="/app/drops" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Back to the feed">
             <Home className="size-4" />
           </Link>
         }
       />
       <div className="mx-auto w-full max-w-[680px] px-3 py-4 sm:px-4">
         {drop.isLoading ? (
-          <div className="card p-4" aria-hidden>
+          <div className="rounded-control border border-line bg-card p-4" aria-hidden>
             <div className="flex items-center gap-3">
-              <div className="skeleton size-10 rounded-full" />
+              <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] size-10 rounded-full" />
               <div className="flex-1 space-y-2">
-                <div className="skeleton h-3 w-32 rounded-full" />
-                <div className="skeleton h-2.5 w-24 rounded-full" />
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-3 w-32 rounded-full" />
+                <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] h-2.5 w-24 rounded-full" />
               </div>
             </div>
-            <div className="skeleton mt-4 h-3 w-full rounded-full" />
-            <div className="skeleton mt-2 h-3 w-4/5 rounded-full" />
-            <div className="skeleton mt-4 aspect-[4/3] w-full rounded-xl" />
+            <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] mt-4 h-3 w-full rounded-full" />
+            <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] mt-2 h-3 w-4/5 rounded-full" />
+            <div className="relative overflow-hidden bg-line-58 after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-skeleton after:content-[''] mt-4 aspect-[4/3] w-full rounded-xl" />
           </div>
         ) : drop.isError && !drop.data ? (
-          <div className="card">
+          <div className="rounded-control border border-line bg-card">
             <ErrorState error={drop.error} onRetry={() => void drop.refetch()} />
           </div>
         ) : !drop.data ? (
-          <div className="card">
+          <div className="rounded-control border border-line bg-card">
             <EmptyState
               icon={<GalleryVerticalEnd className="size-6" />}
               title="This drop is not here"

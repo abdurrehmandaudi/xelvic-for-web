@@ -135,7 +135,7 @@ export function InviteCompose({
 
           <Field label="Title">
             <input
-              className="field w-full text-[15.5px]"
+              className="min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full text-[15.5px]"
               placeholder="A short name for the collaboration"
               value={title}
               maxLength={140}
@@ -146,7 +146,7 @@ export function InviteCompose({
 
           <Field label="Brief">
             <textarea
-              className="field min-h-[104px] w-full resize-y text-[15.5px] leading-[1.4]"
+              className="rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-[104px] w-full resize-y text-[15.5px] leading-[1.4]"
               placeholder="What content should the creator make?"
               rows={4}
               disabled={sending}
@@ -187,7 +187,7 @@ export function InviteCompose({
                 ₹
               </span>
               <input
-                className="field w-full pl-8 text-[15.5px]"
+                className="min-h-10 rounded-control border border-line bg-card pr-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full pl-8 text-[15.5px]"
                 inputMode="numeric"
                 placeholder="0"
                 disabled={sending}
@@ -236,7 +236,7 @@ export function InviteCompose({
 
           <Field label="Agreement">
             <textarea
-              className="field min-h-[112px] w-full resize-y text-[14.5px] leading-[1.45]"
+              className="rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-[112px] w-full resize-y text-[14.5px] leading-[1.45]"
               placeholder="The terms both sides see and agree to."
               rows={4}
               disabled={sending}
@@ -248,10 +248,10 @@ export function InviteCompose({
       ) : null}
 
       <div className="flex justify-end gap-2 px-5 pb-5 pt-1">
-        <button type="button" className="btn btn-secondary" disabled={sending} onClick={onClose}>
+        <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5" disabled={sending} onClick={onClose}>
           Cancel
         </button>
-        <button type="button" className="btn btn-primary" disabled={sending} onClick={() => void send()}>
+        <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105" disabled={sending} onClick={() => void send()}>
           {sending ? "Sending..." : "Send invite"}
         </button>
       </div>

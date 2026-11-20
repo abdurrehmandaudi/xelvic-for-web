@@ -14,89 +14,101 @@ interface PeopleState {
   action?: string | null;
 }
 
-/**
- * The invitation beside the name on a card, ported from `KeepButton`.
- *
- * The button is an *invitation* and never a repeat: it is drawn on somebody
- * this reader does not keep yet, and the page says so with `author_kept`, which
- * is answered for the whole page at once — see `social.services.kept_ids`. That
- * is the whole reason the flag rides on the payload: a page of cards must not be
- * a page of profile requests, and `known` is what tells this button that the
- * answer is already in hand.
- *
- * The answer is *read* rather than assumed. A private account turns a keep into
- * a *request*, in which case nothing was kept, no number moves, and the person
- * is not told they are kept — so the request's own `relation.following` is what
- * decides whether the button has finished its work or still has it to do.
- */
 export function KeepButton({
   author,
   known,
+  kept,
   className,
 }: {
   author: UserCard;
   /** The page already said this person is not kept, so nothing needs asking. */
   known?: boolean;
+  /** The page already said this person *is* kept, so nothing needs asking. */
+  kept?: boolean;
   className?: string;
 }) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [state, setState] = useState<PeopleState | null>(null);
+  const [gate, setGate] = useState<PeopleState | null>(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const [followed, setFollowed] = useState<boolean | null>(
+    known ? false : kept ? true : null,
+  );
+  const [requested, setRequested] = useState(false);
 
-  // A page that knows the answer has nothing to ask: the app's own word for the
-  // act is drawn straight away, and only a card that was handed nothing reads
-  // the profile's gate — once, when it is first drawn.
   useEffect(() => {
-    if (known) return;
+    if (known || kept) return;
     let live = true;
     void socialService
-      .user<{ gate?: { cta?: string | null; action?: string | null } | null }>(
-        author.username,
-      )
+      .user<{ gate?: PeopleState | null }>(author.username)
       .then((profile) => {
-        if (live) setState({ cta: profile.gate?.cta ?? null, action: profile.gate?.action ?? null });
+        if (!live) return;
+        const answer = profile.gate ?? null;
+        setGate(answer);
+        setFollowed(answer?.relation?.following === true);
+        setRequested(
+          answer?.action === "withdraw" || answer?.relation?.requested === true,
+        );
       })
-      // No button rather than a wrong one: a keep that cannot be asked about is
-      // a keep this card has no business offering.
       .catch(() => {
-        if (live) setState({ cta: null, action: null });
+        if (live) setFollowed(null);
       });
     return () => {
       live = false;
     };
-  }, [known, author.username]);
+  }, [known, kept, author.username]);
 
-  const action = known ? "follow" : state?.action ?? null;
-  const cta = known ? "Keep" : state?.cta ?? null;
+  if (followed === null) return null;
 
-  if (done || !cta || !action) return null;
+  const on = followed || requested;
 
   async function tap() {
-    if (busy || !action) return;
+    if (busy) return;
     setBusy(true);
     try {
-      const answer =
-        action === "withdraw"
-          ? await socialService.withdraw<PeopleState>(author.id)
-          : action === "unblock"
-            ? await socialService.unblock<PeopleState>(author.id)
-            : await socialService.follow<PeopleState>(author.id);
-      if (action === "follow" && answer.relation?.following === true) {
-        // Every card by this person stops offering the same invitation: the
-        // page said "not kept", and that answer is out of date everywhere this
-        // browser is holding one of their posts.
+      if (on) {
+        const answer = followed
+          ? await socialService.unfollow<PeopleState>(author.id)
+          : await socialService.withdraw<PeopleState>(author.id);
+        setFollowed(answer.relation?.following === true);
+        setRequested(answer.relation?.requested === true);
         void queryClient.invalidateQueries({ queryKey: ["drops"] });
         void queryClient.invalidateQueries({ queryKey: ["feed"] });
-        void queryClient.invalidateQueries({ queryKey: ["profile", author.username] });
-      } else if (answer.relation?.requested) {
-        toast({ title: "Asked.", description: "They will see it when they look.", tone: "success" });
+        void queryClient.invalidateQueries({
+          queryKey: ["profile", author.username],
+        });
+        return;
       }
-      setDone(true);
+      if (gate?.action === "unblock") {
+        await socialService.unblock<PeopleState>(author.id);
+        setFollowed(null);
+        return;
+      }
+      const answer = await socialService.follow<PeopleState>(author.id);
+      const following = answer.relation?.following === true;
+      const asked = answer.relation?.requested === true;
+      setFollowed(following);
+      setRequested(asked && !following);
+      if (following) {
+        void queryClient.invalidateQueries({ queryKey: ["drops"] });
+        void queryClient.invalidateQueries({ queryKey: ["feed"] });
+        void queryClient.invalidateQueries({
+          queryKey: ["profile", author.username],
+        });
+      } else if (asked) {
+        toast({
+          title: "Asked.",
+          description: "They will see it when they look.",
+          tone: "success",
+        });
+      }
     } catch (error) {
-      toast({ title: "That did not work", description: errorMessage(error), tone: "error" });
+      toast({
+        title: "That did not work",
+        description: errorMessage(error),
+        tone: "error",
+      });
     } finally {
       setBusy(false);
     }
@@ -108,19 +120,18 @@ export function KeepButton({
       onClick={() => void tap()}
       disabled={busy}
       onDoubleClick={(event) => {
-        // A hold on the app's pill opens the profile instead of keeping them —
-        // the app reads a long press here as "who is this". A double click is
-        // the nearest thing a mouse has, and a keyboard reaches the same place
-        // through the name beside it.
         event.stopPropagation();
         navigate(`/app/u/${author.username}`);
       }}
       className={cn(
-        "flex min-h-8 shrink-0 items-center rounded-full bg-accent px-[13px] text-[12px] font-extrabold text-on-accent transition active:scale-[.97] disabled:opacity-60",
+        "flex min-h-7 shrink-0 items-center rounded-full px-[12px] text-[12px] font-extrabold transition active:scale-[.97] disabled:opacity-60",
+        on
+          ? "border border-[color-mix(in_srgb,var(--accent)_38%,transparent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent"
+          : "bg-accent text-on-accent",
         className,
       )}
     >
-      {busy ? "..." : cta}
+      {busy ? "..." : requested ? "Requested" : followed ? "Keeping" : "Keep"}
     </button>
   );
 }

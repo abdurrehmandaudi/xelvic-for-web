@@ -363,7 +363,7 @@ export function RefineProfileView({ onBack }: { onBack: () => void }) {
             onChange={(event) => setName(event.target.value)}
             maxLength={80}
             autoCapitalize="words"
-            className="field"
+            className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none"
           />
         </label>
 
@@ -405,7 +405,7 @@ export function RefineProfileView({ onBack }: { onBack: () => void }) {
             onChange={(event) => setEra(event.target.value)}
             rows={3}
             maxLength={ERA_MAX}
-            className="field resize-none"
+            className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none resize-none"
           />
           <span className="mt-1 block text-right text-[10px] text-dim">
             {era.length}/{ERA_MAX}
@@ -438,7 +438,7 @@ export function RefineProfileView({ onBack }: { onBack: () => void }) {
               value={currentPassword}
               onChange={(event) => setCurrentPassword(event.target.value)}
               placeholder={t("Current password")}
-              className="field"
+              className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none"
               autoComplete="current-password"
             />
             <input
@@ -446,7 +446,7 @@ export function RefineProfileView({ onBack }: { onBack: () => void }) {
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
               placeholder={t("New password (8+ characters)")}
-              className="field"
+              className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none"
               autoComplete="new-password"
               minLength={8}
             />
@@ -455,7 +455,7 @@ export function RefineProfileView({ onBack }: { onBack: () => void }) {
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
               placeholder={t("Repeat the new password")}
-              className="field"
+              className="w-full min-h-10 rounded-control border border-line bg-card px-4 py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none"
               autoComplete="new-password"
               minLength={8}
             />
@@ -468,7 +468,7 @@ export function RefineProfileView({ onBack }: { onBack: () => void }) {
                   newPassword.length < 8 ||
                   newPassword !== confirmPassword
                 }
-                className="btn btn-primary disabled:opacity-45"
+                className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105 disabled:opacity-45"
               >
                 {passwordBusy ? t("Working...") : t("Change password")}
               </button>
@@ -540,12 +540,12 @@ export function RefineProfileView({ onBack }: { onBack: () => void }) {
           {t(removeAsk === "cover" ? "The band comes down and the tint shows through." : "The disc goes back to your letter.")}
         </p>
         <div className="flex justify-end gap-2 px-5 pb-5 pt-2">
-          <button type="button" className="btn btn-secondary" onClick={() => setRemoveAsk(null)}>
+          <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5" onClick={() => setRemoveAsk(null)}>
             {t("Cancel")}
           </button>
           <button
             type="button"
-            className="btn btn-danger"
+            className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-bad-24 bg-bad-10 text-bad"
             onClick={() => removeAsk && void removePicture(removeAsk)}
           >
             {t(removeAsk === "cover" ? "Remove cover" : "Remove photo")}

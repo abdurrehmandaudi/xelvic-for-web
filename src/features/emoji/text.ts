@@ -22,6 +22,7 @@
  * have to fetch a search index to find out whether one emoji moves.
  */
 import { EMOJI_FLAGS } from "./flags";
+import { TONES } from "./cdn";
 import type { EmojiDrawing } from "./model";
 
 export interface EmojiRun {
@@ -42,9 +43,6 @@ export interface EmojiRun {
  */
 const shelf = new Map<string, EmojiRun[]>();
 const SHELF_LIMIT = 400;
-
-/** The five skin-tone modifiers, in the order Unicode defines them. */
-const TONES = ["\u{1F3FB}", "\u{1F3FC}", "\u{1F3FD}", "\u{1F3FE}", "\u{1F3FF}"] as const;
 
 interface Segments {
   segment(input: string): Iterable<{ segment: string }>;
@@ -85,6 +83,28 @@ export function drawingOf(char: string): EmojiDrawing | null {
   // animations, in Unicode's tone order.
   if (!flags || flags[0] !== "1" || flags.length < 3 + tone + 5) return null;
   return { still: flags[2 + tone] === "1", motion: flags[7 + tone] === "1" };
+}
+
+const ONE_EMOJI = /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[0-9#*]\uFE0F?\u20E3)/u;
+
+/**
+ * How many emoji a body is made of, or 0 when it has any text at all.
+ *
+ * The count is grapheme-wise, so one joined family or one flag is one emoji and
+ * not the seven or two code points it is written with.
+ */
+export function onlyEmojiCount(text: string): number {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  const finder = cutter();
+  if (!finder) return ONE_EMOJI.test(trimmed) && [...trimmed].length === 1 ? 1 : 0;
+  let found = 0;
+  for (const { segment } of finder.segment(trimmed)) {
+    if (/^\s+$/u.test(segment)) continue;
+    if (!ONE_EMOJI.test(segment)) return 0;
+    found += 1;
+  }
+  return found;
 }
 
 /** One message body, cut into the runs of text and emoji it is made of. */

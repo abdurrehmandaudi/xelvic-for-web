@@ -59,7 +59,7 @@ export function CreatorDirectoryView() {
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-dim" aria-hidden />
             <input
-              className="field w-full pl-10 pr-10 text-[15.5px]"
+              className="min-h-10 rounded-control border border-line bg-card py-3 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none w-full pl-10 pr-10 text-[15.5px]"
               placeholder="Search creators by name or @handle"
               value={text}
               onChange={(event) => setText(event.target.value)}

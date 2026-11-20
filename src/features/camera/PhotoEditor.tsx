@@ -1732,7 +1732,7 @@ export function PhotoEditor({
         {tool === "text" ? (
           <section
             className={cn(
-              "scroll-area mx-3 max-h-[46dvh] overflow-y-auto overscroll-contain px-2.5 py-2.5",
+              "[scrollbar-width:thin] [scrollbar-color:color-mix(in_srgb,var(--dim)_30%,transparent)_transparent] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-dim-26 mx-3 max-h-[46dvh] overflow-y-auto overscroll-contain px-2.5 py-2.5",
               PANEL,
             )}
           >
@@ -2723,7 +2723,7 @@ export function PhotoEditor({
                 ) : null}
               </div>
             )}
-            <div className="scroll-area min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4">
+            <div className="[scrollbar-width:thin] [scrollbar-color:color-mix(in_srgb,var(--dim)_30%,transparent)_transparent] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-dim-26 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4">
               {stickerLoading ? (
                 <div className="flex justify-center py-12">
                   <Spinner className="size-6 text-accent" />

@@ -12,7 +12,6 @@ interface AvatarProps {
   className?: string;
   ring?: boolean;
   muted?: boolean;
-  online?: boolean;
   badge?: ReactNode;
 }
 
@@ -24,7 +23,6 @@ export function Avatar({
   className,
   ring,
   muted,
-  online,
   badge,
 }: AvatarProps) {
   const displayName = name || user?.name || user?.username || "";
@@ -40,41 +38,31 @@ export function Avatar({
     >
       <span
         className={cn(
-          "flex h-full w-full items-center justify-center overflow-hidden rounded-full",
-          ring && "p-[2px]",
-          ring && "story-ring",
+          "flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--accent)_12%,var(--card))]",
+          ring && "shadow-[inset_0_0_0_2px_var(--accent)]",
           muted && "opacity-60",
         )}
       >
-        <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--accent)_12%,var(--card))]">
-          {image ? (
-            <img
-              src={media.src ?? undefined}
-              alt={displayName}
-              className="h-full w-full object-cover"
-              onError={() => setBroken(true)}
-              loading="lazy"
-              decoding="async"
-              draggable={false}
-            />
-          ) : (
-            <span
-              className="font-extrabold tracking-tight text-accent"
-              style={{ fontSize: Math.max(11, size * 0.32) }}
-              aria-hidden
-            >
-              {initial || "?"}
-            </span>
-          )}
-        </span>
+        {image ? (
+          <img
+            src={media.src ?? undefined}
+            alt={displayName}
+            className="block h-full w-full object-cover object-center"
+            onError={() => setBroken(true)}
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+          />
+        ) : (
+          <span
+            className="font-extrabold tracking-tight text-accent"
+            style={{ fontSize: Math.max(11, size * 0.32) }}
+            aria-hidden
+          >
+            {initial || "?"}
+          </span>
+        )}
       </span>
-      {online ? (
-        <span
-          className="absolute bottom-0 right-0 rounded-full border-2 border-[var(--card)] bg-[var(--good)]"
-          style={{ width: Math.max(9, size * 0.26), height: Math.max(9, size * 0.26) }}
-          aria-label="Online"
-        />
-      ) : null}
       {badge ? <span className="absolute -right-1 -top-1">{badge}</span> : null}
     </span>
   );

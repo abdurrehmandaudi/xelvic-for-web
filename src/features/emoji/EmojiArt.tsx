@@ -7,20 +7,29 @@
  * 1. **The character itself.** Written into the tile on the first frame, so it
  *    is something the instant the picker opens and stays something if the
  *    network is slow, blocked or gone. It is also the honest fallback for the
- *    fourteen emoji Google draws no picture of.
+ *    fourteen emoji Google draws no picture of. It is painted only while it is
+ *    the only drawing there is — the moment Google's artwork lands, the
+ *    character steps out, because two drawings of one emoji are not one emoji.
+ *    See `covered` at the foot of this file.
  * 2. **Google's still drawing**, laid over the character once it has loaded.
  *    This is what makes an emoji the machine's own font would draw as a box look
- *    like the emoji, whatever fonts the machine has.
- * 3. **Google's animation**, played over the drawing, for the 605 emoji that
- *    have one — and only when something asks for it.
+ *    like the emoji, whatever fonts the machine has. It is Google's set and only
+ *    Google's: the owner asked for that plainly — *"dynamic emoji hata dijiye
+ *    pahle jaise tha waise hi kijiye jo google ka"* — after a round of trying
+ *    other sets, so the panel has no look to choose any more.
+ * 3. **Google's animation**, played over the still, for the 605 emoji that have
+ *    one — and only when something asks for it.
  *
- * **What asks for it is `motion.ts`'s decision, not this file's**, and it is a
- * different answer for a tile than for an emoji in a sentence: a tile in the
- * picker moves while it is on screen, and an emoji in a message moves while a
- * pointer is on it and once when its message is sent or arrives. That second
- * rule is the owner's: *"ye jo continue animate ho raha hai jabki send karne par
- * aur hover karne par animate hona chahiye"*. The player is still only fetched
- * by something that needs it, so a chat that is only read never pays for it.
+ * **What asks for it is `motion.ts`'s decision, not this file's**, and the answer
+ * is the same for a tile in the picker as for an emoji in a sentence: it moves
+ * while a pointer is resting on it, and an emoji in a message also gets one pass
+ * when that message is sent or arrives. Both rules are the owner's — the thread
+ * first, *"ye jo continue animate ho raha hai jabki send karne par aur hover
+ * karne par animate hona chahiye"*, and then the panel itself, *"usme emoji
+ * animate continue hote hi rahte please ise aisa kijiye ki kewal hover karne par
+ * hi emoji animate kare"*. The player is still only fetched by something that
+ * needs it, so a chat that is only read, and a picker nobody points at, never
+ * pay for it.
  *
  * `prefers-reduced-motion` is obeyed by not playing anything at all — the still
  * drawing is already there, so nothing has to be replaced, only withheld. A
@@ -46,9 +55,10 @@ let observer: IntersectionObserver | null = null;
  * One IntersectionObserver for every emoji in the app.
  *
  * A hundred observers watching a hundred emoji is a hundred callbacks on every
- * scroll frame; this is one. The margin is a screen's worth of slack, so a tile
- * has its animation ready by the time it is properly visible rather than
- * starting it in front of somebody.
+ * scroll frame; this is one. Being seen is not a reason to move — the pointer is
+ * — but it is a condition: nothing plays for something scrolled clean out of the
+ * page, which is what this answers. The margin is a screen's worth of slack so
+ * the edge of the viewport does not flicker a tile in and out of that condition.
  */
 function watch(element: Element, tell: Watcher): () => void {
   observer ??= new IntersectionObserver(
@@ -82,7 +92,7 @@ export function EmojiArt({
   char,
   /** Google animates this one — `hasMotion` in the generated table. */
   motion,
-  /** Google draws this one at all — `hasStill`. */
+  /** Google draws this one at all — `hasStill` in the generated table. */
   still = true,
   /** A tile in the picker, or an emoji inside something somebody said. */
   mode = "tile",
@@ -131,6 +141,8 @@ export function EmojiArt({
     let hovered = false;
     /** Started because a pointer was on it, so the place may have to go back. */
     let byPointer = false;
+    /** Playing a one-pass burst, which runs to its own end whatever else moves. */
+    let bursting = false;
 
     const release = () => {
       if (phase === "off") return;
@@ -142,6 +154,11 @@ export function EmojiArt({
       if (phase !== "off" || !spare(moving, hovered)) return;
       phase = "loading";
       byPointer = hovered;
+      // A burst is a reason of its own to be moving, and the only one that
+      // outlives the thing that asked for it: a message arrives, its emoji
+      // play, and nothing the pointer or the scroll does while they play
+      // should cut them short.
+      bursting = options.once;
       moving += 1;
       void lottiePlayer().then((player) => {
         // The finger may have scrolled straight past while the player was
@@ -181,6 +198,7 @@ export function EmojiArt({
       instance?.destroy();
       instance = null;
       byPointer = false;
+      bursting = false;
       release();
       canvas.replaceChildren();
       if (!gone) setAnimated(false);
@@ -188,7 +206,13 @@ export function EmojiArt({
 
     /** Whether this one should be moving, asked of everything that decides it. */
     const sync = () => {
-      if (!wanted(mode, inView, hovered)) {
+      // A burst is the one thing that is not asked about: it was asked for, and
+      // it stops when it is over. Without this the observer's very first
+      // callback — "you are on screen", which is not a reason to move — would
+      // stop a burst that had only just begun, which is exactly what it did
+      // before this line existed.
+      if (bursting) return;
+      if (!wanted(inView, hovered)) {
         stop();
         return;
       }
@@ -223,7 +247,10 @@ export function EmojiArt({
       leave();
       stop();
     };
-  }, [char, motion, mode]);
+    // `mode` is not here because it is not read inside: it decides the markup
+    // and the accessibility of the tile, and the rule for moving is the same
+    // for both kinds of emoji.
+  }, [char, motion]);
 
   // The burst is a token: every new value is one more play. Nothing happens on
   // the first render of something that was never told to celebrate.
@@ -231,6 +258,25 @@ export function EmojiArt({
     if (burst === undefined) return;
     cheer.current();
   }, [burst]);
+
+  // One emoji, one drawing.
+  //
+  // The moment Google's drawing is on the page — the still has landed, or an
+  // animation is playing over it — the character has done its job and must stop
+  // being painted. It is not the same shape as Google's: the machine's glyph is
+  // a different figure at a different size, so it shows around the still's edge
+  // and, worse, *through* the animation, whose drawing is thinner than the still
+  // it replaced. The owner's report is exactly that — *"kisi kisi emoji me do do
+  // emoji aa raha hai ek hover karne par animate hota hai aur ek nahi hota hai"*
+  // — and it is worst on the hover precisely because hovering is when the still
+  // steps aside for the animation. Which emoji look doubled is decided by how
+  // far the two figures part company; a grin is the same shape twice over and
+  // hides it, folded hands and raised hands are not and do not.
+  //
+  // Opacity and not `visibility`, because the character is still the sentence it
+  // was said in: in a message it stays in the DOM to be selected, copied and
+  // read out — a tile was never anything but a button.
+  const covered = drawn || animated;
 
   return (
     <span
@@ -240,7 +286,18 @@ export function EmojiArt({
       className={cn("relative grid size-full place-items-center leading-none", className)}
       aria-hidden={mode === "tile" ? true : undefined}
     >
-      <span className={cn("col-start-1 row-start-1", mode === "tile" && "select-none")}>{char}</span>
+      <span
+        className={cn(
+          // Down over the same hundred milliseconds the still comes up in, so
+          // the two drawings trade places instead of one blinking out under the
+          // other.
+          "col-start-1 row-start-1 transition-opacity duration-100",
+          mode === "tile" && "select-none",
+          covered && "opacity-0",
+        )}
+      >
+        {char}
+      </span>
       {still ? (
         <img
           src={stillUrl(char)}
