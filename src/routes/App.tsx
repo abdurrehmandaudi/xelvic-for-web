@@ -40,6 +40,7 @@ import {
 } from "@/routes/lazyPages";
 import { NotFoundPage, ProtectedRoute, PublicOnly } from "@/routes/ProtectedRoute";
 import { Spinner } from "@/components/ui/Button";
+import { LandingPage } from "@/pages/LandingPage";
 import { SignInPage } from "@/pages/SignInPage";
 
 function RouteFallback() {
@@ -61,14 +62,10 @@ function LazyPage({ page: Page }: { page: ComponentType }) {
 export default function App() {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          <PublicOnly>
-            <SignInPage />
-          </PublicOnly>
-        }
-      />
+      {/* The front door is an introduction; the QR door is `/signin`. The
+          owner, 2026-11-22: *"xelvic.com pe direct QR na khule — intro wala
+          khule, login karne pe khule."* */}
+      <Route path="/" element={<LandingPage />} />
       <Route
         path="/signin"
         element={
