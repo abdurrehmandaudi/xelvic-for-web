@@ -25,6 +25,7 @@ import { EmptyState, ErrorState, PageSkeleton } from "@/components/ui/States";
 import { TrackRow } from "@/features/audio/TrackRow";
 import { audioService } from "@/services/audio.service";
 import { chatService } from "@/services/chat.service";
+import { mountedPath } from "@/utils/asset";
 import { count, duration } from "@/utils/format";
 import { uploadAsset } from "@/utils/upload";
 import { usePlayer } from "@/hooks/usePlayer";
@@ -215,7 +216,7 @@ export function PlaylistPage() {
       const made = await audioService.share(playlist.id, { link: true });
       await queryClient.invalidateQueries({ queryKey: ["playlist-shares", playlistId] });
       if (made.token) {
-        const url = `${window.location.origin}/s/${made.token}`;
+        const url = `${window.location.origin}${mountedPath(`/s/${made.token}`)}`;
         await navigator.clipboard.writeText(url);
         toast({ title: "Link copied", description: "Anyone holding it can listen.", tone: "success" });
       } else {

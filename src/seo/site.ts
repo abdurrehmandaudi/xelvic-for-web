@@ -1,4 +1,5 @@
 import { mediaUrl } from "@/config/urls";
+import { asset, mountedPath } from "@/utils/asset";
 
 /**
  * The one place the public site says who it is.
@@ -15,9 +16,10 @@ export const SITE_NAME = "Xelvic";
 /**
  * Where public links point.
  *
- * `VITE_WEB_URL` is the deployed origin (`http://web.xelvic.com` in the current
- * live env file); the browser origin is the fallback so a preview build still
- * emits absolute URLs rather than relative ones a crawler cannot resolve.
+ * `VITE_WEB_URL` is the deployed origin (`https://xelvic.com`); the browser
+ * origin is the fallback so a preview build still emits absolute URLs rather
+ * than relative ones a crawler cannot resolve. The `/app` base is added by
+ * [canonicalUrl], not here: an origin has no path.
  */
 export const SITE_ORIGIN = (() => {
   // In a browser the address being served is the truth: a `.env.local` written
@@ -28,13 +30,13 @@ export const SITE_ORIGIN = (() => {
   }
   const configured = import.meta.env.VITE_WEB_URL;
   if (configured) return configured.replace(/\/+$/, "");
-  return "https://web.xelvic.com";
+  return "https://xelvic.com";
 })();
 
 export const DEFAULT_TITLE = "Xelvic — share what you are looking at";
 export const DEFAULT_DESCRIPTION =
   "Xelvic is where drops, moments, conversations, audio and live rooms meet. Share a post, a clip or a thought, and keep the room you keep.";
-export const DEFAULT_IMAGE = `${SITE_ORIGIN}/xelvic.png`;
+export const DEFAULT_IMAGE = `${SITE_ORIGIN}${asset("/xelvic.png")}`;
 export const DEFAULT_LOCALE = "en_GB";
 export const DEFAULT_THEME_COLOR = "#F7F7FB";
 
@@ -45,10 +47,17 @@ export const PUBLIC_ROUTES = {
   vibe: (id: string) => `/v/${encodeURIComponent(id)}`,
 } as const;
 
-/** An absolute, query-free canonical address for a public route. */
+/**
+ * An absolute, query-free canonical address for a public route.
+ *
+ * [path] is the router's own path (`/u/shariq`), with the base already stripped
+ * by React Router. It goes back on here, because the public address of that
+ * route is `https://xelvic.com/app/u/shariq` when the build is mounted under
+ * `/app` and `https://xelvic.com/u/shariq` when it is at the root.
+ */
 export function canonicalUrl(path: string): string {
-  const clean = (path.split(/[?#]/)[0] || "/").replace(/\/+$/, "");
-  return `${SITE_ORIGIN}${clean === "" ? "/" : clean}`;
+  const clean = (path.split(/[?#]/)[0] || "/").replace(/\/+$/, "") || "/";
+  return `${SITE_ORIGIN}${mountedPath(clean)}`;
 }
 
 /**

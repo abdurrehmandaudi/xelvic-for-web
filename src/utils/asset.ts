@@ -25,3 +25,17 @@ export function asset(path: string): string {
 export function optionalAsset<T extends string | null | undefined>(path: T): T {
   return (path ? asset(path) : path) as T;
 }
+
+/**
+ * A path inside this build's router, at the base it was built for.
+ *
+ * Pass the router's own path (`/d/1`, or `/app/live/1` for the signed-in
+ * shell), not `window.location.pathname`. The app's own routes already begin
+ * with `/app`, so a router path that looks mounted is still the router's, and
+ * the base still belongs in front of it: `/app/live/1` is served at
+ * `https://xelvic.com/app/app/live/1`, which is why this always prefixes
+ * rather than trying to recognise a path that already carries the base.
+ */
+export function mountedPath(path: string): string {
+  return asset(path);
+}

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { absoluteImage, PUBLIC_ROUTES } from "@/seo";
 import type { Drop } from "@/types/api";
+import { mountedPath } from "@/utils/asset";
 import { count } from "@/utils/format";
 import { PublicAvatar, signInHref } from "./PublicShell";
 
@@ -124,7 +125,7 @@ function ShareButton({ path }: { path: string }) {
   const [copied, setCopied] = useState(false);
 
   async function share() {
-    const url = `${window.location.origin}${path}`;
+    const url = `${window.location.origin}${mountedPath(path)}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: "Xelvic", url });

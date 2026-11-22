@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog, Modal } from "@/components/overlays/Modal";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/ui/States";
 import { cn } from "@/utils/cn";
+import { mountedPath } from "@/utils/asset";
 import { count, relativeTime } from "@/utils/format";
 import { RoomCover, crowdLine, whenRoom } from "@/features/live/parts";
 import { ReportSheet } from "@/features/report/ReportSheet";
@@ -329,7 +330,7 @@ export function RoomPage() {
     if (!room) return "";
     const who = room.host?.name || room.host?.username || "Somebody";
     const what = room.kind === "stream" ? "is live" : room.kind === "ama" ? "is taking questions" : "is on";
-    const url = `${window.location.origin}/app/live/${room.id}`;
+    const url = `${window.location.origin}${mountedPath(`/app/live/${room.id}`)}`;
     return `${who} ${what}: ${room.title} — on Live in Xelvic. ${url}`;
   }
 
