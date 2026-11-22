@@ -2,6 +2,18 @@
 
 A standalone React web client for the Xelvic account system. It shares the Django API with the Android app and uses the APK's brand and theme assets.
 
+Installed clients for **macOS, Windows, Linux and visionOS** wrap this same
+build. What each one is, how it is packaged, what was verified and what still
+needs signing or an app record is recorded in
+[`PLATFORMS.md`](PLATFORMS.md).
+
+Public profiles (`/u/:username`), drops (`/d/:dropId`) and vibes
+(`/v/:vibeId`), their SEO/Open Graph/geo metadata, and the sign-in return path
+are described in [`docs/PUBLIC_CONTENT_AND_SEO.md`](docs/PUBLIC_CONTENT_AND_SEO.md).
+That document also lists the anonymous API reads and the server-side HTML
+injection that the backend and deployment still have to ship — social crawlers
+do not run JavaScript.
+
 This is a parity build, not a redesign. The current status is recorded honestly in [`docs/FINAL_VERIFICATION_REPORT.md`](docs/FINAL_VERIFICATION_REPORT.md); the client is not yet full Android parity.
 
 ## Stack

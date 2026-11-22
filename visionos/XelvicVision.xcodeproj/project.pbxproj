@@ -1,0 +1,257 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000020 /* XelvicVisionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010 /* XelvicVisionApp.swift */; };
+		A10000000000000000000021 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* WebView.swift */; };
+		A10000000000000000000022 /* LocalServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* LocalServer.swift */; };
+		A10000000000000000000024 /* dist in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* dist */; };
+		A10000000000000000000025 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A10000000000000000000005 /* Xelvic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Xelvic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000010 /* XelvicVisionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XelvicVisionApp.swift; sourceTree = "<group>"; };
+		A10000000000000000000011 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
+		A10000000000000000000012 /* LocalServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalServer.swift; sourceTree = "<group>"; };
+		A10000000000000000000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000014 /* dist */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/dist; sourceTree = "<group>"; };
+		A10000000000000000000015 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000031 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A10000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000006 /* XelvicVision */,
+				A10000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000005 /* Xelvic.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000006 /* XelvicVision */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000010 /* XelvicVisionApp.swift */,
+				A10000000000000000000011 /* WebView.swift */,
+				A10000000000000000000012 /* LocalServer.swift */,
+				A10000000000000000000013 /* Info.plist */,
+				A10000000000000000000015 /* Assets.xcassets */,
+				A10000000000000000000014 /* dist */,
+			);
+			path = XelvicVision;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000004 /* XelvicVision */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000041 /* Build configuration list for PBXNativeTarget "XelvicVision" */;
+			buildPhases = (
+				A10000000000000000000030 /* Sources */,
+				A10000000000000000000031 /* Frameworks */,
+				A10000000000000000000032 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = XelvicVision;
+			productName = XelvicVision;
+			productReference = A10000000000000000000005 /* Xelvic.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2720;
+				LastUpgradeCheck = 2720;
+				TargetAttributes = {
+					A10000000000000000000004 = {
+						CreatedOnToolsVersion = 27.2;
+					};
+				};
+			};
+			buildConfigurationList = A10000000000000000000040 /* Build configuration list for PBXProject "XelvicVision" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A10000000000000000000002;
+			productRefGroup = A10000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000004 /* XelvicVision */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000032 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000025 /* Assets.xcassets in Resources */,
+				A10000000000000000000024 /* dist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000030 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000020 /* XelvicVisionApp.swift in Sources */,
+				A10000000000000000000021 /* WebView.swift in Sources */,
+				A10000000000000000000022 /* LocalServer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A10000000000000000000042 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = xros;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				XROS_DEPLOYMENT_TARGET = 27.2;
+			};
+			name = Debug;
+		};
+		A10000000000000000000043 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = xros;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				XROS_DEPLOYMENT_TARGET = 27.2;
+			};
+			name = Release;
+		};
+		A10000000000000000000044 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = XelvicVision/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xelvic.desktop.vision;
+				PRODUCT_NAME = Xelvic;
+				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 7;
+				XROS_DEPLOYMENT_TARGET = 27.2;
+			};
+			name = Debug;
+		};
+		A10000000000000000000045 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = XelvicVision/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xelvic.desktop.vision;
+				PRODUCT_NAME = Xelvic;
+				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 7;
+				XROS_DEPLOYMENT_TARGET = 27.2;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A10000000000000000000040 /* Build configuration list for PBXProject "XelvicVision" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000042 /* Debug */,
+				A10000000000000000000043 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000041 /* Build configuration list for PBXNativeTarget "XelvicVision" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000044 /* Debug */,
+				A10000000000000000000045 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A10000000000000000000001 /* Project object */;
+}

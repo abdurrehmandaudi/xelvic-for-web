@@ -347,6 +347,8 @@ export function VibeSlide({
     try {
       element.currentTime = to;
     } catch {
+      // A seek can be refused before the clip has metadata; the next drag
+      // tries again, and the play state is already what the finger said.
     }
     if (active && !paused) void element.play().catch(() => undefined);
   }

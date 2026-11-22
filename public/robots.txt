@@ -1,0 +1,16 @@
+# Xelvic — public things only.
+#
+# `/u/:username`, `/d/:dropId` and `/v/:vibeId` are the public doors. The
+# account's own workspace, the sign-in door and the API are not pages to index.
+User-agent: *
+Allow: /
+
+Disallow: /app/
+Disallow: /signin
+Disallow: /api/
+Disallow: /media/
+Disallow: /__xelvic_cdn/
+
+# The static sitemap lists the landing page. Public profiles, drops and vibes
+# need the server-side sitemap described in docs/PUBLIC_CONTENT_AND_SEO.md.
+Sitemap: https://web.xelvic.com/sitemap.xml

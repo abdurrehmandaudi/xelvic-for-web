@@ -9,6 +9,7 @@ import { TrackRow } from "@/features/audio/TrackRow";
 import { audioService } from "@/services/audio.service";
 import { count, duration } from "@/utils/format";
 import { usePlayer } from "@/hooks/usePlayer";
+import { absoluteImage, DEFAULT_IMAGE, INDEX, usePageMeta } from "@/seo";
 
 function PublicPlayerBar() {
   const player = usePlayer();
@@ -65,6 +66,31 @@ export function PublicPlaylistPage() {
 
   const playlist = detail.data?.playlist;
   const tracks = detail.data?.tracks ?? [];
+
+  usePageMeta({
+    title: playlist ? `${playlist.name} — a playlist on Xelvic` : "A shared playlist on Xelvic",
+    description: playlist
+      ? `${playlist.name}${playlist.owner ? ` by ${playlist.owner}` : ""}. ${count(playlist.count)} tracks on Xelvic.`
+      : "A playlist shared from Xelvic.",
+    path: `/s/${token}`,
+    image: playlist?.cover?.content_url
+      ? absoluteImage(playlist.cover.content_url)
+      : DEFAULT_IMAGE,
+    type: "website",
+    robots: INDEX,
+    jsonLd: playlist
+      ? [
+          {
+            "@type": "MusicPlaylist",
+            name: playlist.name,
+            numTracks: playlist.count,
+            ...(playlist.owner
+              ? { author: { "@type": "Person", name: playlist.owner } }
+              : {}),
+          },
+        ]
+      : undefined,
+  });
 
   return (
     <div className="min-h-dvh bg-page text-ink">

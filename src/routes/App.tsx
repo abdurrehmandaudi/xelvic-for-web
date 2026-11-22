@@ -25,7 +25,10 @@ import {
   OwnQrPage,
   PlaylistPage,
   ProfilePage,
+  PublicDropPage,
   PublicPlaylistPage,
+  PublicProfilePage,
+  PublicVibePage,
   RoomPage,
   SavedPage,
   SearchPage,
@@ -75,6 +78,13 @@ export default function App() {
         }
       />
       <Route path="/s/:token" element={<LazyPage page={PublicPlaylistPage} />} />
+      {/* The public doors. A shared link opens without an account; the app's
+          own copies under `/app` are unchanged. Actions on these pages lead to
+          `/signin?next=<this address>` and come back here. See
+          `docs/PUBLIC_CONTENT_AND_SEO.md` for the server half. */}
+      <Route path="/u/:username" element={<LazyPage page={PublicProfilePage} />} />
+      <Route path="/d/:dropId" element={<LazyPage page={PublicDropPage} />} />
+      <Route path="/v/:vibeId" element={<LazyPage page={PublicVibePage} />} />
       <Route
         path="/app"
         element={

@@ -13,8 +13,13 @@ export const profileService = {
    * A person's page. A deleted account answers 410 with its own name for the
    * refusal, which is why the caller is told not to ask twice.
    */
-  byUsername: async (username: string): Promise<Profile> => {
-    const response = await api.get<Profile>(`/auth/users/${encodeURIComponent(username)}/`);
+  byUsername: async (
+    username: string,
+    options: { skipAuth?: boolean } = {},
+  ): Promise<Profile> => {
+    const response = await api.get<Profile>(`/auth/users/${encodeURIComponent(username)}/`, {
+      skipAuth: options.skipAuth,
+    });
     return response.data;
   },
 };

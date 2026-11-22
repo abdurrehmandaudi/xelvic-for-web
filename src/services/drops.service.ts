@@ -161,9 +161,14 @@ export const dropsService = {
   },
 
   /** One person's drops, by handle — their profile's first tab. */
-  userShelf: async (username: string, next?: string): Promise<ShelfPage> => {
+  userShelf: async (
+    username: string,
+    next?: string,
+    options: { skipAuth?: boolean } = {},
+  ): Promise<ShelfPage> => {
     const response = await api.get<ShelfPage>(
       next ?? `/drops/users/${encodeURIComponent(username)}/`,
+      { skipAuth: options.skipAuth },
     );
     return response.data;
   },
@@ -185,8 +190,14 @@ export const dropsService = {
   // ---- one post, under whichever base it lives on --------------------------
 
   /** The post itself. A Vibe answers under `vibe`, a drop under `drop`. */
-  detail: async <T = DropWrite>(base: string, id: ID): Promise<T> => {
-    const response = await api.get<T>(`/${base}/${encodeURIComponent(id)}/`);
+  detail: async <T = DropWrite>(
+    base: string,
+    id: ID,
+    options: { skipAuth?: boolean } = {},
+  ): Promise<T> => {
+    const response = await api.get<T>(`/${base}/${encodeURIComponent(id)}/`, {
+      skipAuth: options.skipAuth,
+    });
     return response.data;
   },
 

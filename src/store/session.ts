@@ -4,9 +4,26 @@ import type { AuthTokens } from "@/types/api";
 const ACCESS_KEY = STORAGE_KEYS.accessToken;
 const REFRESH_KEY = STORAGE_KEYS.refreshToken;
 
+/**
+ * A browser tab signs out when it closes, so the web app keeps its tokens in
+ * sessionStorage. The installed desktop app is expected to stay signed in, the
+ * way the phone does, so its preload marks the window and the tokens move to
+ * localStorage there — and only there.
+ */
+function storage(): Storage | null {
+  try {
+    const desktop = typeof window !== "undefined" && Boolean(window.xelvicDesktop);
+    // `globalThis` rather than `window` so tests (and any non-window worker)
+    // can supply a storage object without a DOM.
+    return desktop ? globalThis.localStorage : globalThis.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 function read(key: string) {
   try {
-    return sessionStorage.getItem(key);
+    return storage()?.getItem(key) ?? null;
   } catch {
     return null;
   }
@@ -14,8 +31,10 @@ function read(key: string) {
 
 function write(key: string, value: string | null) {
   try {
-    if (value) sessionStorage.setItem(key, value);
-    else sessionStorage.removeItem(key);
+    const store = storage();
+    if (!store) return;
+    if (value) store.setItem(key, value);
+    else store.removeItem(key);
   } catch {
     // Storage can be disabled; the in-memory copy below still works.
   }

@@ -1,0 +1,94 @@
+{
+  "name": "xelvic-desktop",
+  "productName": "Xelvic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Xelvic for your computer",
+  "author": "Xelvic",
+  "homepage": "https://web.xelvic.com",
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "com.xelvic.desktop",
+    "productName": "Xelvic",
+    "electronVersion": "45.4.1",
+    "copyright": "Copyright © 2026 Xelvic",
+    "artifactName": "Xelvic-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "../desktop-release",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist",
+        "to": "dist"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "icon": "build/icon.icns",
+      "identity": "-",
+      "minimumSystemVersion": "11.0",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "extendInfo": {
+        "NSCameraUsageDescription": "Xelvic uses the camera to take photos and videos you choose to send.",
+        "NSMicrophoneUsageDescription": "Xelvic uses the microphone for voice messages and audio.",
+        "NSLocationUsageDescription": "Xelvic uses your location only when you choose to share it.",
+        "NSLocationWhenInUseUsageDescription": "Xelvic uses your location only when you choose to share it."
+      }
+    },
+    "dmg": {
+      "title": "Xelvic ${version}",
+      "contents": [
+        {
+          "x": 140,
+          "y": 210
+        },
+        {
+          "x": 400,
+          "y": 210,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Xelvic-Setup-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Network;InstantMessaging",
+      "target": [
+        {
+          "target": "tar.gz",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  }
+}

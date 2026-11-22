@@ -61,6 +61,12 @@ const load = {
     import("@/pages/PublicPlaylistPage").then((m) => ({
       default: m.PublicPlaylistPage,
     })),
+  publicProfile: () =>
+    import("@/pages/PublicProfilePage").then((m) => ({ default: m.PublicProfilePage })),
+  publicDrop: () =>
+    import("@/pages/PublicPostPage").then((m) => ({ default: m.PublicDropPage })),
+  publicVibe: () =>
+    import("@/pages/PublicPostPage").then((m) => ({ default: m.PublicVibePage })),
   ownQr: () => import("@/pages/OwnQrPage").then((m) => ({ default: m.OwnQrPage })),
   circle: () => import("@/pages/CirclePage").then((m) => ({ default: m.CirclePage })),
   artist: () => import("@/pages/ArtistPage").then((m) => ({ default: m.ArtistPage })),
@@ -104,6 +110,9 @@ export const SparksPage = lazy(load.sparks);
 export const SparksLeaderboardPage = lazy(load.sparksLeaderboard);
 export const SettingsPage = lazy(load.settings);
 export const PublicPlaylistPage = lazy(load.publicPlaylist);
+export const PublicProfilePage = lazy(load.publicProfile);
+export const PublicDropPage = lazy(load.publicDrop);
+export const PublicVibePage = lazy(load.publicVibe);
 export const OwnQrPage = lazy(load.ownQr);
 export const CirclePage = lazy(load.circle);
 export const ArtistPage = lazy(load.artist);

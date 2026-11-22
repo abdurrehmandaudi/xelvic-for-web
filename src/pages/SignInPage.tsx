@@ -19,6 +19,7 @@ import { Wordmark } from "@/components/icons/Brand";
 import { Button } from "@/components/ui/Button";
 import { useQrSignIn, type QrPhase } from "@/hooks/useQrSignIn";
 import { API_ORIGIN } from "@/config/env";
+import { metaForSignIn, usePageMeta } from "@/seo";
 import { cn } from "@/utils/cn";
 
 function browserClaim() {
@@ -453,6 +454,7 @@ export function SignInPage() {
   const qr = useQrSignIn();
   const claim = useMemo(browserClaim, []);
   const [authMode, setAuthMode] = useState<"qr" | "credentials">("qr");
+  usePageMeta(metaForSignIn());
   const busy =
     qr.phase === "starting" ||
     qr.phase === "collecting" ||

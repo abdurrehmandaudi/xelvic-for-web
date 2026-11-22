@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The public landing page. A complete sitemap cannot be built in the browser:
+  it must list every public profile, drop and vibe, which is a server-side job
+  over the public content endpoints. See docs/PUBLIC_CONTENT_AND_SEO.md for the
+  contract and the paginated `/public/sitemap` route it expects.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://web.xelvic.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

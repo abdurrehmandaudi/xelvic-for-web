@@ -26,6 +26,7 @@ import { cn } from "@/utils/cn";
 import { useAuth } from "@/hooks/useAuth";
 import { useIdlePrefetch, useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { useTheme } from "@/hooks/useTheme";
+import { NOINDEX, usePageMeta } from "@/seo";
 import { SHELL_ROUTES } from "@/routes/lazyPages";
 import type { ShellPage } from "@/theme/catalog";
 
@@ -69,6 +70,21 @@ const secondary = [
   // so a row called "Sparks" would be promising a different page.
   { to: "/app/sparks", label: "Wallet", icon: Wallet },
 ];
+
+/** The name a signed-in screen gives the tab, for the document title. */
+function titleForPath(pathname: string): string {
+  if (pathname.startsWith("/app/convo")) return "Convo";
+  if (pathname.startsWith("/app/moments")) return "Moments";
+  if (pathname.startsWith("/app/audio")) return "Audio";
+  if (pathname.startsWith("/app/live")) return "Live";
+  if (pathname.startsWith("/app/search")) return "Search";
+  if (pathname.startsWith("/app/alerts")) return "Notifications";
+  if (pathname.startsWith("/app/saved")) return "Saved";
+  if (pathname.startsWith("/app/settings")) return "Settings";
+  if (pathname.startsWith("/app/u/")) return "Profile";
+  if (pathname.startsWith("/app/drops")) return "Drops";
+  return "Xelvic";
+}
 
 function pageForPath(pathname: string): ShellPage | null {
   if (pathname === "/app" || pathname.startsWith("/app/drops")) return "drops";
@@ -186,6 +202,18 @@ export function AppShell() {
   const backdrop = backdropFor(page);
   const art = backdrop?.art ?? null;
   const inChat = location.pathname.startsWith("/app/convo");
+
+  /*
+   * Everything behind this shell is the account's own room. It is not a page a
+   * crawler should index, and it is not a page a share sheet should describe —
+   * a public drop has its own address (`/d/...`) for that.
+   */
+  usePageMeta({
+    title: titleForPath(location.pathname),
+    path: location.pathname,
+    description: "Your Xelvic account.",
+    robots: NOINDEX,
+  });
 
   // The five tabs behind the bottom bar are the pages a signed-in reader moves
   // between most, so their code is fetched in the first quiet moment after the

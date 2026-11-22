@@ -8,3 +8,17 @@ dist-ssr
 .DS_Store
 *.tsbuildinfo
 .vite
+desktop-release
+visionos/build
+visionos/XelvicVision/Resources/dist
+# Signing material and upload keys — never commit these.
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+AuthKey_*.p8
+# Built packages (produced by the npm scripts, kept out of git history).
+*.dmg
+*.ipa
+*.exe

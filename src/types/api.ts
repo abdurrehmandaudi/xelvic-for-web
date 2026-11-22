@@ -280,6 +280,16 @@ export interface Drop {
   gallery?: Asset[] | null;
   ratio?: number;
   place?: string;
+  /**
+   * The place's own coordinates, when the author published them.
+   *
+   * A name alone fills `geo.placename`; these turn on `geo.position`/`ICBM`
+   * and the schema.org `Place` for the post. They must never be derived from
+   * a private or approximate location — see `docs/PUBLIC_CONTENT_AND_SEO.md`.
+   */
+  place_latitude?: number | null;
+  place_longitude?: number | null;
+  place_region?: string | null;
   tag?: string;
   poll?: Poll | null;
   created_at: string;
