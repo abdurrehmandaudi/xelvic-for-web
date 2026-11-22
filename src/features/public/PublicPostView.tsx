@@ -242,14 +242,14 @@ export function PublicPostView({
 
       {authed ? (
         <div className="border-t border-line px-4 py-3 text-center text-xs text-dim sm:px-5">
-          Open Xelvic to like, comment and follow.
+          Open Xelvic to felt, respond and keep.
         </div>
       ) : (
         <div className="border-t border-line bg-[color-mix(in_srgb,var(--accent)_6%,var(--card))] px-4 py-3 text-center text-xs leading-5 text-dim sm:px-5">
           <Link to={signInHref(next)} className="font-bold text-accent hover:underline">
             Sign in to Xelvic
           </Link>{" "}
-          to like, comment and follow.
+          to felt, respond and keep.
         </div>
       )}
     </article>
