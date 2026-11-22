@@ -66,7 +66,11 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+        <BrowserRouter
+          // Vite exposes `base` as `BASE_URL` (with a trailing slash). The
+          // router wants it without one, and `/` when the app is at the root.
+          basename={(import.meta.env.BASE_URL || "/").replace(/\/$/, "") || "/"}
+        >
           <ToastProvider>
             <AuthProvider>
               <PreferencesProvider>
