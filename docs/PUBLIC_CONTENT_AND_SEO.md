@@ -186,6 +186,12 @@ Search-result pages (`/app/search`) stay `noindex`; public landing pages for a
 tag or a product need a server-rendered page of their own, built from the
 public search endpoint below.
 
+The repository ships the generator for this contract:
+`npm run sitemap` (`scripts/generate-sitemap.mjs`). It follows `next`, keeps
+only canonical public paths, splits past 50,000 URLs and refuses to publish if
+the endpoint is not anonymous. The Search Console / social-crawler checklist is
+[`GOOGLE_INDEXING.md`](GOOGLE_INDEXING.md).
+
 ### 4.1 Public search (product-by-name)
 
 To make "search a product/name and see the post" work, the server needs a read

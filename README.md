@@ -12,7 +12,8 @@ Public profiles (`/u/:username`), drops (`/d/:dropId`) and vibes
 are described in [`docs/PUBLIC_CONTENT_AND_SEO.md`](docs/PUBLIC_CONTENT_AND_SEO.md).
 That document also lists the anonymous API reads and the server-side HTML
 injection that the backend and deployment still have to ship — social crawlers
-do not run JavaScript.
+do not run JavaScript. The Search Console, sitemap and indexing checklist is
+[`docs/GOOGLE_INDEXING.md`](docs/GOOGLE_INDEXING.md).
 
 This is a parity build, not a redesign. The current status is recorded honestly in [`docs/FINAL_VERIFICATION_REPORT.md`](docs/FINAL_VERIFICATION_REPORT.md); the client is not yet full Android parity.
 

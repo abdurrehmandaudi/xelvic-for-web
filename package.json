@@ -21,7 +21,8 @@
     "desktop:dist:linux": "npm run build:desktop && cd desktop && ../node_modules/.bin/electron-builder --linux --x64",
     "desktop:dist:all": "npm run build:desktop && cd desktop && ../node_modules/.bin/electron-builder --mac dmg --win --x64 --linux --x64",
     "visionos:prepare": "npm run build:desktop && rm -rf visionos/XelvicVision/Resources/dist && cp -R dist visionos/XelvicVision/Resources/dist",
-    "visionos:build": "npm run visionos:prepare && xcodebuild -project visionos/XelvicVision.xcodeproj -target XelvicVision -sdk xrsimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build"
+    "visionos:build": "npm run visionos:prepare && xcodebuild -project visionos/XelvicVision.xcodeproj -target XelvicVision -sdk xrsimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build",
+    "sitemap": "node scripts/generate-sitemap.mjs"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
