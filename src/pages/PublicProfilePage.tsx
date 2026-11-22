@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { profileService } from "@/services/profile.service";
-import { dropsService } from "@/services/drops.service";
+import publicService from "@/services/public.service";
 import { ApiError } from "@/utils/errors";
 import { usePageMeta } from "@/seo";
 import {
@@ -36,25 +35,23 @@ export function PublicProfilePage() {
   const next = location.pathname + location.search;
   const authed = status === "authenticated";
 
+  // One anonymous read answers the whole page — the person and the posts they
+  // have left open — which is what `/public/profile/` exists for. The old pair
+  // of signed-in routes (`/auth/users/`, `/drops/users/`) answered 401 to a
+  // stranger, which is why the page used to fall through to "sign in".
   const profileQuery = useQuery({
     queryKey: ["public-profile", username],
-    // A public read is anonymous by design: no token, and no refresh attempt
-    // on a 401. The gate is the answer to "not signed in", not a dead session.
-    queryFn: () => profileService.byUsername(username, { skipAuth: true }),
+    queryFn: () => publicService.profile(username),
     enabled: !authed && Boolean(username),
     retry: false,
   });
 
-  const profile = profileQuery.data;
+  const profile = profileQuery.data?.profile;
   const privateAccount =
     profile !== undefined && (profile.is_private === true || profile.can_view === false);
 
-  const shelfQuery = useQuery({
-    queryKey: ["public-profile-shelf", username],
-    queryFn: () => dropsService.userShelf(username, undefined, { skipAuth: true }),
-    enabled: !authed && Boolean(profile) && !privateAccount,
-    retry: false,
-  });
+  // The shelf rides in the same answer; see the query above.
+  const posts = privateAccount ? [] : (profileQuery.data?.posts ?? []);
 
   usePageMeta(
     profile
@@ -108,27 +105,18 @@ export function PublicProfilePage() {
     <PublicShell next={next}>
       <PublicProfileView
         profile={profile}
-        posts={privateAccount ? [] : shelfQuery.data?.results ?? []}
+        posts={posts}
         authed={false}
       />
-      {!privateAccount && shelfQuery.isError && statusOf(shelfQuery.error) !== 401 ? (
-        <p className="mt-4 text-center text-xs text-dim">
-          The shelf could not be loaded.{" "}
-          <button
-            type="button"
-            onClick={() => void shelfQuery.refetch()}
-            className="font-bold text-accent hover:underline"
-          >
-            Try again
-          </button>
-        </p>
-      ) : null}
-      {!privateAccount && shelfQuery.isError && statusOf(shelfQuery.error) === 401 ? (
+      {/* The whole page answers in one anonymous read now, so a shelf that
+          could not be loaded is the same failure as a profile that could not —
+          the gate above has already said it. */}
+      {!privateAccount && posts.length === 0 && !profileQuery.isLoading ? (
         <p className="mt-4 text-center text-xs text-dim">
           <a href={signInHref(next)} className="font-bold text-accent hover:underline">
             Sign in
           </a>{" "}
-          to see every drop.
+          to see everything this person shares.
         </p>
       ) : null}
     </PublicShell>

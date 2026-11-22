@@ -98,6 +98,10 @@ export default function App() {
       >
         <Route path="drops" element={<LazyPage page={DropsPage} />} />
         <Route path="drops/:dropId" element={<LazyPage page={DropPage} />} />
+        {/* A Vibe has no single signed-in page yet; `/vibes/<id>` is the address
+            a shared link wears, and a signed-in reader gets the same read-only
+            page a stranger does. */}
+        <Route path="vibes/:vibeId" element={<LazyPage page={PublicVibePage} />} />
         {/* The back of the house for my own Vibes, and one clip's whole read.
             Both are mine only — the server answers an empty list or a 404 to
             anybody else — and both are reached from a Vibe's own top bar. */}
