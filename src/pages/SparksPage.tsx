@@ -227,7 +227,7 @@ export function SparksPage() {
         {/* ---- the door to the boards ------------------------------------- */}
         <button
           type="button"
-          onClick={() => navigate("/app/sparks/leaderboard")}
+          onClick={() => navigate("/sparks/leaderboard")}
           className="mt-3.5 flex w-full items-center rounded-[16px] border border-line bg-card py-[13px] pl-4 pr-3 text-left transition hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]"
         >
           <span className="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent">
@@ -414,7 +414,7 @@ function Person({ person, spark }: { person: WalletPerson; spark?: Spark }) {
 
   return (
     <Link
-      to={person.thread_id ? `/app/convo/${person.thread_id}` : "/app/convo"}
+      to={person.thread_id ? `/convo/${person.thread_id}` : "/convo"}
       className="flex items-center py-[7px]"
     >
       <Avatar name={name} src={person.other?.avatar} size={34} />

@@ -43,7 +43,7 @@ export function PublicProfileView({
             <div className="ml-auto hidden pb-1 sm:block">
               {authed ? (
                 <Link
-                  to={`/app/u/${encodeURIComponent(profile.username)}`}
+                  to={`/profile/${encodeURIComponent(profile.username)}`}
                   className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-[13px] font-bold text-ink transition-colors hover:bg-ink-6"
                 >
                   Open in Xelvic
@@ -92,7 +92,7 @@ export function PublicProfileView({
           <div className="mt-4 sm:hidden">
             {authed ? (
               <Link
-                to={`/app/u/${encodeURIComponent(profile.username)}`}
+                to={`/profile/${encodeURIComponent(profile.username)}`}
                 className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-[13px] font-bold text-ink"
               >
                 Open in Xelvic
@@ -130,7 +130,7 @@ export function PublicProfileView({
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-[15px] font-extrabold tracking-[-0.2px]">Public drops</h2>
             {authed ? (
-              <Link to={`/app/u/${encodeURIComponent(profile.username)}`} className="text-[13px] font-bold text-accent hover:underline">
+              <Link to={`/profile/${encodeURIComponent(profile.username)}`} className="text-[13px] font-bold text-accent hover:underline">
                 See all
               </Link>
             ) : null}

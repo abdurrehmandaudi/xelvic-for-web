@@ -38,9 +38,9 @@ export const CALL_NOTICE_TAG = "xelvic-call";
 /**
  * Where the worker that draws the buttons lives.
  *
- * It has to be under the build's base as well as in it: a worker registered
- * from `/app/call-sw.js` can control `/app/`, and one registered from
- * `/call-sw.js` would claim the marketing site at the root as its scope.
+ * It is at the site root, so its scope is the client's own origin. That is
+ * harmless because the worker has no `fetch` handler and caches nothing; it
+ * draws a call row and passes the press back to the page.
  */
 export const CALL_WORKER_URL = asset("/call-sw.js");
 

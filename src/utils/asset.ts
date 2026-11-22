@@ -1,13 +1,11 @@
 /**
- * A path to a file this build ships, under whatever base it was built for.
+ * A path to a file this build ships.
  *
- * The same source is served at the root in development and under `/app/`
- * beside the marketing site. Vite rewrites everything it can see — imported
- * assets and the references in `index.html` — but a string written as
- * `"/themes/x.png"` is just a string to it, and at `/app/` the browser would
- * ask the marketing site's host for a file the marketing site has never had.
- * Everything this build serves itself goes through here, so moving the app is
- * still one build-time variable and not an inventory of paths.
+ * The web client is served at the site root — `https://xelvic.com/` — so its
+ * own files and its router's paths are already absolute and need no prefix.
+ * This helper stays because everything that draws one of the build's own
+ * pictures or builds one of its own links already goes through it, and the
+ * desktop and visionOS builds share the same source with the same root base.
  *
  * A server address is left exactly as it is: anything with a scheme, a
  * protocol-relative `//host`, or a path that is already relative belongs to
@@ -27,14 +25,13 @@ export function optionalAsset<T extends string | null | undefined>(path: T): T {
 }
 
 /**
- * A path inside this build's router, at the base it was built for.
+ * A path inside this build's router.
  *
- * Pass the router's own path (`/d/1`, or `/app/live/1` for the signed-in
- * shell), not `window.location.pathname`. The app's own routes already begin
- * with `/app`, so a router path that looks mounted is still the router's, and
- * the base still belongs in front of it: `/app/live/1` is served at
- * `https://xelvic.com/app/app/live/1`, which is why this always prefixes
- * rather than trying to recognise a path that already carries the base.
+ * Pass the router's own path (`/d/1`, `/live/1`), not
+ * `window.location.pathname`; at the root base this is the address the browser
+ * asks for. It is kept separate from [asset] so a future mount point would be
+ * one variable rather than an inventory of links, but the deployed web build
+ * has no mount point: `xelvic.com/drops/…`, `xelvic.com/profile/shariq`.
  */
 export function mountedPath(path: string): string {
   return asset(path);

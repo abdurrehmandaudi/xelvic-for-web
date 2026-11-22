@@ -306,13 +306,13 @@ export function DropCard({
       )}
     >
       <header className="flex items-center gap-2.5 px-3.5 pb-2 pt-2.5">
-        <Link to={`/app/u/${drop.author.username}`} className="shrink-0" aria-label={name}>
+        <Link to={`/profile/${drop.author.username}`} className="shrink-0" aria-label={name}>
           <Avatar user={drop.author} size={36} ring={live.has(String(drop.author.id))} />
         </Link>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
             <Link
-              to={`/app/u/${drop.author.username}`}
+              to={`/profile/${drop.author.username}`}
               className="truncate text-[13.5px] font-bold tracking-[-0.1px] hover:underline"
             >
               {name}
@@ -381,7 +381,7 @@ export function DropCard({
           {drop.mentions.map((person) => (
             <Link
               key={person.id}
-              to={`/app/u/${person.username}`}
+              to={`/profile/${person.username}`}
               className="max-w-full truncate text-[13px] font-semibold text-accent hover:underline"
             >
               @{person.username}
@@ -395,7 +395,7 @@ export function DropCard({
           {drop.shelves.map((shelf) => (
             <Link
               key={shelf.id}
-              to={`/app/audio/${shelf.id}`}
+              to={`/audio/${shelf.id}`}
               className="flex max-w-[190px] items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2.5 py-1.5 text-[12.5px] font-bold text-accent"
             >
               <Volume2 className="size-[15px] shrink-0" aria-hidden />
@@ -445,7 +445,7 @@ export function DropCard({
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         onRemoved={() => onRemoved?.(drop.id)}
-        onEdit={() => navigate(`/app/drops?edit=${drop.id}`)}
+        onEdit={() => navigate(`/drops?edit=${drop.id}`)}
         onStats={() => setStatsOpen(true)}
         onChanged={() => {
           void queryClient.invalidateQueries({ queryKey: ["drops"] });
@@ -512,7 +512,7 @@ function Words({ body, asPost, poll }: { body: string; asPost: boolean; poll: bo
       out.push(
         <Link
           key={`${start}:${word}`}
-          to={word.startsWith("#") ? `/app/tags/${encodeURIComponent(handle)}` : `/app/u/${handle}`}
+          to={word.startsWith("#") ? `/tags/${encodeURIComponent(handle)}` : `/profile/${handle}`}
           className="font-bold text-accent hover:underline"
         >
           {word}
@@ -1003,7 +1003,7 @@ function WhoIsIn({
             type="button"
             onClick={() => {
               onClose();
-              navigate(`/app/u/${person.username}`);
+              navigate(`/profile/${person.username}`);
             }}
             className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]"
           >

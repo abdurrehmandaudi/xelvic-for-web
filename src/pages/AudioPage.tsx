@@ -177,7 +177,7 @@ export function AudioPage() {
       setName("");
       setCover(null);
       toast({ title: "Playlist made", tone: "success" });
-      navigate(`/app/audio/${made.playlist.id}`);
+      navigate(`/audio/${made.playlist.id}`);
     } catch (error) {
       toast({
         title: "Could not make that playlist",
@@ -227,7 +227,7 @@ export function AudioPage() {
   }
 
   function openCategory(category: AudioCategory) {
-    navigate(`/app/audio/c/${encodeURIComponent(category.key)}`, {
+    navigate(`/audio/c/${encodeURIComponent(category.key)}`, {
       state: {
         title: category.title,
         subtitle: category.subtitle ?? "",
@@ -327,7 +327,7 @@ export function AudioPage() {
                   <SectionTitle>Makers</SectionTitle>
                   <div className="no-scrollbar flex gap-4 overflow-x-auto px-4 pb-2">
                     {found.people.map((person) => (
-                      <Link key={person.id} to={`/app/u/${person.username}`} className="w-[84px] shrink-0 text-center">
+                      <Link key={person.id} to={`/profile/${person.username}`} className="w-[84px] shrink-0 text-center">
                         <Avatar name={person.name} src={person.avatar ?? undefined} size={64} className="mx-auto" />
                         <span className="mt-1.5 block truncate text-[12px] font-bold">{person.name}</span>
                         <span className="block truncate text-[10.5px] text-dim">{creatorUnder(person)}</span>
@@ -363,14 +363,14 @@ export function AudioPage() {
     <div className="min-h-dvh text-ink">
       <header className="sticky top-0 z-30 bg-[color-mix(in_srgb,var(--page)_90%,transparent)] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-[760px] items-center gap-3 px-4 pb-1.5 pt-2.5 md:px-6">
-          <Link to={user ? `/app/u/${user.username}` : "/app"} aria-label="Your profile">
+          <Link to={user ? `/profile/${user.username}` : "/drops"} aria-label="Your profile">
             <Avatar user={user} name={user?.name} size={40} />
           </Link>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-[22px] font-extrabold leading-6 tracking-[-0.4px]">Audio</h1>
             <p className="truncate text-[12px] text-dim">Playlists · Podcasts · Artists · Trending</p>
           </div>
-          <Link to="/app/audio/studio" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Your studio">
+          <Link to="/audio/studio" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Your studio">
             <BarChart3 className="size-[19px]" />
           </Link>
           <button type="button" onClick={() => setPostOpen(true)} className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Post audio">
@@ -480,7 +480,7 @@ export function AudioPage() {
               <>
                 {leading ? (
                   <>
-                    <SectionTitle action="See all" onAction={() => navigate("/app/audio/board")}>
+                    <SectionTitle action="See all" onAction={() => navigate("/audio/board")}>
                       Trending now
                     </SectionTitle>
                     <div className="no-scrollbar flex h-[176px] gap-3 overflow-x-auto px-4">
@@ -584,7 +584,7 @@ export function AudioPage() {
                         artist.slug ? (
                           <Link
                             key={artist.slug || artist.name || index}
-                            to={`/app/audio/artist/${encodeURIComponent(artist.slug)}`}
+                            to={`/audio/artist/${encodeURIComponent(artist.slug)}`}
                             className="w-[78px] shrink-0 text-center"
                           >
                             <Avatar name={artist.name} size={64} className="mx-auto" />
@@ -617,7 +617,7 @@ export function AudioPage() {
                     <SectionTitle>{artists.length ? "Makers" : "Artists"}</SectionTitle>
                     <div className="no-scrollbar flex gap-4 overflow-x-auto px-4 pb-2">
                       {board.creators.map((person) => (
-                        <Link key={person.id} to={`/app/u/${person.username}`} className="w-[84px] shrink-0 text-center">
+                        <Link key={person.id} to={`/profile/${person.username}`} className="w-[84px] shrink-0 text-center">
                           <Avatar name={person.name} src={person.avatar ?? undefined} size={64} className="mx-auto" />
                           <span className="mt-1.5 block truncate text-[12px] font-bold">{person.name}</span>
                           <span className="block truncate text-[10.5px] text-dim">

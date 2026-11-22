@@ -92,7 +92,7 @@ function EmptyChatPane() {
         <p className="mx-auto mt-4 max-w-[390px] text-[14px] leading-7 text-dim sm:text-[15px]">
           Choose someone from your list, or start a fresh conversation. Your messages stay between you and them.
         </p>
-        <Link to="/app/search" className="inline-flex min-h-11 select-none items-center justify-center font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105 mt-8 h-12 gap-2 rounded-full px-7 shadow-[0_8px_20px_color-mix(in_srgb,var(--accent)_22%,transparent)]">
+        <Link to="/search" className="inline-flex min-h-11 select-none items-center justify-center font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105 mt-8 h-12 gap-2 rounded-full px-7 shadow-[0_8px_20px_color-mix(in_srgb,var(--accent)_22%,transparent)]">
           <Search className="size-4" aria-hidden />
           Find people
         </Link>

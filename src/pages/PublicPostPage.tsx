@@ -59,7 +59,7 @@ function PublicPostRoute({ kind }: { kind: "drop" | "vibe" }) {
 
   if (status === "loading") return <PublicLoading next={next} />;
   if (authed && kind === "drop") {
-    return <Navigate to={`/app/drops/${encodeURIComponent(id)}`} replace />;
+    return <Navigate to={`/drops/${encodeURIComponent(id)}`} replace />;
   }
   if (query.isLoading) return <PublicLoading next={next} />;
 

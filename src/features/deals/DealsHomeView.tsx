@@ -90,7 +90,7 @@ export function DealsHomeView() {
             <Button
               size="sm"
               icon={<Plus className="size-4" aria-hidden />}
-              onClick={() => navigate("/app/deals/new")}
+              onClick={() => navigate("/deals/new")}
             >
               Invite a creator
             </Button>
@@ -128,7 +128,7 @@ export function DealsHomeView() {
             <>
               <GroupHeading>As a company</GroupHeading>
               {asCompany.map((deal) => (
-                <DealRow key={deal.id} deal={deal} onOpen={() => navigate(`/app/deals/${deal.id}`)} />
+                <DealRow key={deal.id} deal={deal} onOpen={() => navigate(`/deals/${deal.id}`)} />
               ))}
             </>
           ) : null}
@@ -137,7 +137,7 @@ export function DealsHomeView() {
             <>
               <GroupHeading>As a creator</GroupHeading>
               {asCreator.map((deal) => (
-                <DealRow key={deal.id} deal={deal} onOpen={() => navigate(`/app/deals/${deal.id}`)} />
+                <DealRow key={deal.id} deal={deal} onOpen={() => navigate(`/deals/${deal.id}`)} />
               ))}
             </>
           ) : null}

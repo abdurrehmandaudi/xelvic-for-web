@@ -314,7 +314,7 @@ export function AlertsPage() {
                   onOpen={() => void openAlert(item)}
                   onMark={() => void markDoor(item)}
                   onAnswer={(keep) => void answerKeep(item, keep)}
-                  onOpenPerson={(username) => navigate(`/app/u/${encodeURIComponent(username)}`)}
+                  onOpenPerson={(username) => navigate(`/profile/${encodeURIComponent(username)}`)}
                   onOpenCover={() => setOpened((current) => new Set(current).add(item.id))}
                 />
               ),

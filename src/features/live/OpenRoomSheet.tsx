@@ -125,7 +125,7 @@ export function OpenRoomSheet({
       onCreated?.();
       // Straight into the room, because a room nobody is in is a room that ends
       // the moment the person who opened it looks away.
-      if (made.room?.id) navigate(`/app/live/${made.room.id}`);
+      if (made.room?.id) navigate(`/live/${made.room.id}`);
     } catch (error) {
       setTrouble(errorMessage(error));
     } finally {

@@ -17,7 +17,7 @@ match them, and a number here should not be quoted as current.
 | `TEST-002` | Strict frontend compile and lint | `npm run typecheck`, `npm run lint` | Pass after the final source edits |
 | `TEST-003` | Sign-in failure handling | Integrated browser at `/signin` | Rendered connection failure; production QR-start request failed due CORS. Does not verify a successful login |
 | `TEST-004` | Production direct-login routing | Production preview browser at `/` and `/signin` | Root rendered the sign-in experience directly; `/signin` remains compatible; QR request failed due production CORS |
-| `TEST-008` | Root login and restored-session redirect | `PublicOnly` route guard | Source/typecheck verification: loading waits for session restore, authenticated status redirects to `/app/drops`; authenticated browser flow not exercised |
+| `TEST-008` | Root login and restored-session redirect | `PublicOnly` route guard | Source/typecheck verification: loading waits for session restore, authenticated status redirects to `/drops`; authenticated browser flow not exercised |
 | `TEST-005` | `A11Y-SHELL-001`, `PLAYER-KEYBOARD-001`, `PLAYER-MEDIA-001` | Source review plus strict checks | Implemented; keyboard, touch, authenticated shell and Media Session device behavior not yet exercised |
 | `TEST-006` | Backend theme purchase entitlement | Django focused test command | Blocked before tests began by PostgreSQL test-user authentication failure |
 | `TEST-007` | `DESIGN-001` | APK and web visual comparison | Not run: no screenshot comparison/device harness |
@@ -33,7 +33,7 @@ These IDs track only tests performed or explicitly planned here. Existing static
 | `npm run lint` | `xelvic-web` | **Pass** | Rerun after Media Session and accessibility changes; `eslint .` |
 | `npm run build` | `xelvic-web` | **Pass** | 2039 modules; JS 681.66 kB, CSS 59.39 kB before gzip; chunk-size advisory warning |
 | Local dev server smoke | `xelvic-web` | **Pass** | HTTP 200; browser rendered `/signin`; API-unavailable state shown |
-| Production preview smoke | `xelvic-web` | **Pass** | Browser rendered sign-in directly on `/`; preview returned HTTP 200 for `/`, `/signin` and `/app/drops` |
+| Production preview smoke | `xelvic-web` | **Pass** | Browser rendered sign-in directly on `/`; preview returned HTTP 200 for `/`, `/signin` and `/drops` |
 | Sign-in anchor check | `xelvic-web` | **Pass** | Browser no longer reports nested links in the header |
 | Sign-in navigation check | `xelvic-web` | **Pass with backend limitation** | `/` displayed the QR sign-in page; the QR request was blocked by production CORS |
 | Backend integration | n/a | **Blocked** | Django tests could not start; PostgreSQL rejected the configured test-user password |
@@ -50,7 +50,7 @@ These IDs track only tests performed or explicitly planned here. Existing static
 | ESLint flat config | Pass | Rules of hooks, exhaustive deps, unused vars |
 | Production bundle | Pass | 681.66 kB JS, 59.39 kB CSS before gzip |
 | Theme shop rules | Pass | Five unit tests cover included themes, earned threshold, wallet balance, slot limits and final tier |
-| SPA deep-link fallback | Pass | Vite preview served the shell for `/app/drops` |
+| SPA deep-link fallback | Pass | Vite preview served the shell for `/drops` |
 | No demo data in pages | Pass by inspection | Pages use API queries and honest empty/error states |
 | Secret scanning | Pass by inspection | No tokens or passwords in source; env example contains no secrets |
 
@@ -64,23 +64,23 @@ Statuses: **Wired**, **Partial**, **Unverified**, **Missing**, **Blocked**.
 | Sign-in | `/signin` | Pass | Pass | **Blocked** | Local QR routes are absent; production QR request was blocked by CORS; dev login needs backend |
 | Session restore | `AuthProvider` | Pass | Pass | **Blocked** | No backend |
 | Shell/nav | `AppShell` | Pass | Pass | Static 200 | Auth guard prevents full render without session |
-| Drops feed | `/app/drops` | Pass | Pass | **Blocked** | Needs auth/API |
-| Drop detail | `/app/drops/:id` | Pass | Pass | **Blocked** | Needs auth/API |
-| Moments | `/app/moments` | Pass | Pass | **Blocked** | Needs auth/API |
-| Convo list | `/app/convo` | Pass | Pass | **Blocked** | Needs auth/API |
-| Chat | `/app/convo/:id` | Pass | Pass | **Blocked** | Needs auth/API/socket |
-| Audio | `/app/audio` | Pass | Pass | **Blocked** | Needs auth/API |
-| Playlist | `/app/audio/:id` | Pass | Pass | **Blocked** | Needs auth/API |
+| Drops feed | `/drops` | Pass | Pass | **Blocked** | Needs auth/API |
+| Drop detail | `/drops/:id` | Pass | Pass | **Blocked** | Needs auth/API |
+| Moments | `/moments` | Pass | Pass | **Blocked** | Needs auth/API |
+| Convo list | `/convo` | Pass | Pass | **Blocked** | Needs auth/API |
+| Chat | `/convo/:id` | Pass | Pass | **Blocked** | Needs auth/API/socket |
+| Audio | `/audio` | Pass | Pass | **Blocked** | Needs auth/API |
+| Playlist | `/audio/:id` | Pass | Pass | **Blocked** | Needs auth/API |
 | Public playlist | `/s/:token` | Pass | Pass | **Blocked** | Needs API |
-| Live shelf | `/app/live` | Pass | Pass | **Blocked** | Needs auth/API |
-| Room | `/app/live/:id` | Pass | Pass | **Blocked** | Needs auth/API/socket |
-| Profile | `/app/u/:username` | Pass | Pass | **Blocked** | Needs auth/API |
-| Search | `/app/search` | Pass | Pass | **Blocked** | Needs auth/API |
-| Alerts | `/app/alerts` | Pass | Pass | **Blocked** | Request envelope unverified |
-| Saved | `/app/saved` | Pass | Pass | **Blocked** | Needs auth/API |
-| Sparks | `/app/sparks` | Pass | Pass | **Blocked** | Needs auth/API |
+| Live shelf | `/live` | Pass | Pass | **Blocked** | Needs auth/API |
+| Room | `/live/:id` | Pass | Pass | **Blocked** | Needs auth/API/socket |
+| Profile | `/profile/:username` | Pass | Pass | **Blocked** | Needs auth/API |
+| Search | `/search` | Pass | Pass | **Blocked** | Needs auth/API |
+| Alerts | `/alerts` | Pass | Pass | **Blocked** | Request envelope unverified |
+| Saved | `/saved` | Pass | Pass | **Blocked** | Needs auth/API |
+| Sparks | `/sparks` | Pass | Pass | **Blocked** | Needs auth/API |
 | Theme shop | `src/features/sparks/ThemeShop.tsx` | Pass | Pass | **Blocked** | UI and purchase API wired; no authenticated backend pass |
-| Settings | `/app/settings` | Pass | Pass | **Blocked** | Needs auth/API |
+| Settings | `/settings` | Pass | Pass | **Blocked** | Needs auth/API |
 | Theme selection | `ThemeProvider` | Pass | Pass | **Blocked** | Needs auth for server sync |
 | Theme preview | `ThemeProvider` / `ThemeShop` | Pass | Pass | **Pass by state inspection** | Preview does not persist; dismissal restores selected design |
 | Media blobs | `useMediaUrl` | Pass | Pass | **Blocked** | Needs auth/media |

@@ -63,7 +63,7 @@ export function AudioStudioPage() {
               return (
                 <Link
                   key={item.subject || item.id}
-                  to={`/app/audio/studio/${encodeURIComponent(item.id)}`}
+                  to={`/audio/studio/${encodeURIComponent(item.id)}`}
                   className="flex items-center gap-3 px-4 py-3 transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]"
                 >
                   <CoverArt seed={seedOf(item.seed)} size={46} radius={14} />

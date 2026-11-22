@@ -140,7 +140,7 @@ function CommentRow({
       className="flex gap-2.5 py-[7px] pe-2"
       style={{ paddingInlineStart: isReply ? 56 : 14 }}
     >
-      <Link to={`/app/u/${comment.author.username}`} className="shrink-0">
+      <Link to={`/profile/${comment.author.username}`} className="shrink-0">
         <Avatar user={comment.author} size={isReply ? 26 : 36} />
       </Link>
       <div
@@ -153,7 +153,7 @@ function CommentRow({
       >
         <div className="flex items-baseline gap-1.5">
           <Link
-            to={`/app/u/${comment.author.username}`}
+            to={`/profile/${comment.author.username}`}
             className={cn(
               "truncate font-bold hover:underline",
               isReply ? "text-[12.5px] text-accent" : "text-[13px]",
@@ -226,13 +226,13 @@ function NoteRow({
 }) {
   return (
     <div className="flex gap-2.5 py-[7px]" style={{ paddingInlineStart: dense ? 0 : 14, paddingInlineEnd: 8 }}>
-      <Link to={`/app/u/${note.author.username}`} className="shrink-0">
+      <Link to={`/profile/${note.author.username}`} className="shrink-0">
         <Avatar user={note.author} size={dense ? 28 : 36} />
       </Link>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-1.5">
           <Link
-            to={`/app/u/${note.author.username}`}
+            to={`/profile/${note.author.username}`}
             className="truncate text-[13px] font-bold hover:underline"
           >
             {note.author.username}
@@ -1009,7 +1009,7 @@ export function CommentsModal({
                 label="About this account"
                 onClick={() => {
                   setMenuFor(null);
-                  navigate(`/app/u/${menuFor.author.username}`);
+                  navigate(`/profile/${menuFor.author.username}`);
                 }}
               />
               <SheetRow

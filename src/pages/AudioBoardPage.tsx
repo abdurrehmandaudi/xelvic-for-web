@@ -129,7 +129,7 @@ export function AudioBoardPage() {
               <SectionTitle>Most played makers</SectionTitle>
               <div className="no-scrollbar flex gap-4 overflow-x-auto px-4 pb-2">
                 {board.data.creators.map((person) => (
-                  <Link key={person.id} to={`/app/u/${person.username}`} className="w-[84px] shrink-0 text-center">
+                  <Link key={person.id} to={`/profile/${person.username}`} className="w-[84px] shrink-0 text-center">
                     <Avatar name={person.name} src={person.avatar ?? undefined} size={64} className="mx-auto" />
                     <span className="mt-1.5 block truncate text-[12px] font-bold">{person.name}</span>
                     <span className="block truncate text-[10.5px] text-dim">

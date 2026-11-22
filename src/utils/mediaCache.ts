@@ -1,4 +1,4 @@
-import { isBackendMediaPath, mediaUrl } from "@/config/urls";
+import { isBackendMediaPath, isSignedMediaUrl, mediaUrl } from "@/config/urls";
 import { mediaService } from "@/services/media.service";
 import { readMe } from "@/store/me";
 
@@ -267,14 +267,12 @@ async function loadMedia(url: string, priority = false): Promise<string> {
   if (!absolute) throw new Error("No media URL");
   if (/^(data:|blob:)/i.test(absolute)) return absolute;
 
-  // Public assets (CDN avatars, covers, etc.) must load directly: an `<img>` a
-  // CDN will serve is a picture, while the same address read through `fetch`
-  // is a cross-origin request the CDN answers no CORS headers for.
-  try {
-    if (!isBackendMediaPath(new URL(absolute).pathname)) return absolute;
-  } catch {
-    // Fall through to the authenticated request for malformed URLs.
-  }
+  // A public asset (CDN avatar, cover, catalogue picture) must load directly:
+  // an `<img>` a CDN will serve is a picture, while the same address read
+  // through `fetch` is a cross-origin request the CDN answers no CORS headers
+  // for. A *signed* private address is the same answer for the same reason:
+  // hand it to the element and let the browser follow the API's 302.
+  if (isSignedMediaUrl(absolute)) return absolute;
 
   // The disk copy first, and it does not queue for a network slot: a picture
   // already in the browser's own store is a picture that is on screen now.
@@ -350,7 +348,11 @@ export function warmMedia(
   for (const url of urls) {
     if (asked >= limit) return;
     if (!url || /^(data:|blob:)/i.test(url) || cache.has(url)) continue;
-    if (!isPrivateMedia(mediaUrl(url))) continue;
+    const absolute = mediaUrl(url);
+    // A signed address is drawn by the element itself; there is no request for
+    // this cache to start, and warming it would only add an entry that never
+    // holds bytes. See `isSignedMediaUrl`.
+    if (!isPrivateMedia(absolute) || isSignedMediaUrl(absolute)) continue;
     asked += 1;
     void entryFor(url).promise.catch(() => undefined);
   }

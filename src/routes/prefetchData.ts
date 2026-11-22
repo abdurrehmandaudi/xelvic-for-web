@@ -31,7 +31,7 @@ import { spacesService } from "@/services/spaces.service";
 type Prefetcher = (client: QueryClient) => void;
 
 const PREFETCHERS: Record<string, Prefetcher> = {
-  "/app/drops": (client) => {
+  "/drops": (client) => {
     // The page's own options object, not a second copy of it. A prefetch that
     // restates a query's options is a prefetch that can disagree with the page
     // about them, and this one did: it left out `getNextPageParam`, which
@@ -41,7 +41,7 @@ const PREFETCHERS: Record<string, Prefetcher> = {
     void client.prefetchInfiniteQuery(dropsFeedQuery);
     void client.prefetchInfiniteQuery(dropsVibesQuery);
   },
-  "/app/moments": (client) => {
+  "/moments": (client) => {
     void client.prefetchQuery({
       queryKey: ["moments-tray"],
       queryFn: () => momentsService.tray(),
@@ -53,14 +53,14 @@ const PREFETCHERS: Record<string, Prefetcher> = {
       staleTime: 30_000,
     });
   },
-  "/app/convo": (client) => {
+  "/convo": (client) => {
     void client.prefetchQuery({
       queryKey: ["threads"],
       queryFn: () => chatService.threads(),
       staleTime: 15_000,
     });
   },
-  "/app/audio": (client) => {
+  "/audio": (client) => {
     void client.prefetchQuery({
       queryKey: ["audio-home"],
       queryFn: () => audioService.home(),
@@ -72,7 +72,7 @@ const PREFETCHERS: Record<string, Prefetcher> = {
       staleTime: 60_000,
     });
   },
-  "/app/live": (client) => {
+  "/live": (client) => {
     void client.prefetchQuery({
       queryKey: ["rooms", "live"],
       queryFn: () => spacesService.shelf("live"),

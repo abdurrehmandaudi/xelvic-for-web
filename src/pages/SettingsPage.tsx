@@ -191,7 +191,7 @@ export function SettingsPage() {
   function goBack() {
     if (view === "root") {
       if (window.history.length > 1) navigate(-1);
-      else navigate("/app");
+      else navigate("/drops");
       return;
     }
     setView("root");
@@ -592,7 +592,7 @@ export function SettingsPage() {
                     ? "The briefs you sent, and where each one stands."
                     : "Paid collaborations brands invited you to."
                 }
-                onClick={() => navigate("/app/deals")}
+                onClick={() => navigate("/deals")}
               />
             ) : null}
           </SettingsGroup>
@@ -637,19 +637,19 @@ export function SettingsPage() {
               icon={<Bookmark className="size-5" />}
               title={t("Saved")}
               note="Drops, Vibes and songs you put by to come back to."
-              onClick={() => navigate("/app/saved")}
+              onClick={() => navigate("/saved")}
             />
             <SettingsRow
               icon={<Heart className="size-5" />}
               title={t("Felt & responded")}
               note="The Drops, Vibes and songs you hearted or left a line on."
-              onClick={() => navigate("/app/activity")}
+              onClick={() => navigate("/activity")}
             />
             <SettingsRow
               icon={<Wallet className="size-5" />}
               title={t("Wallet")}
               note="What the days you talked earned, and what it bought."
-              onClick={() => navigate("/app/sparks")}
+              onClick={() => navigate("/sparks")}
             />
             <SettingsRow
               icon={<Smartphone className="size-5" />}

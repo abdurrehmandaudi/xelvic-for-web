@@ -15,6 +15,11 @@ const ACCOUNT_ID = 7;
 const PICTURE = "https://api.xelvic.com/media/drops/a.jpg";
 const CLIP = "https://api.xelvic.com/media/drops/b.mp4";
 const CDN_COVER = "https://cdn.xelvic.com/covers/a.png";
+// A serializer signs private byte routes per file when the deployment keeps
+// its bytes in a bucket. The signature is the permission; there is no XHR to
+// make, and making one is what broke every picture on the deployed web client.
+const SIGNED_PICTURE =
+  "https://api.xelvic.com/api/v1/drops/drops/1/thumbnail/?s=abc.def";
 
 class MemoryStorage {
   private map = new Map<string, string>();
@@ -195,6 +200,19 @@ describe("the media disk cache", () => {
 
     await vi.waitFor(() => expect(peekMedia(PICTURE)).not.toBeNull());
     expect(peekMedia(CLIP)).toBeNull();
+  });
+
+  it("hands a signed private address to the element instead of fetching it", async () => {
+    install();
+    const { entryFor } = await load();
+
+    // Resolving is the whole assertion: the unsigned path below this one would
+    // try a network read, and this test has no server. A signed address is its
+    // own permission, so the cache returns it (resolved to the API origin) and
+    // keeps the signature that makes it one.
+    const resolved = mediaUrl(SIGNED_PICTURE)!;
+    expect(resolved).toContain("?s=abc.def");
+    await expect(entryFor(SIGNED_PICTURE).promise).resolves.toBe(resolved);
   });
 
   it("does nothing when the browser has no Cache Storage", async () => {

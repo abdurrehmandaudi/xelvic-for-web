@@ -239,7 +239,7 @@ export function VibeViewer({
         >
           <EllipsisVertical className="size-6" aria-hidden />
         </TopButton>
-        <TopButton label="Your studio" onClick={() => navigate("/app/drops/vibes/studio")}>
+        <TopButton label="Your studio" onClick={() => navigate("/drops/vibes/studio")}>
           <ChartColumn className="size-6" aria-hidden />
         </TopButton>
         {onRecord ? (

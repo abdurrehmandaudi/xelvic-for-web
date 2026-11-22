@@ -21,7 +21,7 @@ This document covers the shell and the cross-screen gestures, not individual rou
 - A protected route waits for session restoration before rendering.
 - Signed-in users are redirected away from `/signin`.
 - A missing route renders the not-found page, not a blank shell.
-- The desktop theme button links to `/app/settings?section=appearance`; the settings page reads `section` and opens that tab.
+- The desktop theme button links to `/settings?section=appearance`; the settings page reads `section` and opens that tab.
 - A profile link uses the username, not the UUID, so it is shareable.
 
 Known navigation gaps:

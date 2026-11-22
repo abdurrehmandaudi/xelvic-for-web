@@ -160,7 +160,7 @@ export function KeptView({ ownerId }: { ownerId: string }) {
             return (
               <Link
                 key={String(person.id)}
-                to={`/app/u/${person.username}`}
+                to={`/profile/${person.username}`}
                 className="flex items-center rounded-[16px] border border-line bg-card px-3 py-2.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]"
               >
                 <Avatar name={name} src={person.avatar} size={44} />

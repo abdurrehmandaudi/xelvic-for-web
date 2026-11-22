@@ -26,7 +26,7 @@ This log records changes made during the parity and verification pass. It is not
 | Saved shelf kept an unsaved drop until refresh | Added `onSavedChange` to `DropCard` and removed the row on unsave | `src/features/drops/DropCard.tsx`, `src/pages/SavedPage.tsx` |
 | Settings ignored `?section=appearance` from the rail | Reads `section`, opens the matching tab and updates the query string | `src/pages/SettingsPage.tsx` |
 | Sparks ladder selected the first staged spark, not the highest | Reduces by `spark.pos` | `src/pages/SparksPage.tsx` |
-| Spark and medal links could point at `undefined` | Fall back to `/app/convo` | `src/pages/SparksPage.tsx` |
+| Spark and medal links could point at `undefined` | Fall back to `/convo` | `src/pages/SparksPage.tsx` |
 | `ChatPage` used a short-circuit expression as a statement | Replaced with an `if` | `src/pages/ChatPage.tsx` |
 | `MomentsPage` cleanup captured a mutable ref | Captured the audio element in a local variable | `src/pages/MomentsPage.tsx` |
 | `TrackRow` could not notify a parent when a track was picked | Added optional `onPicked` and called it from both play targets | `src/features/audio/TrackRow.tsx` |
@@ -50,7 +50,7 @@ This log records changes made during the parity and verification pass. It is not
 | `npm run typecheck` | Failed on four errors | Pass |
 | `npm run lint` | No config | Pass |
 | `npm run build` | Not re-run after newest pages | Pass |
-| Static preview | Not run | `/` and `/app/drops` return 200 |
+| Static preview | Not run | `/` and `/drops` return 200 |
 | Settings module | Missing, `App.tsx` import failed | Implemented |
 
 ## Deliberately not changed
@@ -77,7 +77,7 @@ This log records changes made during the parity and verification pass. It is not
 | Shop surface | Added tier cards, earned progress, slot and balance eligibility, theme preview, separate wear action, purchase feedback and wallet refresh in `src/features/sparks/ThemeShop.tsx` |
 | Temporary preview | Added non-persistent preview state to `ThemeProvider`; dismissing the preview restores the selected account theme |
 | Theme ownership in Settings | Theme picker now displays only included, currently selected or wallet-owned designs; provides a link to the shop |
-| Mobile access | Added a Rewards shortcut to the mobile top bar; Themes is the default `/app/sparks` tab |
+| Mobile access | Added a Rewards shortcut to the mobile top bar; Themes is the default `/sparks` tab |
 | Purchase API | Uses `POST /sparks/wallet/buy/` with `{key}` only; displays the server-reported charge/balance and refreshes wallet and Sparks queries |
 | Backend entitlement | Added server-side tier and slot checks with `tier_not_reached` and `tier_slots_exhausted`, preserving the success response and idempotent purchase behavior |
 | Focused tests | Added five Vitest tests for included themes, earned and balance thresholds, slot limits, the final tier and progress |

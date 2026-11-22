@@ -36,6 +36,32 @@ export function isBackendMediaPath(pathname: string): boolean {
 }
 
 /**
+ * Whether an address is its own permission — a signed media address.
+ *
+ * Private byte routes are signed per file (`?s=<media token>`) by the server's
+ * serializers when the deployment keeps its bytes in a bucket, and a bucket's
+ * own address carries `X-Amz-Signature`. Those are read by a browser element
+ * directly, and an `Authorization` header on the same request is not merely
+ * unnecessary: a presigned bucket address refuses two authentication
+ * mechanisms at once, and the API's 302 to the bucket crosses an origin the
+ * bucket answers no CORS headers for. A public CDN address is the same answer
+ * for the same reason — it was never private.
+ *
+ * An unsigned backend address is not signed, so it still needs the account's
+ * token through `mediaService`.
+ */
+export function isSignedMediaUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url, API_ORIGIN);
+    if (!isBackendMediaPath(parsed.pathname)) return true;
+    return parsed.searchParams.has("s") || parsed.searchParams.has("X-Amz-Signature");
+  } catch {
+    return false;
+  }
+}
+
+/**
  * An absolute address for a media URL the server sent.
  *
  * A CDN address is handed back untouched, because an `<img>` a CDN will serve

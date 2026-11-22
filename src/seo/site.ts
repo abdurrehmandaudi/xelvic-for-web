@@ -18,8 +18,8 @@ export const SITE_NAME = "Xelvic";
  *
  * `VITE_WEB_URL` is the deployed origin (`https://xelvic.com`); the browser
  * origin is the fallback so a preview build still emits absolute URLs rather
- * than relative ones a crawler cannot resolve. The `/app` base is added by
- * [canonicalUrl], not here: an origin has no path.
+ * than relative ones a crawler cannot resolve. The client is served at the
+ * site root, so [canonicalUrl] only joins the origin to the router's path.
  */
 export const SITE_ORIGIN = (() => {
   // In a browser the address being served is the truth: a `.env.local` written
@@ -50,10 +50,9 @@ export const PUBLIC_ROUTES = {
 /**
  * An absolute, query-free canonical address for a public route.
  *
- * [path] is the router's own path (`/u/shariq`), with the base already stripped
- * by React Router. It goes back on here, because the public address of that
- * route is `https://xelvic.com/app/u/shariq` when the build is mounted under
- * `/app` and `https://xelvic.com/u/shariq` when it is at the root.
+ * [path] is the router's own path (`/u/shariq`). The client is served at the
+ * site root, so the public address of that route is
+ * `https://xelvic.com/u/shariq`.
  */
 export function canonicalUrl(path: string): string {
   const clean = (path.split(/[?#]/)[0] || "/").replace(/\/+$/, "") || "/";

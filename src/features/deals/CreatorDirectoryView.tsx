@@ -157,7 +157,7 @@ export function CreatorDirectoryView() {
         onClose={() => setChosen(null)}
         onSent={() => {
           setChosen(null);
-          navigate("/app/deals");
+          navigate("/deals");
         }}
       />
     </>

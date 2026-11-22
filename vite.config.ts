@@ -7,10 +7,11 @@ export default defineConfig(({ mode }) => {
   const apiTarget = env.VITE_API_TARGET || "http://127.0.0.1:8000";
 
   return {
-    // Served at the site root in development and on any standalone host, and
-    // under `/app/` when it is mounted beside the marketing site. `VITE_BASE`
-    // is only read at build time, so `npm run dev` keeps serving at `/`.
-    base: process.env.VITE_BASE || "/",
+    // Always the site root: the web client is `https://xelvic.com/`, with the
+    // marketing site beside it under `/home/`. The desktop and visionOS builds
+    // share this source and are root-served too, so there is no mount point to
+    // configure and no `VITE_BASE` to get wrong.
+    base: "/",
     plugins: [react()],
     resolve: {
       dedupe: ["react", "react-dom"],

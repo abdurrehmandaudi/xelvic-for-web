@@ -154,7 +154,7 @@ function fetchQrStart(): Promise<QRStart> {
 
 export function safeNextPath() {
   const next = new URLSearchParams(window.location.search).get("next");
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/app/drops";
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/drops";
   return next;
 }
 

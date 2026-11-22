@@ -1,5 +1,5 @@
 import { Suspense, type ComponentType } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
 import {
   AlertsPage,
@@ -78,22 +78,24 @@ export default function App() {
         }
       />
       <Route path="/s/:token" element={<LazyPage page={PublicPlaylistPage} />} />
-      {/* The public doors. A shared link opens without an account; the app's
-          own copies under `/app` are unchanged. Actions on these pages lead to
-          `/signin?next=<this address>` and come back here. See
-          `docs/PUBLIC_CONTENT_AND_SEO.md` for the server half. */}
+      {/* The public doors. A shared link opens without an account; the signed-in
+          app's own copies live on the same root at `/profile`, `/drops` and
+          `/live`. Actions on these pages lead to `/signin?next=<this address>`
+          and come back here. See `docs/PUBLIC_CONTENT_AND_SEO.md` for the
+          server half. */}
       <Route path="/u/:username" element={<LazyPage page={PublicProfilePage} />} />
       <Route path="/d/:dropId" element={<LazyPage page={PublicDropPage} />} />
       <Route path="/v/:vibeId" element={<LazyPage page={PublicVibePage} />} />
+      {/* The signed-in app. A pathless layout rather than a `/app` prefix: its
+          own addresses are the site's addresses — `xelvic.com/drops/…`,
+          `xelvic.com/profile/shariq` — and `/` stays the sign-in door. */}
       <Route
-        path="/app"
         element={
           <ProtectedRoute>
             <AppShell />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/app/drops" replace />} />
         <Route path="drops" element={<LazyPage page={DropsPage} />} />
         <Route path="drops/:dropId" element={<LazyPage page={DropPage} />} />
         {/* The back of the house for my own Vibes, and one clip's whole read.
@@ -133,11 +135,11 @@ export default function App() {
         />
         <Route path="live" element={<LazyPage page={LivePage} />} />
         <Route path="live/:roomId" element={<LazyPage page={RoomPage} />} />
-        <Route path="u/:username" element={<LazyPage page={ProfilePage} />} />
+        <Route path="profile/:username" element={<LazyPage page={ProfilePage} />} />
         {/* The two lists behind the counts on a profile, and the one place a
             Crew can be edited. The app reaches them by tapping the numbers, so
             the same two names are what the route carries. */}
-        <Route path="u/:username/crew/:kind" element={<LazyPage page={CrewPage} />} />
+        <Route path="profile/:username/crew/:kind" element={<LazyPage page={CrewPage} />} />
         {/* Reachable only from your own profile, and only yours: the server
             refuses it to anybody else with a named code. */}
         <Route path="insights" element={<LazyPage page={InsightsPage} />} />

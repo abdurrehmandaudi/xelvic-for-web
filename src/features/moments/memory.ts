@@ -16,7 +16,7 @@ import type { Memory, Moment, UserCard } from "@/types/api";
  * `author` is the person whose shelf it is, where the page already knows them.
  * `handle` is only the fallback: somebody else's shelf can be asked for by name
  * before their card has arrived, and a walk with no face is better than a walk
- * pointed at `/app/u/`.
+ * pointed at `/profile/`.
  */
 export function memoryAsMoment(
   memory: Memory,

@@ -22,7 +22,7 @@ function statusOf(error: unknown): number {
 /**
  * `/u/:username` — somebody's page for a visitor without an account.
  *
- * The app's own profile lives behind `/app`, which redirects here when it is
+ * The signed-in app's own profile lives at `/profile`, which redirects here when it is
  * opened without a session. This page draws what a stranger is allowed to see:
  * the name and picture, the public shelf, and one door to sign in. A private
  * account keeps its name — Instagram-style — and draws a lock instead of the
@@ -65,7 +65,7 @@ export function PublicProfilePage() {
   );
 
   if (status === "loading") return <PublicLoading next={next} />;
-  if (authed) return <Navigate to={`/app/u/${encodeURIComponent(username)}`} replace />;
+  if (authed) return <Navigate to={`/profile/${encodeURIComponent(username)}`} replace />;
   if (profileQuery.isLoading) return <PublicLoading next={next} />;
 
   if (profileQuery.isError) {

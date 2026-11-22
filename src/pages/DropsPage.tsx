@@ -65,7 +65,7 @@ function Aside() {
     <aside className="hidden self-start xl:sticky xl:top-[122px] xl:block">
       {pending > 0 ? (
         <Link
-          to="/app/alerts"
+          to="/alerts"
           className="mb-3 flex items-center gap-3 rounded-[16px] border border-[color-mix(in_srgb,var(--accent)_30%,var(--line))] bg-[var(--accent-soft)] px-3.5 py-3 transition hover:border-accent"
         >
           <span className="flex size-9 items-center justify-center rounded-full bg-accent text-on-accent">
@@ -84,7 +84,7 @@ function Aside() {
       <div className="rounded-control border border-line bg-card overflow-hidden">
         <div className="flex items-center justify-between px-4 pb-2 pt-3.5">
           <p className="text-[12px] font-extrabold tracking-tight">Recent convos</p>
-          <Link to="/app/convo" className="text-[10px] font-bold text-accent hover:underline">Open</Link>
+          <Link to="/convo" className="text-[10px] font-bold text-accent hover:underline">Open</Link>
         </div>
         {threads.isLoading ? (
           <div className="space-y-3 px-4 pb-4" aria-hidden>
@@ -104,7 +104,7 @@ function Aside() {
               const person = thread.member ?? thread.members?.[0]?.user;
               const title = thread.title || person?.name || person?.username || "Convo";
               return (
-                <Link key={thread.id} to={`/app/convo/${thread.id}`} className="flex items-center gap-2.5 px-4 py-2.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]">
+                <Link key={thread.id} to={`/convo/${thread.id}`} className="flex items-center gap-2.5 px-4 py-2.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]">
                   <Avatar user={person} name={title} src={thread.avatar} size={32} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
@@ -129,12 +129,12 @@ function Aside() {
         ) : (
           <div className="px-4 pb-5 pt-1">
             <p className="text-[11px] leading-5 text-dim">No conversations yet. Find someone and start one.</p>
-            <Link to="/app/search" className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-bold text-accent">
+            <Link to="/search" className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-bold text-accent">
               <SearchIcon /> Find people
             </Link>
           </div>
         )}
-        <Link to="/app/convo" className="flex items-center justify-center gap-1.5 border-t border-line py-2.5 text-[10.5px] font-bold text-dim transition hover:text-ink">
+        <Link to="/convo" className="flex items-center justify-center gap-1.5 border-t border-line py-2.5 text-[10.5px] font-bold text-dim transition hover:text-ink">
           <MessageCircle className="size-3.5" /> All conversations
         </Link>
       </div>
@@ -142,19 +142,19 @@ function Aside() {
       <div className="rounded-control border border-line bg-card mt-3 p-3.5">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-extrabold">Your shelf</p>
-          <Link to="/app/settings?section=appearance" className="text-[9.5px] font-bold text-dim hover:text-ink">Themes</Link>
+          <Link to="/settings?section=appearance" className="text-[9.5px] font-bold text-dim hover:text-ink">Themes</Link>
         </div>
         <div className="mt-2.5 flex gap-2">
-          <Link to="/app/saved" className="flex min-w-0 flex-1 items-center gap-2 rounded-[12px] bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] px-2.5 py-2 transition hover:bg-[var(--accent-soft)]">
+          <Link to="/saved" className="flex min-w-0 flex-1 items-center gap-2 rounded-[12px] bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] px-2.5 py-2 transition hover:bg-[var(--accent-soft)]">
             <Bookmark className="size-3.5 text-accent" />
             <span className="truncate text-[10.5px] font-bold">Saved</span>
           </Link>
-          <Link to="/app/sparks" className="flex min-w-0 flex-1 items-center gap-2 rounded-[12px] bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] px-2.5 py-2 transition hover:bg-[var(--accent-soft)]">
+          <Link to="/sparks" className="flex min-w-0 flex-1 items-center gap-2 rounded-[12px] bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] px-2.5 py-2 transition hover:bg-[var(--accent-soft)]">
             <Sparkles className="size-3.5 text-accent" />
             <span className="truncate text-[10.5px] font-bold">Sparks</span>
           </Link>
         </div>
-        <Link to="/app/settings?section=appearance" className="mt-3 flex items-center gap-2.5 rounded-[12px] border border-line p-2 transition hover:border-accent/40">
+        <Link to="/settings?section=appearance" className="mt-3 flex items-center gap-2.5 rounded-[12px] border border-line p-2 transition hover:border-accent/40">
           <img src={design.cover} alt="" className="size-10 rounded-[10px] object-cover" />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[10.5px] font-extrabold">{design.name}</span>
@@ -624,7 +624,7 @@ export function DropsPage() {
         subtitle="The room you keep"
         actions={
           <>
-            <Link to="/app/alerts" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Notices">
+            <Link to="/alerts" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Notices">
               <Bell className="size-[18px]" />
             </Link>
             <Button
@@ -717,7 +717,7 @@ export function DropsPage() {
                   }
                   action={
                     <div className="flex gap-2">
-                      <Link to="/app/search" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105">Find people</Link>
+                      <Link to="/search" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105">Find people</Link>
                       <Button variant="secondary" icon={<Plus className="size-4" />} onClick={() => openComposer("drop")}>Post something</Button>
                     </div>
                   }
@@ -838,7 +838,7 @@ export function DropsPage() {
             line="For a day"
             onClick={() => {
               setCreateOpen(false);
-              navigate("/app/moments?compose=1");
+              navigate("/moments?compose=1");
             }}
           />
         </div>

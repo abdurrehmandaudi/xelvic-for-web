@@ -110,7 +110,7 @@ export function Square({ drop }: { drop: Drop }) {
   // would 404 on it. It opens in the Vibes walk where it plays, which is the
   // same door every other list of clips uses; a drop opens on its own page.
   const to =
-    drop.kind === "vibe" ? `/app/drops?vibe=${encodeURIComponent(drop.id)}` : `/app/drops/${drop.id}`;
+    drop.kind === "vibe" ? `/drops?vibe=${encodeURIComponent(drop.id)}` : `/drops/${drop.id}`;
 
   return (
     <Link

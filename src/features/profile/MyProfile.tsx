@@ -319,18 +319,18 @@ export function MyProfile() {
           <Stat
             label={t("Crew")}
             value={me.followers_count}
-            onTap={() => navigate(`/app/u/${handle}/crew/followers`)}
+            onTap={() => navigate(`/profile/${handle}/crew/followers`)}
             faded={me.show_crew !== true}
           />
           <Stat
             label={t("Kept")}
             value={me.following_count}
-            onTap={() => navigate(`/app/u/${handle}/crew/following`)}
+            onTap={() => navigate(`/profile/${handle}/crew/following`)}
           />
           <Stat
             label={t("Spark")}
             value={typeof sparks.data?.total === "number" ? sparks.data.total : null}
-            onTap={() => navigate("/app/sparks")}
+            onTap={() => navigate("/sparks")}
             // The Sparks row defaults on, so it is off only when the server has
             // said so outright.
             faded={me.show_sparks === false}
@@ -351,7 +351,7 @@ export function MyProfile() {
             asked. Only ever here, on my own page. */}
         <div className="px-[18px] pt-4">
           <Link
-            to="/app/insights"
+            to="/insights"
             className="flex items-center rounded-[16px] border border-line bg-card px-3.5 py-3 transition hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]"
           >
             <LineChart className="size-5 shrink-0 text-accent" aria-hidden />
@@ -374,7 +374,7 @@ export function MyProfile() {
             username={handle}
             mine
             author={user}
-            onAdd={() => navigate("/app/moments?memories=1")}
+            onAdd={() => navigate("/moments?memories=1")}
           />
         </div>
 
@@ -390,13 +390,13 @@ export function MyProfile() {
           <Floating
             icon={<ArrowLeft className="size-[19px]" />}
             label={t("Back")}
-            onTap={() => (window.history.length > 1 ? navigate(-1) : navigate("/app/drops"))}
+            onTap={() => (window.history.length > 1 ? navigate(-1) : navigate("/drops"))}
           />
         </span>
         <span className="pointer-events-auto flex flex-col items-end gap-2.5">
           <Floating icon={<MoreVertical className="size-[19px]" />} label={t("More")} onTap={() => setMenu(true)} />
-          <Floating icon={<QrCode className="size-[19px]" />} label={t("My QR code")} onTap={() => navigate("/app/qr")} />
-          <Floating icon={<Bookmark className="size-[19px]" />} label={t("Saved")} onTap={() => navigate("/app/saved")} />
+          <Floating icon={<QrCode className="size-[19px]" />} label={t("My QR code")} onTap={() => navigate("/qr")} />
+          <Floating icon={<Bookmark className="size-[19px]" />} label={t("Saved")} onTap={() => navigate("/saved")} />
         </span>
       </div>
 
@@ -415,7 +415,7 @@ export function MyProfile() {
             line={t("Your photo, your name and your era.")}
             onClick={() => {
               setMenu(false);
-              navigate("/app/settings?section=profile");
+              navigate("/settings?section=profile");
             }}
           />
           <SheetRow
@@ -424,7 +424,7 @@ export function MyProfile() {
             line={t("Privacy, notifications and the way out.")}
             onClick={() => {
               setMenu(false);
-              navigate("/app/settings");
+              navigate("/settings");
             }}
           />
         </div>

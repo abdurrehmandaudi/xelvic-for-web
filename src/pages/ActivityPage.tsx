@@ -47,8 +47,8 @@ function useOpen() {
     if (card) {
       // Through the one door: a clip opens in the Vibes walk, where it plays,
       // rather than on a drop's page, which draws a still of it.
-      if (thing.kind === "vibe") navigate(`/app/drops?vibe=${encodeURIComponent(card.id)}`);
-      else navigate(`/app/drops/${card.id}`);
+      if (thing.kind === "vibe") navigate(`/drops?vibe=${encodeURIComponent(card.id)}`);
+      else navigate(`/drops/${card.id}`);
       return;
     }
     const track = thing.track;

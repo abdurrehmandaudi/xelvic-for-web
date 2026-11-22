@@ -121,7 +121,7 @@ export function KeepButton({
       disabled={busy}
       onDoubleClick={(event) => {
         event.stopPropagation();
-        navigate(`/app/u/${author.username}`);
+        navigate(`/profile/${author.username}`);
       }}
       className={cn(
         "flex min-h-7 shrink-0 items-center rounded-full px-[12px] text-[12px] font-extrabold transition active:scale-[.97] disabled:opacity-60",

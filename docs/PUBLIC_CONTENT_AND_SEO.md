@@ -21,8 +21,8 @@ the server sends.
 
 | Content | Public address | Canonical | App address |
 | --- | --- | --- | --- |
-| Profile | `/u/:username` | same | `/app/u/:username` |
-| Drop (text, photo, video, audio, poll) | `/d/:dropId` | same | `/app/drops/:dropId` |
+| Profile | `/u/:username` | same | `/profile/:username` |
+| Drop (text, photo, video, audio, poll) | `/d/:dropId` | same | `/drops/:dropId` |
 | Vibe (short clip) | `/v/:vibeId` | same | — (feed opens it) |
 | Shared playlist | `/s/:token` | same | — |
 
@@ -30,8 +30,8 @@ Rules:
 
 - `/u/...`, `/d/...` and `/v/...` are outside the protected `/app` tree. They
   render for a signed-out visitor.
-- A signed-in visitor opening `/d/...` is redirected into `/app/drops/...`; a
-  profile goes to `/app/u/...`. A vibe has no single app route yet, so it is
+- A signed-in visitor opening `/d/...` is redirected into `/drops/...`; a
+  profile goes to `/profile/...`. A vibe has no single app route yet, so it is
   drawn publicly for both.
 - Every write on a public page points at `/signin?next=<current address>`.
   `useQrSignIn` already validates `next` (must start with `/`, not `//`) and
@@ -182,7 +182,7 @@ GET /public/sitemap?cursor=...   →  { urls: [{ loc, lastmod }], next }
 - ping Search Console/IndexNow when large batches change;
 - do not include `/app/*`, `/signin`, API or media URLs.
 
-Search-result pages (`/app/search`) stay `noindex`; public landing pages for a
+Search-result pages (`/search`) stay `noindex`; public landing pages for a
 tag or a product need a server-rendered page of their own, built from the
 public search endpoint below.
 

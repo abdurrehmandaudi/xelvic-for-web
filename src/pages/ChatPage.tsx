@@ -1647,8 +1647,8 @@ function ChatDropCard({
   const open = () =>
     navigate(
       dropIsVibe(drop)
-        ? `/app/drops?vibe=${encodeURIComponent(drop.id)}`
-        : `/app/drops/${drop.id}`,
+        ? `/drops?vibe=${encodeURIComponent(drop.id)}`
+        : `/drops/${drop.id}`,
     );
   const clip = Object.values(drop.clip_urls ?? {})[0];
   const source = clip?.content_url ?? drop.asset?.content_url ?? null;
@@ -2216,7 +2216,7 @@ function SharedCard({
   if (playlist?.id) {
     return (
       <Link
-        to={`/app/audio/${playlist.id}`}
+        to={`/audio/${playlist.id}`}
         className="flex items-center gap-3 rounded-[14px] border border-line bg-paper p-3 transition hover:border-accent/40"
       >
         <span className="flex size-11 items-center justify-center rounded-[10px] bg-[var(--accent-soft)] text-accent">
@@ -2237,7 +2237,7 @@ function SharedCard({
   if (room?.id) {
     return (
       <Link
-        to={`/app/live/${room.id}`}
+        to={`/live/${room.id}`}
         className="flex items-center gap-3 rounded-[14px] border border-line bg-paper p-3 transition hover:border-accent/40"
       >
         <span className="flex size-11 items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent">
@@ -2483,7 +2483,7 @@ function ChatPersonCard({
     "flex w-[258px] max-w-[72vw] items-center gap-2.5 rounded-[18px] border border-line bg-card p-3";
   return person.username ? (
     <Link
-      to={`/app/u/${encodeURIComponent(person.username)}`}
+      to={`/profile/${encodeURIComponent(person.username)}`}
       className={cn(shell, "transition hover:border-accent/40")}
     >
       {body}
@@ -4343,7 +4343,7 @@ function ThreadInfoPanel({
                 return (
                   <Link
                     key={member.user.id}
-                    to={`/app/u/${member.user.username}`}
+                    to={`/profile/${member.user.username}`}
                     className="group flex items-center gap-2.5 rounded-[13px] px-2 py-2 transition hover:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]"
                   >
                     <Avatar user={member.user} size={36} />
@@ -6403,7 +6403,7 @@ export function ChatPage() {
             onRetry={() => void threadQuery.refetch()}
           />
           <div className="flex justify-center pb-5">
-            <Button variant="secondary" onClick={() => navigate("/app/convo")}>
+            <Button variant="secondary" onClick={() => navigate("/convo")}>
               Back to Convo
             </Button>
           </div>
@@ -6488,14 +6488,14 @@ export function ChatPage() {
             <>
               <button
                 type="button"
-                onClick={() => navigate("/app/convo")}
+                onClick={() => navigate("/convo")}
                 className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] -ml-1 md:hidden"
                 aria-label="Back to convos"
               >
                 <ArrowLeft className="size-5" />
               </button>
               <Link
-                to={face ? `/app/u/${face.username}` : "#"}
+                to={face ? `/profile/${face.username}` : "#"}
                 className="flex min-w-0 flex-1 items-center gap-2.5 py-0.5 pr-2 transition hover:opacity-90"
               >
                 <span className="relative flex shrink-0">
@@ -7219,7 +7219,7 @@ export function ChatPage() {
                 void queryClient.invalidateQueries({
                   queryKey: ["vault-rows"],
                 });
-                navigate("/app/convo");
+                navigate("/convo");
               }}
             />
           ) : infoOpen ? (
@@ -7246,7 +7246,7 @@ export function ChatPage() {
                 void queryClient.invalidateQueries({
                   queryKey: ["vault-rows"],
                 });
-                navigate("/app/convo");
+                navigate("/convo");
               }}
               onGroupSettings={() => {
                 setSheetOpen(false);

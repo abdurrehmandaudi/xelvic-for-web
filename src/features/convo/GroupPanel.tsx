@@ -741,7 +741,7 @@ export function GroupPanel({
           return opens ? (
             <Link
               key={row.user?.id ?? memberName(row)}
-              to={`/app/u/${row.user?.username}`}
+              to={`/profile/${row.user?.username}`}
               className={cn(
                 rowClass,
                 "transition-colors hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]",

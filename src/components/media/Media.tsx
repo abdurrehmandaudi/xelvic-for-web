@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { ImageOff } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { mediaUrl } from "@/config/urls";
 import { useMediaUrl } from "@/hooks/useMediaUrl";
 import { peekMedia } from "@/utils/mediaCache";
 import { claimEar, releaseEar } from "@/utils/playback";
@@ -300,7 +301,10 @@ export function AuthedVideo({
     <video
       ref={attach}
       src={media.src}
-      poster={poster ?? undefined}
+      // A poster is the browser's own load, not this component's: it needs the
+      // API's origin rather than the page's, and a relative `/api/...` or
+      // `/media/...` address would otherwise be asked of `xelvic.com`.
+      poster={mediaUrl(poster) ?? undefined}
       className={cn("object-cover", className)}
       controls={controls}
       autoPlay={autoPlay}

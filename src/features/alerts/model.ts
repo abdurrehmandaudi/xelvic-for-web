@@ -199,31 +199,31 @@ export function alertPath(alert: Alert): string | null {
   if (route) {
     const parts = route.split("/").filter(Boolean);
     if (parts.length === 2) {
-      if (parts[0] === "theme") return "/app/settings?section=marketplace&tab=themes";
-      if (parts[0] === "l") return "/app/settings?section=marketplace&tab=logos";
-      if (parts[0] === "c" || parts[0] === "o") return "/app/settings?section=marketplace";
+      if (parts[0] === "theme") return "/settings?section=marketplace&tab=themes";
+      if (parts[0] === "l") return "/settings?section=marketplace&tab=logos";
+      if (parts[0] === "c" || parts[0] === "o") return "/settings?section=marketplace";
     }
     // A route this build does not recognise still lands somewhere: the shop is
     // the shelf every one of those links came from.
-    return "/app/settings?section=marketplace";
+    return "/settings?section=marketplace";
   }
   // A keep request's subject is a person rather than a thing: its two answers
   // are on the row, and what the row body opens is who is asking.
   if (alert.kind === "keep_request") {
-    return alert.actor ? `/app/u/${encodeURIComponent(alert.actor.username)}` : null;
+    return alert.actor ? `/profile/${encodeURIComponent(alert.actor.username)}` : null;
   }
   const target = alert.target;
   if (!target) return null;
-  if (target.kind === "drop") return `/app/drops/${encodeURIComponent(String(target.id))}`;
-  if (target.kind === "vibe") return `/app/drops?vibe=${encodeURIComponent(String(target.id))}`;
-  if (target.kind === "moment") return `/app/moments?moment=${encodeURIComponent(String(target.id))}`;
-  if (target.kind === "thread") return `/app/convo/${encodeURIComponent(String(target.id))}`;
+  if (target.kind === "drop") return `/drops/${encodeURIComponent(String(target.id))}`;
+  if (target.kind === "vibe") return `/drops?vibe=${encodeURIComponent(String(target.id))}`;
+  if (target.kind === "moment") return `/moments?moment=${encodeURIComponent(String(target.id))}`;
+  if (target.kind === "thread") return `/convo/${encodeURIComponent(String(target.id))}`;
   if (target.kind === "profile") {
-    return alert.actor ? `/app/u/${encodeURIComponent(alert.actor.username)}` : null;
+    return alert.actor ? `/profile/${encodeURIComponent(alert.actor.username)}` : null;
   }
   // A Memory's only read is its shelf, so the Moments page opens it out of the
   // shelf it belongs to. See the `?memory=` effect in `MomentsPage`.
-  if (target.kind === "memory") return `/app/moments?memory=${encodeURIComponent(String(target.id))}`;
+  if (target.kind === "memory") return `/moments?memory=${encodeURIComponent(String(target.id))}`;
   return null;
 }
 
