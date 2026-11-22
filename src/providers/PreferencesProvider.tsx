@@ -8,6 +8,7 @@ import {
 } from "react";
 import { PreferencesContext } from "@/context/preferences";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { asset } from "@/utils/asset";
 
 export type AppLanguage = "system" | "en" | "hi" | "ar";
 export type MessageSound = "silent" | "note" | "ping" | "pop" | "soft";
@@ -276,7 +277,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = language;
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
     const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    if (icon) icon.href = `/logos/${preferences.logo || "pink"}.webp`;
+    if (icon) icon.href = asset(`/logos/${preferences.logo || "pink"}.webp`);
   }, [preferences]);
 
   const update = useCallback(<K extends keyof Preferences>(key: K, value: Preferences[K]) => {

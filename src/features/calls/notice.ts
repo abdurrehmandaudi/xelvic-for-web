@@ -30,12 +30,19 @@
 import type { CallKind, CallPhase } from "./model";
 import { personName } from "./model";
 import type { CallSeat } from "@/services/calls.service";
+import { asset } from "@/utils/asset";
 
 /** The one tag a call's row is kept under, so it can be taken back down. */
 export const CALL_NOTICE_TAG = "xelvic-call";
 
-/** Where the worker that draws the buttons lives. */
-export const CALL_WORKER_URL = "/call-sw.js";
+/**
+ * Where the worker that draws the buttons lives.
+ *
+ * It has to be under the build's base as well as in it: a worker registered
+ * from `/app/call-sw.js` can control `/app/`, and one registered from
+ * `/call-sw.js` would claim the marketing site at the root as its scope.
+ */
+export const CALL_WORKER_URL = asset("/call-sw.js");
 
 export function callNoticesSupported(): boolean {
   return typeof window !== "undefined" && typeof Notification !== "undefined";
