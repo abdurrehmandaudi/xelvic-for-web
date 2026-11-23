@@ -17,10 +17,12 @@ import {
 import { BiSolidUserPlus } from "react-icons/bi";
 import { Wordmark } from "@/components/icons/Brand";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/hooks/useAuth";
 import { useQrSignIn, type QrPhase } from "@/hooks/useQrSignIn";
 import { API_ORIGIN } from "@/config/env";
 import { metaForSignIn, usePageMeta } from "@/seo";
 import { cn } from "@/utils/cn";
+import { errorMessage } from "@/utils/errors";
 
 function browserClaim() {
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
@@ -285,41 +287,36 @@ function QrPanel({
   );
 }
 
-function makePreviewCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from(
-    { length: 6 },
-    () => alphabet[Math.floor(Math.random() * alphabet.length)],
-  ).join("");
-}
-
 function CredentialLogin({ onBack }: { onBack: () => void }) {
+  const { devLogin } = useAuth();
   const [target, setTarget] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [challenge, setChallenge] = useState<string | null>(null);
 
+  // A real sign-in, not a preview. The owner, 2026-11-23: *"yaha pe to kuch
+  // check hi nahi kar raha — password galat hai sahi hai"*. `devLogin` is the
+  // provider's one password door: it posts to `/auth/login/`, keeps the tokens
+  // the same way the QR approval does, and the guard on this page then sends
+  // the browser into the app. A wrong password is the server's own sentence,
+  // shown here and nowhere else.
   async function submit(event: FormEvent) {
     event.preventDefault();
-    setBusy(true);
     setError(null);
-    await new Promise((resolve) => window.setTimeout(resolve, 350));
     if (!target.trim() || !password) {
       setError("Enter your email/phone and password.");
-      setBusy(false);
       return;
     }
-    setChallenge(makePreviewCode());
-    setBusy(false);
+    setBusy(true);
+    try {
+      await devLogin(target.trim(), password);
+      // The page unmounts into the app; leaving `busy` on means the button
+      // cannot be pressed twice while the redirect is in the air.
+    } catch (failure) {
+      setError(errorMessage(failure));
+      setBusy(false);
+    }
   }
-
-  function reset() {
-    setChallenge(null);
-    setError(null);
-  }
-
-  const challengeParts = challenge?.match(/.{1,2}/g) ?? [];
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -335,59 +332,8 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
         <div className="w-full rounded-2xl border border-line bg-[color-mix(in_srgb,var(--page)_55%,var(--card))] p-5 sm:p-6">
           <div className="flex items-center gap-2 text-lg font-extrabold text-ink">
             Login with credentials
-            <span className="ml-auto rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-widest text-accent">
-              Preview
-            </span>
           </div>
-          {challenge ? (
-            <div className="mt-3 space-y-3 text-center" aria-live="polite">
-              <p className="text-[11.5px] leading-4 text-dim">
-                Confirm this code in the Xelvic mobile app:
-              </p>
-              <div
-                className="flex items-center justify-center gap-1.5 sm:gap-2"
-                aria-label={`Verification code ${challenge}`}
-              >
-                {challengeParts.map((part, partIndex) => (
-                  <div
-                    key={`${part}-${partIndex}`}
-                    className="flex items-center gap-1.5 sm:gap-2"
-                  >
-                    {part.split("").map((character, index) => (
-                      <span
-                        key={`${character}-${index}`}
-                        className="flex size-9 items-center justify-center rounded-[9px] border border-line bg-card font-mono text-[20px] font-extrabold text-ink shadow-xs sm:size-11 sm:text-[23px]"
-                      >
-                        {character}
-                      </span>
-                    ))}
-                    {partIndex < challengeParts.length - 1 ? (
-                      <span
-                        className="px-0.5 text-[18px] font-extrabold text-ink sm:px-1 sm:text-[20px]"
-                        aria-hidden
-                      >
-                        -
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-              <p className="text-[11.5px] leading-4 text-dim">
-                Frontend preview only — the mobile approval endpoint is not
-                connected yet.
-              </p>
-              <Button
-                type="button"
-                variant="secondary"
-                full
-                onClick={reset}
-                className="py-1.5 text-lg font-semibold text-ink rounded-lg"
-              >
-                Use different credentials
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={submit} className="mt-3 space-y-3">
+          <form onSubmit={submit} className="mt-3 space-y-3">
               <input
                 className="w-full border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-md rounded-lg"
                 value={target}
@@ -416,10 +362,9 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
                 loading={busy}
                 className="py-1.5 text-lg font-extrabold text-on-accent rounded-lg"
               >
-                Verify
+                Sign in
               </Button>
-            </form>
-          )}
+          </form>
         </div>
       </div>
     </div>
