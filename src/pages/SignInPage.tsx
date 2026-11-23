@@ -22,6 +22,7 @@ import { useQrSignIn, type QrPhase } from "@/hooks/useQrSignIn";
 import { API_ORIGIN } from "@/config/env";
 import { DEFAULT_DIAL_ISO, DIAL_CODES, dialFor, flagOf } from "@/data/dialCodes";
 import { metaForSignIn, usePageMeta } from "@/seo";
+import { authService } from "@/services/auth.service";
 import { cn } from "@/utils/cn";
 import { errorMessage } from "@/utils/errors";
 
@@ -289,12 +290,20 @@ function QrPanel({
 }
 
 function CredentialLogin({ onBack }: { onBack: () => void }) {
-  const { devLogin } = useAuth();
+  const { acceptTokens } = useAuth();
   const [target, setTarget] = useState("");
   const [dialIso, setDialIso] = useState(DEFAULT_DIAL_ISO);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The owner, 2026-11-23: *"web pe login click karte hi verification code
+  // app par aaye, jab code match ho tabhi dashboard pe jaye"*. The password
+  // opens the second step, and the second step is the phone: a six-digit code
+  // is pushed to the account's own devices and the browser signs in only when
+  // the digits match. Step `code` is that question, still on this page.
+  const [step, setStep] = useState<"form" | "code">("form");
+  const [challenge, setChallenge] = useState("");
+  const [code, setCode] = useState("");
   // The owner, 2026-11-23: the permission belongs to the moment of signing
   // in, not to opening the form — *"direct login ho ja raha, permission ke
   // liye maine bola tha"*. Sign in asks, and Allow is what posts the password.
@@ -312,12 +321,6 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
     return `+${dialFor(dialIso).dial}${digits.replace(/^0+/, "")}`;
   };
 
-  // A real sign-in, not a preview. The owner, 2026-11-23: *"yaha pe to kuch
-  // check hi nahi kar raha — password galat hai sahi hai"*. `devLogin` is the
-  // provider's one password door: it posts to `/auth/login/`, keeps the tokens
-  // the same way the QR approval does, and the guard on this page then sends
-  // the browser into the app. A wrong password is the server's own sentence,
-  // shown here and nowhere else.
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -328,13 +331,43 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
     setConsent(true);
   }
 
-  /// The password is only spent after the person has said yes to this browser.
+  /// The password is only spent after the person has said yes to this browser,
+  /// and even then it buys a challenge, not a session: the code goes to the
+  /// phones and the next step asks for it.
   async function allow() {
     setConsent(false);
     setBusy(true);
     setError(null);
     try {
-      await devLogin(asTarget(), password);
+      const started = await authService.loginCode(asTarget(), password);
+      if (started.devices < 1) {
+        setError(
+          "No phone could be reached. Open Xelvic, check that notifications are on, or use the QR sign-in above.",
+        );
+        setBusy(false);
+        return;
+      }
+      setChallenge(started.challenge);
+      setCode("");
+      setStep("code");
+      setBusy(false);
+    } catch (failure) {
+      setError(errorMessage(failure));
+      setBusy(false);
+    }
+  }
+
+  /// The code from the app, and only a match signs the browser in.
+  async function verifyCode() {
+    if (!/^\d{6}$/.test(code)) {
+      setError("Enter the six digits from the Xelvic app.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const tokens = await authService.verifyLoginCode(challenge, code);
+      await acceptTokens(tokens);
       // The page unmounts into the app; leaving `busy` on means the button
       // cannot be pressed twice while the redirect is in the air.
     } catch (failure) {
@@ -358,6 +391,54 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
           <div className="flex items-center gap-2 text-lg font-extrabold text-ink">
             Login with credentials
           </div>
+          {step === "code" ? (
+            <div className="mt-3 space-y-3">
+              <p className="text-[12.5px] leading-5 text-dim">
+                A six-digit code was sent to your Xelvic app. Open its
+                notifications and type it here — this browser signs in only when
+                the code matches.
+              </p>
+              <input
+                className="w-full border border-line bg-card px-4 text-center font-mono text-[22px] font-extrabold tracking-[0.4em] text-ink placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 rounded-lg"
+                value={code}
+                onChange={(event) =>
+                  setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="••••••"
+                maxLength={6}
+                aria-label="Sign-in code from the app"
+                autoFocus
+              />
+              {error ? (
+                <p className="text-[11.5px] leading-4 text-[var(--bad)]">
+                  {error}
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                full
+                loading={busy}
+                onClick={verifyCode}
+                className="py-1.5 text-lg font-extrabold text-on-accent rounded-lg"
+              >
+                Verify code
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                full
+                onClick={() => {
+                  setStep("form");
+                  setCode("");
+                  setError(null);
+                }}
+              >
+                Use different credentials
+              </Button>
+            </div>
+          ) : (
           <form onSubmit={submit} className="mt-3 space-y-3">
               <div className={phoneMode ? "flex items-stretch gap-2" : ""}>
                 {phoneMode ? (
@@ -410,6 +491,7 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
                 Sign in
               </Button>
           </form>
+          )}
         </div>
       </div>
       {consent ? (
@@ -434,7 +516,7 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
               Allow this browser to sign in?
             </h2>
             <p className="mt-1.5 text-[12.5px] leading-5 text-dim">
-              {`This signs ${browserClaim()} in to your Xelvic account with the email or phone and password you typed. Only allow it on a computer you trust.`}
+              {`We will send a six-digit code to your Xelvic app for ${browserClaim()}. This browser signs in only when that code is entered. Only allow it on a computer you trust.`}
             </p>
             <div className="mt-4 flex gap-2">
               <Button

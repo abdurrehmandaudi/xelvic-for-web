@@ -17,6 +17,36 @@ export const authService = {
     return response.data;
   },
 
+  /**
+   * Step one of the web's two-step sign-in: a right password sends a six-digit
+   * code to the account's own phones, and this answer carries only the
+   * challenge that will be asked about it. The code itself never reaches the
+   * browser — reading it off the phone is the second thing that proves who is
+   * signing in. `devices` is how many phones were reached: zero means the code
+   * went nowhere and the caller has to say so rather than wait.
+   */
+  loginCode: async (
+    target: string,
+    password: string,
+  ): Promise<{ challenge: string; expires_in: number; devices: number }> => {
+    const response = await api.post<{ challenge: string; expires_in: number; devices: number }>(
+      "/auth/login/code/",
+      { target, password },
+      { skipAuth: true },
+    );
+    return response.data;
+  },
+
+  /** Step two: the code from the phone, and only then a session. */
+  verifyLoginCode: async (challenge: string, code: string): Promise<AuthTokens> => {
+    const response = await api.post<AuthTokens>(
+      "/auth/login/code/verify/",
+      { challenge, code },
+      { skipAuth: true },
+    );
+    return response.data;
+  },
+
   /** Ends this session. Sends the refresh token when there is one to send. */
   logout: async (refresh?: string | null): Promise<void> => {
     await api.post("/auth/logout/", refresh ? { refresh } : {});
