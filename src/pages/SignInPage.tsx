@@ -295,6 +295,10 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The owner, 2026-11-23: the permission belongs to the moment of signing
+  // in, not to opening the form — *"direct login ho ja raha, permission ke
+  // liye maine bola tha"*. Sign in asks, and Allow is what posts the password.
+  const [consent, setConsent] = useState(false);
   // The owner, 2026-11-23: *"app ki tarh number daalne pe country code aa
   // jaye"*. One field still takes both, and what is being typed decides which
   // it is: an address keeps its own shape, a number gets the room's code in
@@ -321,7 +325,14 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
       setError("Enter your email/phone and password.");
       return;
     }
+    setConsent(true);
+  }
+
+  /// The password is only spent after the person has said yes to this browser.
+  async function allow() {
+    setConsent(false);
     setBusy(true);
+    setError(null);
     try {
       await devLogin(asTarget(), password);
       // The page unmounts into the app; leaving `busy` on means the button
@@ -401,6 +412,46 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
           </form>
         </div>
       </div>
+      {consent ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="credential-consent-title"
+          onClick={() => setConsent(false)}
+        >
+          <div
+            className="w-full max-w-[360px] rounded-2xl border border-line bg-card p-5 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex size-10 items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent">
+              <ShieldCheck className="size-5" aria-hidden />
+            </div>
+            <h2
+              id="credential-consent-title"
+              className="mt-3 text-[16px] font-extrabold tracking-tight text-ink"
+            >
+              Allow this browser to sign in?
+            </h2>
+            <p className="mt-1.5 text-[12.5px] leading-5 text-dim">
+              {`This signs ${browserClaim()} in to your Xelvic account with the email or phone and password you typed. Only allow it on a computer you trust.`}
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                full
+                onClick={() => setConsent(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="button" full onClick={allow}>
+                Allow
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -433,11 +484,6 @@ export function SignInPage() {
   const qr = useQrSignIn();
   const claim = useMemo(browserClaim, []);
   const [authMode, setAuthMode] = useState<"qr" | "credentials">("qr");
-  // The owner, 2026-11-23: *"login jab login with credential kare to popup
-  // aaye allow ka"*. Linking a browser to an account with a password is a
-  // decision, not a menu item: the click asks, and Allow is the answer. Only
-  // then does the credential form open.
-  const [credentialConsent, setCredentialConsent] = useState(false);
   usePageMeta(metaForSignIn());
   const busy =
     qr.phase === "starting" ||
@@ -598,7 +644,7 @@ export function SignInPage() {
 
                   <button
                     type="button"
-                    onClick={() => setCredentialConsent(true)}
+                    onClick={() => setAuthMode("credentials")}
                     className="mt-3 inline-flex items-center justify-center rounded-full border border-line bg-card px-5 py-2 text-[12.5px] font-extrabold text-ink shadow-xs transition hover:border-accent/50 hover:bg-[var(--accent-soft)] active:scale-[0.98]"
                   >
                     Login with credentials
@@ -639,53 +685,6 @@ export function SignInPage() {
           Xelvic Web — Phone is primary key · Browser is a linked device
         </p>
       </main>
-      {credentialConsent ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="credential-consent-title"
-          onClick={() => setCredentialConsent(false)}
-        >
-          <div
-            className="w-full max-w-[360px] rounded-2xl border border-line bg-card p-5 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex size-10 items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent">
-              <ShieldCheck className="size-5" aria-hidden />
-            </div>
-            <h2
-              id="credential-consent-title"
-              className="mt-3 text-[16px] font-extrabold tracking-tight text-ink"
-            >
-              Allow this browser to sign in?
-            </h2>
-            <p className="mt-1.5 text-[12.5px] leading-5 text-dim">
-              {`This links ${claim} to your Xelvic account with the email or phone and password you type here. Only allow it on a computer you trust.`}
-            </p>
-            <div className="mt-4 flex gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                full
-                onClick={() => setCredentialConsent(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                full
-                onClick={() => {
-                  setCredentialConsent(false);
-                  setAuthMode("credentials");
-                }}
-              >
-                Allow
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
