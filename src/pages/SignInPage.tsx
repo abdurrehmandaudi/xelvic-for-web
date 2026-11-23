@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { useQrSignIn, type QrPhase } from "@/hooks/useQrSignIn";
 import { API_ORIGIN } from "@/config/env";
+import { DEFAULT_DIAL_ISO, DIAL_CODES, dialFor, flagOf } from "@/data/dialCodes";
 import { metaForSignIn, usePageMeta } from "@/seo";
 import { cn } from "@/utils/cn";
 import { errorMessage } from "@/utils/errors";
@@ -290,9 +291,22 @@ function QrPanel({
 function CredentialLogin({ onBack }: { onBack: () => void }) {
   const { devLogin } = useAuth();
   const [target, setTarget] = useState("");
+  const [dialIso, setDialIso] = useState(DEFAULT_DIAL_ISO);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The owner, 2026-11-23: *"app ki tarh number daalne pe country code aa
+  // jaye"*. One field still takes both, and what is being typed decides which
+  // it is: an address keeps its own shape, a number gets the room's code in
+  // front of it — the same list the app picks from, starting on India.
+  const typed = target.trim();
+  const phoneMode = typed.length > 0 && !typed.includes("@") && /^[0-9+\s()-]+$/.test(typed);
+  const asTarget = (): string => {
+    if (!phoneMode) return typed;
+    const digits = typed.replace(/\D/g, "");
+    if (typed.startsWith("+")) return `+${digits}`;
+    return `+${dialFor(dialIso).dial}${digits.replace(/^0+/, "")}`;
+  };
 
   // A real sign-in, not a preview. The owner, 2026-11-23: *"yaha pe to kuch
   // check hi nahi kar raha — password galat hai sahi hai"*. `devLogin` is the
@@ -303,13 +317,13 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    if (!target.trim() || !password) {
+    if (!typed || !password) {
       setError("Enter your email/phone and password.");
       return;
     }
     setBusy(true);
     try {
-      await devLogin(target.trim(), password);
+      await devLogin(asTarget(), password);
       // The page unmounts into the app; leaving `busy` on means the button
       // cannot be pressed twice while the redirect is in the air.
     } catch (failure) {
@@ -334,14 +348,34 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
             Login with credentials
           </div>
           <form onSubmit={submit} className="mt-3 space-y-3">
-              <input
-                className="w-full border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-md rounded-lg"
-                value={target}
-                onChange={(event) => setTarget(event.target.value)}
-                placeholder="Email or phone number"
-                autoComplete="username"
-                required
-              />
+              <div className={phoneMode ? "flex items-stretch gap-2" : ""}>
+                {phoneMode ? (
+                  <select
+                    aria-label="Country code"
+                    title={dialFor(dialIso).name}
+                    value={dialIso}
+                    onChange={(event) => setDialIso(event.target.value)}
+                    className="shrink-0 rounded-lg border border-line bg-card px-2 text-[14px] font-bold text-ink focus:border-accent focus:outline-none"
+                  >
+                    {DIAL_CODES.map((country) => (
+                      <option key={country.iso} value={country.iso}>
+                        {`${flagOf(country.iso)} +${country.dial}`}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                <input
+                  className={cn(
+                    "w-full border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-md rounded-lg",
+                    phoneMode && "min-w-0 flex-1",
+                  )}
+                  value={target}
+                  onChange={(event) => setTarget(event.target.value)}
+                  placeholder="Email or phone number"
+                  autoComplete="username"
+                  required
+                />
+              </div>
               <input
                 className="w-full border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-md rounded-lg"
                 type="password"
