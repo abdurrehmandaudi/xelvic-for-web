@@ -713,7 +713,6 @@ export function NewConvoPanel({ onClose }: { onClose: () => void }) {
                       </span>
                       <span className="block truncate text-[10.5px] text-dim">
                         @{person.username}
-                        {person.online ? " \u00b7 online" : ""}
                       </span>
                     </span>
                     {busy === person.id ? (

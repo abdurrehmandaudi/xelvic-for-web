@@ -4392,7 +4392,6 @@ function ThreadInfoPanel({
   const title = threadTitle(thread);
   const vanishOn = Boolean(thread.vanish_mode && thread.vanish_mode !== "off");
   const vanish = vanishLabel(thread.vanish_mode ?? "off", thread.vanish_days);
-  const online = !group && Boolean(thread.other?.online);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-[color-mix(in_srgb,var(--page)_58%,var(--card))] scroll-thin">
@@ -4417,9 +4416,6 @@ function ThreadInfoPanel({
             {title}
           </p>
           <p className="mt-0.5 flex items-center gap-1.5 truncate text-[10.5px] font-medium text-dim">
-            {online ? (
-              <span className="size-1.5 shrink-0 rounded-full bg-[var(--good)]" />
-            ) : null}
             {group
               ? `${memberCount} ${memberCount === 1 ? "member" : "members"}`
               : face?.username

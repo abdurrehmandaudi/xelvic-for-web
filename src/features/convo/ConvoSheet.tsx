@@ -1009,7 +1009,7 @@ export function ConvoSheet({
         onClose={() => setConfirming(null)}
         onConfirm={() => void confirmBlock()}
         title={`Block ${first}?`}
-        body="They cannot reach you, and neither of you sees the other online. The convo stays where it is."
+        body="They cannot reach you. The convo stays where it is."
         note="You can undo this from the same sheet."
         confirmLabel="Block"
         destructive

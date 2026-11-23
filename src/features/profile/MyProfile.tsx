@@ -32,6 +32,7 @@ import { MemoriesShelf } from "@/features/profile/MemoriesShelf";
 import { PosedBio } from "@/features/profile/PosedBio";
 import { PinnedStrip, ProfileShelf } from "@/features/profile/ProfileShelf";
 import {
+  BirthdayPill,
   Chip,
   COVER_CONTROL,
   FaceButton,
@@ -43,13 +44,15 @@ import {
   PROFILE_HEAD_TEXT,
   PROFILE_MAX,
   PROFILE_PHOTO,
+  PROFILE_SECTION,
+  ProfileCard,
   ProfileCover,
+  ProfileStats,
   QUIET_PILL,
   SheetRow,
   SOLID_PILL,
-  Sparkline,
-  StatCard,
   TILE_CONTROL,
+  type ProfileStat,
 } from "@/features/profile/parts";
 import { ProfessionalLead, linkPillIcon } from "@/features/professional/parts";
 import { linkLabel } from "@/features/professional/model";
@@ -181,41 +184,41 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
     });
   }
 
-  const counts = (
-    <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-      <StatCard
-        label={t("Drops")}
-        value={me.posts_count}
-        icon={Gem}
-        tone="var(--tone-pink)"
-        trailing={<Sparkline tone="var(--tone-pink)" />}
-      />
-      <StatCard
-        label={t("Crew")}
-        value={me.followers_count}
-        icon={Users}
-        tone="var(--tone-blue)"
-        onTap={() => navigate(`/app/u/${handle}/crew/followers`)}
-        faded={me.show_crew !== true}
-      />
-      <StatCard
-        label={t("Kept")}
-        value={me.following_count}
-        icon={Bookmark}
-        tone="var(--tone-teal)"
-        onTap={() => navigate(`/app/u/${handle}/crew/following`)}
-      />
-      <StatCard
-        label={t("Spark")}
-        value={typeof sparks.data?.total === "number" ? sparks.data.total : null}
-        icon={Zap}
-        tone="var(--tone-violet)"
-        onTap={() => navigate("/app/sparks")}
-        faded={me.show_sparks === false}
-        trailing={<Sparkline tone="var(--tone-violet)" />}
-      />
-    </div>
-  );
+  const stats: ProfileStat[] = [
+    {
+      key: "drops",
+      label: t("Drops"),
+      value: me.posts_count,
+      icon: Gem,
+      tone: "var(--tone-pink)",
+    },
+    {
+      key: "crew",
+      label: t("Crew"),
+      value: me.followers_count,
+      icon: Users,
+      tone: "var(--tone-blue)",
+      onTap: () => navigate(`/app/u/${handle}/crew/followers`),
+      faded: me.show_crew !== true,
+    },
+    {
+      key: "kept",
+      label: t("Kept"),
+      value: me.following_count,
+      icon: Bookmark,
+      tone: "var(--tone-teal)",
+      onTap: () => navigate(`/app/u/${handle}/crew/following`),
+    },
+    {
+      key: "spark",
+      label: t("Spark"),
+      value: typeof sparks.data?.total === "number" ? sparks.data.total : null,
+      icon: Zap,
+      tone: "var(--tone-violet)",
+      onTap: () => navigate("/app/sparks"),
+      faded: me.show_sparks === false,
+    },
+  ];
 
   const actionRow = (
     <div className="flex flex-wrap items-center gap-2">
@@ -233,13 +236,13 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
         title={t("My QR code")}
         className={TILE_CONTROL}
       >
-        <QrCode className="size-[19px]" aria-hidden />
+        <QrCode className="size-[18px]" aria-hidden />
       </Link>
     </div>
   );
 
   return (
-    <div className="relative isolate min-h-dvh bg-card pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-24">
+    <div className="relative isolate min-h-dvh bg-card pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-16">
       {/* The page's own ground, and the lowest thing on it: a theme that drew a
           profile stands behind this whole page, the same way it stands behind
           the five the shell holds. Drawn first so the card and everything in the
@@ -258,7 +261,7 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
             }
             className={COVER_CONTROL}
           >
-            <ArrowLeft className="size-5" aria-hidden />
+            <ArrowLeft className="size-[18px]" aria-hidden />
           </button>
           <button
             type="button"
@@ -267,83 +270,71 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
             onClick={() => setMenu(true)}
             className={COVER_CONTROL}
           >
-            <MoreHorizontal className="size-5" aria-hidden />
+            <MoreHorizontal className="size-[18px]" aria-hidden />
           </button>
         </ProfileCover>
 
-        <div className={cn(PROFILE_MAX, PROFILE_GUTTER, "relative pb-4 sm:pb-5")}>
+        <div className={cn(PROFILE_MAX, PROFILE_GUTTER, "relative pb-5 sm:pb-6")}>
           <div className={PROFILE_HEAD}>
             <div className={PROFILE_FACE}>
-              <div className="relative rounded-full bg-[color-mix(in_srgb,var(--accent)_84%,transparent)] p-[4px] shadow-[0_20px_38px_-22px_color-mix(in_srgb,var(--ink)_72%,transparent)]">
-                <div className="rounded-full border-[3px] border-card bg-card p-[3px]">
-                  <FaceButton
-                    user={me}
-                    size={wide ? PROFILE_PHOTO.wide : PROFILE_PHOTO.narrow}
-                    tone="page"
-                    label={t("Your photo")}
-                    onTap={() => setPhoto(true)}
-                  />
-                </div>
-              </div>
+              <FaceButton
+                user={me}
+                size={wide ? PROFILE_PHOTO.wide : PROFILE_PHOTO.narrow}
+                label={t("Your photo")}
+                onTap={() => setPhoto(true)}
+              />
             </div>
 
             <div className={PROFILE_HEAD_TEXT}>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-3 sm:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   {/* The trade stands above the name: `Developer` on its own
                       line, `Daudi` under it. It led the name on one line for
                       part of 2026-10-24, until the owner asked for it above
                       instead. */}
                   {trade ? (
-                    <ProfessionalLead trade={trade} t={t} className="mb-1 justify-start" />
+                    <ProfessionalLead trade={trade} t={t} className="mb-1.5 justify-start" />
                   ) : null}
                   <div className="flex min-w-0 items-center gap-2">
-                    <h1 className="truncate text-[28px] font-extrabold leading-[1.05] tracking-[-0.045em] sm:text-[34px]">
+                    <h1 className="truncate text-[26px] font-extrabold leading-[1.08] tracking-[-0.02em] sm:text-[32px]">
                       {name}
                     </h1>
                     {me.verified ? (
                       <span className="flex shrink-0">
-                        <VerifiedTick size={22} />
+                        <VerifiedTick size={20} />
                       </span>
                     ) : null}
                   </div>
+                  <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-[13px] font-medium text-dim">
+                    <span className="truncate">{t(`@${handle} · you`)}</span>
+                    {/* What this page shows to somebody who is not me, said in one
+                        pill and changeable from here. A private account is the
+                        case the pill exists for — it is the only page that says so
+                        — but a public one wears it too, because the way to close
+                        the door should not be three taps away in Controls when the
+                        page about it is right here. */}
+                    <button
+                      type="button"
+                      disabled={privacyBusy}
+                      onClick={() => setPrivacyGoing(!privateAccount)}
+                      aria-expanded={privacyGoing !== null}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-[8px] border border-[color-mix(in_srgb,var(--accent)_22%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--card))] px-2.5 py-1 text-[12px] font-semibold capitalize text-accent transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--accent)_13%,var(--card))] disabled:opacity-55"
+                    >
+                      {privateAccount ? (
+                        <Lock className="size-3.5" aria-hidden />
+                      ) : (
+                        <Globe className="size-3.5" aria-hidden />
+                      )}
+                      {privacyBusy ? t("Saving...") : privateAccount ? t("Private") : t("Public")}
+                      <ChevronDown className="size-3.5" aria-hidden />
+                    </button>
+                  </div>
                 </div>
-                {actionRow}
+                <div className="shrink-0">{actionRow}</div>
               </div>
-
-              <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 text-[13.5px] font-semibold text-dim">
-                <span className="truncate">{t(`@${handle} · you`)}</span>
-                {/* What this page shows to somebody who is not me, said in one
-                    pill and changeable from here. A private account is the
-                    case the pill exists for — it is the only page that says so
-                    — but a public one wears it too, because the way to close
-                    the door should not be three taps away in Controls when the
-                    page about it is right here. */}
-                <button
-                  type="button"
-                  disabled={privacyBusy}
-                  onClick={() => setPrivacyGoing(!privateAccount)}
-                  aria-expanded={privacyGoing !== null}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--accent)_22%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--card))] px-3 py-1 text-[12.5px] font-bold capitalize text-accent transition hover:bg-[color-mix(in_srgb,var(--accent)_13%,var(--card))] disabled:opacity-55"
-                >
-                  {privateAccount ? (
-                    <Lock className="size-3.5" aria-hidden />
-                  ) : (
-                    <Globe className="size-3.5" aria-hidden />
-                  )}
-                  {privacyBusy ? t("Saving...") : privateAccount ? t("Private") : t("Public")}
-                  <ChevronDown className="size-3.5" aria-hidden />
-                </button>
-              </div>
-
-              {bio ? (
-                <p className="mt-2.5 line-clamp-2 max-w-[62ch] text-[14.5px] font-semibold leading-[1.45] text-[color-mix(in_srgb,var(--ink)_76%,transparent)]">
-                  {bio}
-                </p>
-              ) : null}
 
               {chips.length ? (
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   {chips.map((chip, index) => (
                     <Chip
                       key={`${chip.text}-${index}`}
@@ -355,90 +346,85 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
                 </div>
               ) : null}
 
-              {birthdayToday ? (
-                <span className="mt-2.5 inline-flex max-w-full items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-3.5 py-2 text-[13px] font-bold text-accent">
-                  {t(`Happy birthday, ${name}!`)}
-                </span>
-              ) : null}
+              {birthdayToday ? <BirthdayPill name={name} /> : null}
             </div>
           </div>
 
-          {counts}
+          <ProfileStats items={stats} className="mt-5" />
         </div>
       </article>
 
-      <div className={cn(PROFILE_MAX, PROFILE_GUTTER)}>
-        <section className={cn(PROFILE_CARD, "mt-3 p-4 sm:p-5")}>
-          <div
-            className={cn(
-              "grid gap-5",
-              details.length > 0 && "md:grid-cols-[minmax(0,1fr)_240px] md:gap-6",
-            )}
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-[15px] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent">
-                  <UserRound className="size-[21px]" aria-hidden />
-                </span>
-                <h2 className="text-[22px] font-extrabold tracking-[-0.03em]">{t("About Me")}</h2>
-              </div>
-              {/* The era, said by the figure the account wears — the same
-                  widget their own page draws, so one person is described one
-                  way on both halves of the pair. */}
-              <PosedBio
-                text={bio || t("No era yet.")}
-                character={me.character ?? null}
-                show={null}
-                className="mt-2 px-0 pt-0"
-              />
-            </div>
-            {details.length > 0 ? (
-              <div className="space-y-4 md:border-l md:border-line md:pl-6">
-                {details.map((detail, index) => (
-                  <DetailRow key={`${detail.text}-${index}`} {...detail} />
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </section>
-
-        {/* The way in to Insights: a card of its own, because it opens a screen
-            rather than answering anything the counts above already asked. Only
-            ever here, on my own page. */}
-        <Link
-          to="/app/insights"
+      <div className={cn(PROFILE_MAX, PROFILE_GUTTER, PROFILE_SECTION)}>
+        <div
           className={cn(
-            PROFILE_CARD,
-            "mt-3 flex items-center px-4 py-3.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]",
+            "grid gap-4 lg:gap-5",
+            details.length > 0 && "lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start",
           )}
         >
-          <LineChart className="size-5 shrink-0 text-accent" aria-hidden />
-          <span className="ml-3 min-w-0 flex-1">
-            <span className="block text-[14.5px] font-bold">{t("Insights")}</span>
-            <span className="mt-0.5 block truncate text-[11.5px] text-dim">
-              {t("Views, new crew, interactions and what worked")}
-            </span>
-          </span>
-          <ChevronRight className="size-[18px] shrink-0 text-dim" aria-hidden />
-        </Link>
+          <div className="min-w-0 space-y-4 lg:space-y-5">
+            {/* The era, said by the figure the account wears — the same
+                widget their own page draws, so one person is described one
+                way on both halves of the pair. */}
+            <ProfileCard>
+              <PosedBio
+                text={bio || t("No era yet")}
+                character={me.character ?? null}
+                show={null}
+                className="max-w-[680px] px-0 pt-0"
+              />
+            </ProfileCard>
 
-        {/* Memories, kept where they have always been: their own strip up the
-            page, above the row of tabs, not folded into it. Drawn even with
-            nothing on it, because this is my own and the card at the end of it
-            is how one gets made. */}
-        <MemoriesShelf
-          username={handle}
-          mine
-          author={user}
-          variant="showcase"
-          onAdd={() => navigate("/app/moments?memories=1")}
-          className={cn(PROFILE_CARD, "mt-3 overflow-hidden p-3.5 sm:p-4")}
-        />
+            {/* The way in to Insights: it sits straight under the numbers,
+                because it is about the numbers rather than about the shelf
+                below it. */}
+            <Link
+              to="/app/insights"
+              className={cn(
+                PROFILE_CARD,
+                "flex items-center gap-3 px-4 py-3.5 transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]",
+              )}
+            >
+              <LineChart className="size-[18px] shrink-0 text-accent" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] font-semibold">{t("Insights")}</span>
+                <span className="mt-0.5 block truncate text-[12px] text-dim">
+                  {t("Views, new crew, interactions and what worked")}
+                </span>
+              </span>
+              <ChevronRight className="size-[18px] shrink-0 text-dim" aria-hidden />
+            </Link>
 
-        {/* What was dropped, under what was kept. */}
-        <div className={cn(PROFILE_CARD, "mt-3 overflow-hidden p-3.5 sm:p-4")}>
-          <PinnedStrip username={handle} className="pb-3" />
-          <ProfileShelf username={handle} mine hasShowcase={Boolean(me.is_company)} variant="showcase" />
+            {/* Memories, kept where they have always been: their own strip up the
+                page, above the row of tabs, not folded into it. Drawn even with
+                nothing on it, because this is my own and the card at the end of it
+                is how one gets made. */}
+            <MemoriesShelf
+              username={handle}
+              mine
+              author={user}
+              variant="showcase"
+              onAdd={() => navigate("/app/moments?memories=1")}
+              className={cn(PROFILE_CARD, "overflow-hidden p-4 sm:p-5")}
+            />
+
+            {/* What was dropped, under what was kept. */}
+            <div className={cn(PROFILE_CARD, "overflow-hidden p-4 sm:p-5")}>
+              <PinnedStrip username={handle} className="pb-3" />
+              <ProfileShelf username={handle} mine hasShowcase={Boolean(me.is_company)} variant="showcase" />
+            </div>
+          </div>
+
+          {details.length > 0 ? (
+            <div className="min-w-0">
+              <ProfileCard title={t("Details")}>
+                <div className="space-y-3.5">
+                  {details.map((detail, index) => (
+                    <DetailRow key={`${detail.text}-${index}`} {...detail} />
+                  ))}
+                </div>
+              </ProfileCard>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -452,7 +438,7 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
       <Modal open={menu} onClose={() => setMenu(false)} size="sm" hideClose>
         <div className="py-1.5">
           <SheetRow
-            icon={<UserRound className="size-[21px]" />}
+            icon={<UserRound className="size-[18px]" />}
             label={t("Profile")}
             line={t("Your photo, your name and your era.")}
             onClick={() => {
@@ -461,7 +447,7 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
             }}
           />
           <SheetRow
-            icon={<Settings className="size-[21px]" />}
+            icon={<Settings className="size-[18px]" />}
             label={t("Settings")}
             line={t("Privacy, notifications and the way out.")}
             onClick={() => {
@@ -512,9 +498,9 @@ function DetailRow({ icon: Icon, text, onClick }: { icon: LucideIcon; text: stri
   const body = (
     <>
       <span className="flex size-5 shrink-0 items-center justify-center text-[color-mix(in_srgb,var(--ink)_45%,transparent)]">
-        <Icon className="size-[19px]" aria-hidden />
+        <Icon className="size-[18px]" aria-hidden />
       </span>
-      <span className="min-w-0 truncate text-[13.5px] font-semibold text-ink/80">{text}</span>
+      <span className="min-w-0 truncate text-[13px] font-medium text-ink/80">{text}</span>
     </>
   );
   if (!onClick) {
@@ -524,7 +510,7 @@ function DetailRow({ icon: Icon, text, onClick }: { icon: LucideIcon; text: stri
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full min-w-0 items-center gap-2.5 text-left transition hover:text-accent"
+      className="flex w-full min-w-0 items-center gap-2.5 text-left transition-colors duration-150 hover:text-accent"
     >
       {body}
     </button>

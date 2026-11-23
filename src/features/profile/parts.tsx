@@ -34,12 +34,14 @@ export const PROFILE_MAX = "mx-auto w-full max-w-[1240px]";
 export const PROFILE_GUTTER = "px-4 sm:px-6 lg:px-7";
 
 export const PROFILE_CARD =
-  "rounded-[28px] border border-[color-mix(in_srgb,var(--accent)_14%,transparent)] bg-card shadow-[0_14px_34px_-20px_color-mix(in_srgb,var(--ink)_18%,transparent)]";
+  "rounded-[16px] border border-[color-mix(in_srgb,var(--accent)_14%,transparent)] bg-card shadow-[0_1px_2px_color-mix(in_srgb,var(--ink)_5%,transparent)]";
+
+export const PROFILE_SECTION = "mt-4 sm:mt-5";
 
 export const PROFILE_HEAD =
   "lg:grid lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start lg:gap-6";
 
-export const PROFILE_FACE = "relative z-10 -mt-[84px] w-fit lg:-mt-[124px]";
+export const PROFILE_FACE = "relative z-10 -mt-[80px] w-fit border-[2px] border-card bg-card rounded-full shadow-[0_10px_18px_-22px_color-mix(in_srgb,var(--ink)_82%,transparent)]";
 
 export const PROFILE_HEAD_TEXT = "mt-3.5 min-w-0 max-w-[760px] lg:mt-2";
 
@@ -55,7 +57,7 @@ export function ProfileCover({
   children?: ReactNode;
 }) {
   return (
-    <div className="relative h-[210px] overflow-hidden sm:h-[264px]">
+    <div className="relative h-[208px] overflow-hidden rounded-b-[72px]">
       {url ? (
         <>
           <AuthedImage
@@ -90,65 +92,165 @@ export function ProfileCover({
   );
 }
 
-export function StatCard({
-  label,
-  value,
-  icon: Icon,
-  tone,
-  trailing,
-  onTap,
-  faded,
+export function BirthdayPill({ name }: { name: string }) {
+  const { t } = usePreferences();
+  return (
+    <span className="mt-2.5 flex max-w-full items-center gap-2 rounded-[8px] border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-3 py-1.5">
+      <BirthdayCake />
+      <span className="min-w-0 truncate text-[12px] font-semibold text-accent">
+        {t(`${name}'s birthday is today`)}
+      </span>
+    </span>
+  );
+}
+
+function BirthdayCake() {
+  return (
+    <svg
+      width={14}
+      height={14}
+      viewBox="0 0 14 14"
+      aria-hidden
+      className="shrink-0 text-accent"
+    >
+      <path
+        d="M7 1.1c.7.9 1.1 1.5 1.1 2a1.1 1.1 0 1 1-2.2 0c0-.5.4-1.1 1.1-2Z"
+        fill="currentColor"
+      />
+      <path
+        d="M2.4 6.2h9.2v1.1c0 .6-.5 1.1-1.1 1.1-.6 0-1.1-.5-1.1-1.1 0 .6-.5 1.1-1.1 1.1-.6 0-1.1-.5-1.1-1.1 0 .6-.5 1.1-1.1 1.1-.6 0-1.1-.5-1.1-1.1 0 .6-.5 1.1-1.1 1.1-.6 0-1.1-.5-1.1-1.1V6.2Z"
+        fill="currentColor"
+        opacity="0.45"
+      />
+      <rect
+        x="2.4"
+        y="9.2"
+        width="9.2"
+        height="3.4"
+        rx="1"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+export function ProfileCard({
+  title,
+  action,
+  children,
+  className,
+  bodyClassName,
 }: {
+  title?: string;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  bodyClassName?: string;
+}) {
+  return (
+    <section className={cn(PROFILE_CARD, "overflow-hidden", className)}>
+      {title ? (
+        <header className="flex items-center justify-between gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+          <h2 className="min-w-0 truncate text-[15px] font-semibold">{title}</h2>
+          {action}
+        </header>
+      ) : null}
+      <div className={cn("p-4 sm:p-5", bodyClassName)}>{children}</div>
+    </section>
+  );
+}
+
+export interface ProfileStat {
+  key: string;
   label: string;
   value?: number | null;
   icon: LucideIcon;
   tone: string;
-  trailing?: ReactNode;
-  onTap?: () => void;
   faded?: boolean;
+  onTap?: () => void;
+}
+
+const STAT_COLUMNS: Record<number, { narrow: string; wide: string }> = {
+  1: { narrow: "grid-cols-1", wide: "sm:grid-cols-1" },
+  2: { narrow: "grid-cols-2", wide: "sm:grid-cols-2" },
+  3: { narrow: "grid-cols-3", wide: "sm:grid-cols-3" },
+  4: { narrow: "grid-cols-2", wide: "sm:grid-cols-4" },
+};
+
+export function ProfileStats({
+  items,
+  className,
+}: {
+  items: ProfileStat[];
+  className?: string;
 }) {
-  const body = (
-    <span
-      className="relative flex min-h-[88px] items-center gap-2.5 overflow-hidden rounded-[22px] border px-3 py-3 text-left sm:min-h-[104px] sm:gap-3.5 sm:rounded-[24px] sm:px-4 sm:py-3.5"
-      style={{
-        backgroundColor: `color-mix(in srgb, ${tone} 7%, var(--card))`,
-        borderColor: `color-mix(in srgb, ${tone} 17%, var(--line))`,
-      }}
-    >
-      <span
-        className="flex size-10 shrink-0 items-center justify-center rounded-[13px] sm:size-[52px] sm:rounded-[17px]"
-        style={{
-          backgroundColor: `color-mix(in srgb, ${tone} 16%, transparent)`,
-          color: tone,
-        }}
-      >
-        <Icon className="size-[18px] sm:size-6" aria-hidden />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span
-          className={cn(
-            "block text-[20px] font-extrabold leading-none tracking-[-0.04em] tabular-nums sm:text-[30px]",
-            faded && "text-dim",
-          )}
-        >
-          {typeof value === "number" ? count(value) : "—"}
-        </span>
-        <span className="mt-1.5 block truncate text-[11px] font-bold text-dim sm:text-[14px]">
-          {label}
-        </span>
-      </span>
-      {trailing}
-    </span>
-  );
-  if (!onTap) return body;
+  const total = items.length;
+  if (!total) return null;
+  const columns = STAT_COLUMNS[Math.min(total, 4)];
+  const stack = Math.min(total, 3);
+
   return (
-    <button
-      type="button"
-      onClick={onTap}
-      className="block w-full rounded-[20px] text-left transition active:scale-[.985] sm:rounded-[22px]"
+    <div
+      className={cn(
+        PROFILE_CARD,
+        "grid overflow-hidden",
+        columns.narrow,
+        columns.wide,
+        className,
+      )}
     >
-      {body}
-    </button>
+      {items.map(({ key, label, value, icon: Icon, tone, faded, onTap }, index) => {
+        const cell = (
+          <>
+            <span
+              className="flex size-8 shrink-0 items-center justify-center rounded-[9px] sm:size-9"
+              style={{
+                backgroundColor: `color-mix(in srgb, ${tone} 15%, transparent)`,
+                color: tone,
+              }}
+            >
+              <Icon className="size-4" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className={cn(
+                  "block truncate text-[18px] font-bold leading-none tabular-nums sm:text-[21px]",
+                  faded && "text-dim",
+                )}
+              >
+                {typeof value === "number" ? count(value) : "—"}
+              </span>
+              <span className="mt-1 block truncate text-[11.5px] font-medium text-dim">
+                {label}
+              </span>
+            </span>
+          </>
+        );
+        const skin = cn(
+          "flex min-w-0 items-center gap-2 px-3 py-3 text-left sm:gap-3 sm:px-4 sm:py-3.5",
+          index % stack !== 0 && "border-l border-line",
+          index >= stack && "border-t border-line sm:border-t-0",
+          index > 0 && "sm:border-l sm:border-line",
+        );
+        return onTap ? (
+          <button
+            key={key}
+            type="button"
+            onClick={onTap}
+            className={cn(
+              skin,
+              "transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]",
+            )}
+          >
+            {cell}
+          </button>
+        ) : (
+          <div key={key} className={skin}>
+            {cell}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -162,7 +264,7 @@ export function Chip({
   onClick?: () => void;
 }) {
   const shell =
-    "inline-flex max-w-full items-center gap-2 rounded-full border border-line bg-[color-mix(in_srgb,var(--ink)_4%,var(--card))] px-3.5 py-[7px] text-[13px] font-bold text-[color-mix(in_srgb,var(--ink)_78%,transparent)]";
+    "inline-flex max-w-full items-center gap-2 rounded-[8px] border border-line bg-[color-mix(in_srgb,var(--ink)_4%,var(--card))] px-3 py-1.5 text-[12.5px] font-medium text-[color-mix(in_srgb,var(--ink)_78%,transparent)]";
   const body = (
     <>
       <span className="flex shrink-0">{icon}</span>
@@ -185,41 +287,20 @@ export function Chip({
 }
 
 export const ASK_PILL =
-  "inline-flex min-h-[52px] select-none items-center justify-center gap-2 rounded-full px-[26px] text-[14px] font-extrabold tracking-[-0.01em] transition-[transform,background-color,border-color,color,opacity] duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55";
+  "inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-[10px] px-5 text-[13.5px] font-semibold tracking-[-0.01em] transition-[transform,background-color,border-color,color,opacity] duration-150 ease-out-soft active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55";
 
 export const SOLID_PILL = `${ASK_PILL} border border-transparent bg-[linear-gradient(135deg,var(--accent),var(--accent-pill))] text-on-accent shadow-[0_12px_26px_-14px_color-mix(in_srgb,var(--accent)_90%,transparent)] hover:brightness-105`;
 
 export const QUIET_PILL = `${ASK_PILL} border border-line bg-card text-ink hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]`;
 
 export const ROUND_CONTROL =
-  "inline-flex size-[52px] shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] active:scale-[0.97]";
+  "inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] active:scale-[0.97]";
 
 export const TILE_CONTROL =
-  "inline-flex size-[52px] shrink-0 items-center justify-center rounded-[16px] border border-line bg-card text-ink transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] active:scale-[0.97]";
+  "inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-line bg-card text-ink transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] active:scale-[0.97]";
 
 export const COVER_CONTROL =
-  "inline-flex size-10 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--card)_70%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,transparent)] text-ink shadow-[0_10px_26px_-14px_color-mix(in_srgb,var(--ink)_70%,transparent)] backdrop-blur-md transition hover:bg-card active:scale-[0.96]";
-
-export function Sparkline({ tone }: { tone: string }) {
-  return (
-    <svg
-      width="92"
-      height="34"
-      viewBox="0 0 64 30"
-      fill="none"
-      aria-hidden
-      className="hidden h-[34px] w-[92px] shrink-0 opacity-80 sm:block"
-    >
-      <path
-        d="M1 24C7 24 8 14 14 16S22 25 28 19 36 7 42 10 50 22 56 12 61 5 63 7"
-        stroke={tone}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+  "inline-flex size-10 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--card)_70%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,transparent)] text-ink shadow-[0_10px_26px_-14px_color-mix(in_srgb,var(--ink)_70%,transparent)] backdrop-blur-md transition-colors duration-150 hover:bg-card active:scale-[0.96]";
 
 /**
  * The three flat colours the ask travels between, and their readings.
@@ -358,11 +439,11 @@ export function SheetRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]"
+      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]"
     >
       <span className="text-dim">{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-semibold">{label}</span>
+        <span className="block text-[14px] font-medium">{label}</span>
         {line ? <span className="mt-0.5 block text-[12px] text-dim">{line}</span> : null}
       </span>
     </button>
@@ -378,25 +459,18 @@ const HOLD_MS = 480;
  * The app draws this in two places with two behaviours: `profile.dart` shows my
  * own photo large when it is tapped, and `person.dart` gives somebody else's
  * face a *long press* for the same thing while a tap is spent on their day when
- * they have one live. The ring is the app's `Ring`: a flat 2.5px accent
- * hairline with the same gap again between it and the picture, and the quiet
- * version of it — the text colour at 16% — once their day has been watched, so
- * that a bright ring keeps meaning "something of theirs I have not seen".
+ * they have one live.
  *
  * A hold is 480ms, a little under half a second, because the web's press is a
  * mouse click or a thumb and the app's own is Flutter's 500ms: anything longer
  * reads as a press that did not register, and anything shorter fires while a
  * thumb is still on its way to a scroll. The click that follows a hold is
  * swallowed, so holding never also opens the day behind the photo.
- *
- * [tone] is the ring: `accent` for a day I have not watched, `faded` for one I
- * have, and `page` for a face with nothing live behind it — the page-coloured
- * ring the profile already wore to stand off the cover.
  */
 export function FaceButton({
   user,
   size,
-  tone,
+  ring,
   label,
   title,
   onTap,
@@ -404,7 +478,7 @@ export function FaceButton({
 }: {
   user?: Pick<UserCard, "name" | "username" | "avatar"> | null;
   size: number;
-  tone: "accent" | "faded" | "page";
+  ring?: "new" | "seen" | null;
   label: string;
   /** The line a mouse reads on hover — on the web it is the only way to learn
    *  that the face answers a hold. */
@@ -429,12 +503,10 @@ export function FaceButton({
       aria-label={label}
       title={title}
       className={cn(
-        "block shrink-0 touch-manipulation select-none rounded-full transition active:scale-[.98]",
-        tone === "accent" && "border-[2.5px] border-accent p-[2.5px]",
-        tone === "faded" &&
+        "block shrink-0 touch-manipulation select-none rounded-full shadow-[0_8px_22px_color-mix(in_srgb,#13131A_18%,transparent)] transition-transform duration-150 active:scale-[.98]",
+        ring === "new" && "border-[2.5px] border-[var(--accent)] p-[2.5px]",
+        ring === "seen" &&
           "border-[2.5px] border-[color-mix(in_srgb,var(--ink)_16%,transparent)] p-[2.5px]",
-        tone === "page" &&
-          "border-4 border-[var(--page)] shadow-[0_8px_22px_color-mix(in_srgb,#13131A_18%,transparent)]",
       )}
       onContextMenu={onHold ? (event) => event.preventDefault() : undefined}
       onPointerDown={
@@ -462,7 +534,7 @@ export function FaceButton({
         onTap();
       }}
     >
-      <Avatar user={user} size={size} />
+      <Avatar user={user} size={ring ? size - 10 : size} />
     </button>
   );
 }
@@ -552,7 +624,7 @@ export function MutualStrip({
     <button
       type="button"
       onClick={onOpen}
-      className="mx-auto flex max-w-full items-center gap-2 rounded-[20px] px-2 py-1.5 transition active:scale-[.98]"
+      className="mx-auto flex max-w-full items-center gap-2 rounded-[10px] px-2 py-1.5 transition-[transform] duration-150 active:scale-[.98]"
     >
       {shown.length > 0 ? (
         <span
@@ -577,14 +649,14 @@ export function MutualStrip({
           ))}
         </span>
       ) : null}
-      <span className="min-w-0 truncate text-[12.5px] font-semibold text-dim">
+      <span className="min-w-0 truncate text-[12.5px] font-medium text-dim">
         {t(
           n === 1
             ? `${count(n)} mutual friend`
             : `${count(n)} mutual friends`,
         )}
       </span>
-      <ChevronRight className="size-[15px] shrink-0 text-dim" aria-hidden />
+      <ChevronRight className="size-4 shrink-0 text-dim" aria-hidden />
     </button>
   );
 }
@@ -634,8 +706,8 @@ export function MutualsModal({
             <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] text-dim">
               <Users className="size-5" aria-hidden />
             </span>
-            <p className="mt-3 text-[13px] font-extrabold">{t("No friends in common")}</p>
-            <p className="mt-1 text-[11.5px] text-dim">
+            <p className="mt-3 text-[13px] font-semibold">{t("No friends in common")}</p>
+            <p className="mt-1 text-[12px] text-dim">
               {personName
                 ? t(`Nobody you and ${personName} both keep yet.`)
                 : t("Nobody you both keep yet.")}
@@ -648,14 +720,14 @@ export function MutualsModal({
                 key={person.id}
                 type="button"
                 onClick={() => onPick(person)}
-                className="flex w-full items-center gap-3 rounded-[16px] border border-line bg-card px-3 py-2.5 text-left transition hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]"
+                className="flex w-full items-center gap-3 rounded-[12px] border border-line bg-card px-3 py-2.5 text-left transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]"
               >
-                <Avatar user={person} size={44} />
+                <Avatar user={person} size={40} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-bold">
+                  <span className="block truncate text-[14px] font-medium">
                     {person.name || person.username}
                   </span>
-                  <span className="block truncate text-[12.5px] text-dim">@{person.username}</span>
+                  <span className="block truncate text-[12px] text-dim">@{person.username}</span>
                 </span>
                 <ChevronRight className="size-[18px] shrink-0 text-dim" aria-hidden />
               </button>

@@ -4,7 +4,6 @@ import {
   ArrowRight,
   BookmarkPlus,
   ImagePlus,
-  Images,
   Lock,
   Pencil,
   Plus,
@@ -298,10 +297,10 @@ export function MemoriesShelf({
           className={cn(
             "relative block overflow-hidden bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]",
             layout === "all"
-              ? "h-[132px] w-full rounded-[16px]"
+              ? "h-[132px] w-full rounded-[12px]"
               : wide
-                ? "h-[92px] w-full rounded-[16px] sm:h-[108px]"
-                : "rounded-[14px]",
+                ? "h-[92px] w-full rounded-[12px] sm:h-[108px]"
+                : "rounded-[12px]",
           )}
           style={
             layout === "all" || wide ? undefined : { width: CARD_W, height: CARD_H }
@@ -325,17 +324,17 @@ export function MemoriesShelf({
         </span>
         {layout === "all" || !wide ? (
           <>
-            <span className="mt-1.5 block truncate text-[11.5px]">
+            <span className="mt-2 block truncate text-[12px] font-medium">
               {memory.title || t("A Memory")}
             </span>
             {memory.moment_at ? (
-              <span className="mt-px block truncate text-[10.5px] text-dim">
+              <span className="mt-1 block truncate text-[12px] text-dim">
                 {ago(memory.moment_at)}
               </span>
             ) : null}
           </>
         ) : memory.moment_at ? (
-          <span className="mt-1.5 block truncate text-[10.5px] text-dim">
+          <span className="mt-2 block truncate text-[12px] text-dim">
             {ago(memory.moment_at)}
           </span>
         ) : null}
@@ -346,28 +345,21 @@ export function MemoriesShelf({
   return (
     <section className={cn(className)}>
       {showcase ? (
-        <div className="flex items-center justify-between gap-3 px-1 pb-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-[13px] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent">
-              <Images className="size-5" aria-hidden />
-            </span>
-            <h2 className="truncate text-[21px] font-extrabold tracking-[-0.02em]">
-              {t("Memories")}
-            </h2>
-          </div>
+        <div className="flex items-center justify-between gap-3 pb-3">
+          <h2 className="min-w-0 truncate text-[15px] font-semibold">{t("Memories")}</h2>
           {memories.length > 0 ? (
             <button
               type="button"
               onClick={() => setAllOpen(true)}
-              className="inline-flex shrink-0 items-center gap-1.5 text-[14px] font-bold text-accent transition hover:opacity-80"
+              className="inline-flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-accent transition-colors duration-150 hover:opacity-80"
             >
-              {t("See All")}
-              <ArrowRight className="size-3.5" aria-hidden />
+              {t("See all")}
+              <ArrowRight className="size-4" aria-hidden />
             </button>
           ) : null}
         </div>
       ) : (
-        <h2 className="px-[18px] pb-2 text-[13px] font-bold tracking-[0.2px]">
+        <h2 className="px-4 pb-2 text-[13px] font-semibold">
           {t("Memories")}
         </h2>
       )}
@@ -388,14 +380,14 @@ export function MemoriesShelf({
             <span
               className={cn(
                 "flex items-center justify-center bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]",
-                showcase ? "h-[92px] w-full rounded-[16px] sm:h-[108px]" : "rounded-[14px]",
+                showcase ? "h-[92px] w-full rounded-[12px] sm:h-[108px]" : "rounded-[14px]",
               )}
               style={showcase ? undefined : { width: CARD_W, height: CARD_H }}
             >
-              <Plus className={showcase ? "size-[30px] text-accent" : "size-[34px]"} aria-hidden />
+              <Plus className={cn("size-7", showcase && "text-accent")} aria-hidden />
             </span>
             {showcase ? null : (
-              <span className="mt-1.5 block truncate text-[11.5px]">{t("New")}</span>
+              <span className="mt-2 block truncate text-[12px] font-medium">{t("New")}</span>
             )}
           </button>
         ) : null}
@@ -556,7 +548,7 @@ export function MemoriesShelf({
                     disabled={busy}
                     onClick={() => void setCover(covering, { cover: id })}
                     className={cn(
-                      "relative aspect-square overflow-hidden rounded-[12px] border-2 transition",
+                      "relative aspect-square overflow-hidden rounded-[12px] border-2 transition-colors duration-150",
                       on ? "border-accent" : "border-transparent",
                     )}
                   >
@@ -574,7 +566,7 @@ export function MemoriesShelf({
             type="button"
             disabled={busy}
             onClick={() => coverInput.current?.click()}
-            className="mt-3 flex w-full items-center gap-3 rounded-[12px] border border-line px-3 py-2.5 text-left text-[13px] font-semibold transition hover:border-accent hover:text-accent disabled:opacity-50"
+            className="mt-3 flex w-full items-center gap-3 rounded-[12px] border border-line px-3 py-2.5 text-left text-[13px] font-medium transition-colors duration-150 hover:border-accent hover:text-accent disabled:opacity-50"
           >
             <ImagePlus className="size-[18px]" aria-hidden />
             {t("Use a picture from this device")}

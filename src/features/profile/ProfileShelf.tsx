@@ -134,7 +134,7 @@ export function Square({ drop, showcase = false }: { drop: Drop; showcase?: bool
       to={dropTo(drop)}
       className={cn(
         "relative overflow-hidden bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]",
-        showcase ? "aspect-[4/5] rounded-[14px]" : "aspect-square rounded-[10px]",
+        showcase ? "aspect-[4/5] rounded-[12px]" : "aspect-square rounded-[10px]",
       )}
     >
       {still ? (
@@ -150,7 +150,7 @@ export function Square({ drop, showcase = false }: { drop: Drop; showcase?: bool
         // its mark, over the name it was given.
         <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2">
           <SoundMark kind={drop.sound_kind} className="size-[26px] text-accent" />
-          <span className="line-clamp-2 text-center text-[11.5px] font-semibold leading-[1.25]">
+          <span className="line-clamp-2 text-center text-[12px] font-medium leading-[1.3]">
             {soundName(drop, t("Audio"))}
           </span>
         </span>
@@ -163,7 +163,7 @@ export function Square({ drop, showcase = false }: { drop: Drop; showcase?: bool
       )}
 
       {clip ? (
-        <span className="absolute right-1.5 top-1.5 flex size-[23px] items-center justify-center rounded-full bg-black/55 text-white">
+        <span className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-[6px] bg-black/55 text-white">
           <Play className="size-[15px] fill-current" aria-hidden />
         </span>
       ) : null}
@@ -171,7 +171,7 @@ export function Square({ drop, showcase = false }: { drop: Drop; showcase?: bool
           arrow — and only over a cover, because a sound with no cover has its
           own mark in the middle of the tile already. */}
       {sound && still ? (
-        <span className="absolute right-1.5 top-1.5 flex size-[23px] items-center justify-center rounded-full bg-black/55 text-white">
+        <span className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-[6px] bg-black/55 text-white">
           <SoundMark kind={drop.sound_kind} className="size-[15px]" />
         </span>
       ) : null}
@@ -192,9 +192,9 @@ function ShelfRow({ drop }: { drop: Drop }) {
   return (
     <Link
       to={dropTo(drop)}
-      className="flex items-center gap-3 rounded-[16px] border border-line bg-card p-2.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]"
+      className="flex items-center gap-3 rounded-[12px] border border-line bg-card p-2.5 transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]"
     >
-      <span className="relative flex size-[56px] shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
+      <span className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
         {still ? (
           <AuthedImage
             src={still}
@@ -213,8 +213,8 @@ function ShelfRow({ drop }: { drop: Drop }) {
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-extrabold">{title}</span>
-        <span className="mt-0.5 block truncate text-[11.5px] text-dim">
+        <span className="block truncate text-[14px] font-medium">{title}</span>
+        <span className="mt-0.5 block truncate text-[12px] text-dim">
           {kindLabel(drop, t)}
           {drop.created_at ? ` \u00b7 ${new Date(drop.created_at).toLocaleDateString()}` : ""}
         </span>
@@ -252,8 +252,8 @@ export function PinnedStrip({
   return (
     <div className={className}>
       <div className="flex items-center gap-1.5 pb-2">
-        <Pin className="size-3.5 text-dim" aria-hidden />
-        <span className="text-[12px] font-bold tracking-[0.3px] text-dim">
+        <Pin className="size-4 text-dim" aria-hidden />
+        <span className="text-[12px] font-medium text-dim">
           {t("Pinned")}
         </span>
       </div>
@@ -279,7 +279,7 @@ function PinnedTile({ drop }: { drop: Drop }) {
 
   return (
     <Link to={dropTo(drop)} className="flex min-w-0 flex-col">
-      <span className="relative block aspect-square overflow-hidden rounded-[14px] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
+      <span className="relative block aspect-square overflow-hidden rounded-[12px] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
         {still ? (
           <AuthedImage
             src={still}
@@ -303,20 +303,20 @@ function PinnedTile({ drop }: { drop: Drop }) {
           </span>
         )}
         {clip ? (
-          <span className="absolute right-1.5 top-1.5 flex size-[23px] items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ink)_55%,transparent)] text-[var(--page)]">
+          <span className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-[6px] bg-[color-mix(in_srgb,var(--ink)_55%,transparent)] text-[var(--page)]">
             <Play className="size-[14px] fill-current" aria-hidden />
           </span>
         ) : null}
         {sound && still ? (
-          <span className="absolute right-1.5 top-1.5 flex size-[23px] items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ink)_55%,transparent)] text-[var(--page)]">
+          <span className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-[6px] bg-[color-mix(in_srgb,var(--ink)_55%,transparent)] text-[var(--page)]">
             <SoundMark kind={drop.sound_kind} className="size-[14px]" />
           </span>
         ) : null}
       </span>
-      <span className="mt-2 block truncate text-[13px] font-extrabold">
+      <span className="mt-2 block truncate text-[14px] font-medium">
         {title}
       </span>
-      <span className="mt-0.5 block truncate text-[11.5px] text-dim">
+      <span className="mt-0.5 block truncate text-[12px] text-dim">
         {kindLabel(drop, t)}
       </span>
     </Link>
@@ -431,7 +431,7 @@ export function ProfileShelf({
     if (locked) {
       return (
         <div className={cn("py-12 text-center", showcase ? "px-1" : "px-[18px]")}>
-          <p className="text-[13.5px] font-extrabold">{gate?.title || t("This account is private")}</p>
+          <p className="text-[14px] font-semibold">{gate?.title || t("This account is private")}</p>
           <p className="mx-auto mt-1 max-w-[320px] text-[12px] leading-5 text-dim">
             {gate?.text || t("Keep this account to see what they put up.")}
           </p>
@@ -471,7 +471,7 @@ export function ProfileShelf({
       if (vibes.isLoading && !vibeRows.length) return spinner;
       if (vibes.isError) return line(errorMessage(vibes.error));
       if (!vibeRows.length) {
-        return line(mine ? t("No vibes yet.") : t("Nothing here yet."));
+        return line(mine ? t("No vibes yet") : t("Nothing here yet"));
       }
       return shelfView(vibeRows, vibes.isFetchingNextPage);
     }
@@ -491,8 +491,8 @@ export function ProfileShelf({
     return line(
       mine
         ? tab === "audios"
-          ? t("No audios yet.")
-          : t("Nothing dropped yet.")
+          ? t("No audios yet")
+          : t("Nothing dropped yet")
         : t("Nothing here yet."),
     );
   }
@@ -516,15 +516,15 @@ export function ProfileShelf({
               type="button"
               onClick={() => setTab(pill.key)}
               className={cn(
-                "shrink-0 rounded-full border tracking-[0.2px] transition",
+                "shrink-0 rounded-[10px] border transition-colors duration-150",
                 showcase
-                  ? "inline-flex items-center gap-1.5 px-4 py-2.5 text-[13.5px]"
-                  : "px-3.5 py-[7px] text-[13px]",
+                  ? "inline-flex items-center gap-2 px-4 py-2 text-[13px]"
+                  : "px-3 py-2 text-[13px]",
                 on
                   ? showcase
-                    ? "border-transparent bg-accent font-bold text-on-accent shadow-[0_8px_18px_-12px_color-mix(in_srgb,var(--accent)_90%,transparent)]"
-                    : "border-[color-mix(in_srgb,var(--accent)_50%,transparent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] font-bold text-accent"
-                  : "border-transparent bg-[color-mix(in_srgb,var(--ink)_5%,transparent)] font-semibold text-[color-mix(in_srgb,var(--ink)_70%,transparent)]",
+                    ? "border-transparent bg-accent font-semibold text-on-accent shadow-[0_8px_18px_-12px_color-mix(in_srgb,var(--accent)_90%,transparent)]"
+                    : "border-[color-mix(in_srgb,var(--accent)_50%,transparent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] font-semibold text-accent"
+                  : "border-transparent bg-[color-mix(in_srgb,var(--ink)_5%,transparent)] font-medium text-[color-mix(in_srgb,var(--ink)_70%,transparent)]",
               )}
               aria-pressed={on}
             >
@@ -534,14 +534,14 @@ export function ProfileShelf({
           );
         })}
         {showcase && tab !== "showcase" ? (
-          <div className="ml-auto flex shrink-0 items-center gap-1 rounded-[14px] border border-line bg-card p-1">
+          <div className="ml-auto flex shrink-0 items-center gap-1 rounded-[12px] border border-line bg-card p-1">
             <button
               type="button"
               onClick={() => setLayout("grid")}
               aria-label={t("Grid")}
               aria-pressed={layout === "grid"}
               className={cn(
-                "flex size-9 items-center justify-center rounded-[11px] transition",
+                "flex size-8 items-center justify-center rounded-[8px] transition-colors duration-150",
                 layout === "grid"
                   ? "bg-accent text-on-accent shadow-[0_10px_20px_-12px_color-mix(in_srgb,var(--accent)_90%,transparent)]"
                   : "text-dim hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]",
@@ -555,7 +555,7 @@ export function ProfileShelf({
               aria-label={t("List")}
               aria-pressed={layout === "list"}
               className={cn(
-                "flex size-8 items-center justify-center rounded-[10px] transition",
+                "flex size-8 items-center justify-center rounded-[8px] transition-colors duration-150",
                 layout === "list"
                   ? "bg-accent text-on-accent shadow-[0_10px_20px_-12px_color-mix(in_srgb,var(--accent)_90%,transparent)]"
                   : "text-dim hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]",

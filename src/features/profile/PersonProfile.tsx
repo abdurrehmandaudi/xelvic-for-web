@@ -24,13 +24,11 @@ import {
   Mail,
   MapPin,
   MessageCircle,
-  Minus,
   MoreHorizontal,
   Plus,
   Settings2,
   QrCode,
   UserPlus,
-  UserRound,
   Users,
   VolumeX,
   X,
@@ -39,7 +37,11 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Blank } from "@/components/ui/Blank";
-import { ConfirmDialog, Modal, PromptDialog } from "@/components/overlays/Modal";
+import {
+  ConfirmDialog,
+  Modal,
+  PromptDialog,
+} from "@/components/overlays/Modal";
 import { PageSkeleton } from "@/components/ui/States";
 import { VerifiedTick } from "@/components/icons/Tick";
 import { ConvoSheet } from "@/features/convo/ConvoSheet";
@@ -51,6 +53,7 @@ import { BirthdayFall } from "@/features/profile/BirthdayFall";
 import { isBirthdayTodayIn } from "@/features/profile/birthday";
 import { MemoriesShelf } from "@/features/profile/MemoriesShelf";
 import {
+  BirthdayPill,
   Chip,
   COVER_CONTROL,
   FaceButton,
@@ -65,14 +68,16 @@ import {
   PROFILE_HEAD_TEXT,
   PROFILE_MAX,
   PROFILE_PHOTO,
+  PROFILE_SECTION,
+  ProfileCard,
   ProfileCover,
+  ProfileStats,
   QUIET_PILL,
   SOLID_PILL,
   SheetRow,
-  Sparkline,
-  StatCard,
   TILE_CONTROL,
   askPulse,
+  type ProfileStat,
 } from "@/features/profile/parts";
 import { PinnedStrip, ProfileShelf } from "@/features/profile/ProfileShelf";
 import { ProfessionalLead, linkPillIcon } from "@/features/professional/parts";
@@ -106,16 +111,6 @@ interface PeopleState {
   cta: string | null;
 }
 
-interface Metric {
-  key: string;
-  label: string;
-  value?: number | null;
-  icon: LucideIcon;
-  tone: string;
-  sparkline?: boolean;
-  onOpen?: () => void;
-}
-
 interface Detail {
   icon: LucideIcon;
   text: string;
@@ -123,7 +118,7 @@ interface Detail {
 }
 
 /** The mark for a gate's action, from the server's own name for it. */
-function gateIcon(hint: string | null | undefined, className = "size-[19px]") {
+function gateIcon(hint: string | null | undefined, className = "size-[18px]") {
   const Mark =
     {
       plus: Plus,
@@ -244,6 +239,15 @@ export function PersonProfile() {
       ),
     [tray.data, personId],
   );
+  const liveFresh = useMemo(
+    () =>
+      Boolean(
+        (tray.data?.unseen ?? []).some(
+          (row) => row.author?.id === personId,
+        ),
+      ),
+    [tray.data, personId],
+  );
 
   /** Their day, once it has been fetched — the walk the viewer plays. */
   const [day, setDay] = useState<Moment[] | null>(null);
@@ -253,7 +257,9 @@ export function PersonProfile() {
   const links = useMemo(() => profile?.links ?? [], [profile?.links]);
   const open = profile?.is_private ? t("private") : t("public");
   const handle = profile?.username ?? username;
-  const mine = isMe ? null : aliasOf(profile?.id, profile?.username ?? username);
+  const mine = isMe
+    ? null
+    : aliasOf(profile?.id, profile?.username ?? username);
   const name = mine || profile?.name || handle;
   const trading = profile?.is_company
     ? String(profile?.category ?? "").trim()
@@ -292,7 +298,9 @@ export function PersonProfile() {
     rememberName(profile.id, profile.username, next);
     setRenameOpen(false);
     toast({
-      title: next.trim() ? t("Saved on this device.") : t("Back to their own name."),
+      title: next.trim()
+        ? t("Saved on this device.")
+        : t("Back to their own name."),
       tone: "success",
     });
   }
@@ -329,7 +337,7 @@ export function PersonProfile() {
     // this page should not be the one to lean on.
     return null;
   }, [isPublic, blocked, isMe, following, relation?.follow_state, t]);
-  
+
   function apply(next: PeopleState) {
     setState(next);
     queryClient.setQueryData<Profile>(["profile", username], (current) =>
@@ -492,7 +500,7 @@ export function PersonProfile() {
         />
         <div className="absolute inset-x-0 top-0 z-20 p-3">
           <Floating
-            icon={<ArrowLeft className="size-[19px]" />}
+            icon={<ArrowLeft className="size-[18px]" />}
             label={t("Back")}
             onTap={() =>
               window.history.length > 1 ? navigate(-1) : navigate("/app/drops")
@@ -539,7 +547,7 @@ export function PersonProfile() {
         ? t("Be the first in their Crew")
         : t(`${count(followerCount)} in their Crew`);
 
-  const metrics: Metric[] = [];
+  const metrics: ProfileStat[] = [];
   if (canView) {
     metrics.push({
       key: "drops",
@@ -547,7 +555,6 @@ export function PersonProfile() {
       value: profile.posts_count,
       icon: Gem,
       tone: "var(--tone-pink)",
-      sparkline: true,
     });
   }
   if (
@@ -561,7 +568,6 @@ export function PersonProfile() {
       value: profile.sparks_count,
       icon: Zap,
       tone: "var(--tone-violet)",
-      sparkline: true,
     });
   }
   if (
@@ -574,7 +580,6 @@ export function PersonProfile() {
       value: profile.followers_count,
       icon: Users,
       tone: "var(--tone-blue)",
-      sparkline: true,
     });
   }
 
@@ -607,7 +612,6 @@ export function PersonProfile() {
     });
   }
 
-
   const actionRow = (
     <div className="flex flex-wrap items-center gap-2">
       {canSend ? (
@@ -618,41 +622,26 @@ export function PersonProfile() {
           style={following && !busy ? askPulse(palette.isDark) : undefined}
           className={SOLID_PILL}
         >
-          <MessageCircle className="size-[17px]" aria-hidden />
+          <MessageCircle className="size-[18px]" aria-hidden />
           {gate?.text_only === true ? t("Start one convo") : t("Message")}
         </button>
       ) : null}
-      {following || canKeep ? (
+      {following || (canKeep && !keepDoor) ? (
         <button
           type="button"
           disabled={busy}
           onClick={() => void act(following ? "unfollow" : "follow")}
           aria-label={following ? t("Let go") : t("Keep")}
+          aria-pressed={following}
           title={following ? t("Let go") : t("Keep")}
-          style={!following && !canSend && !busy ? askPulse(palette.isDark) : undefined}
-          className={cn(
-            "relative inline-flex size-[52px] shrink-0 items-center justify-center rounded-full border transition-[transform,background-color,border-color,color,opacity] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55",
-            following || canSend
-              ? "border-line bg-card text-ink hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]"
-              : "border-transparent bg-[linear-gradient(135deg,var(--accent),var(--accent-pill))] text-on-accent shadow-[0_12px_26px_-14px_color-mix(in_srgb,var(--accent)_90%,transparent)] hover:brightness-105",
-          )}
+          className={following ? QUIET_PILL : SOLID_PILL}
         >
-          <span className="relative flex size-[19px] items-center justify-center">
-            <Plus
-              className={cn(
-                "size-[19px] transition-[opacity,transform] duration-200 ease-out",
-                following ? "scale-75 opacity-0" : "scale-100 opacity-100",
-              )}
-              aria-hidden
-            />
-            <Minus
-              className={cn(
-                "absolute inset-0 m-auto size-[19px] transition-[opacity,transform] duration-200 ease-out",
-                following ? "scale-100 opacity-100" : "scale-75 opacity-0",
-              )}
-              aria-hidden
-            />
-          </span>
+          {following ? (
+            <CheckCircle2 className="size-[17px]" aria-hidden />
+          ) : (
+            <UserPlus className="size-[17px]" aria-hidden />
+          )}
+          {following ? t("Following") : t("Keep")}
         </button>
       ) : cta && action ? (
         <button
@@ -666,7 +655,7 @@ export function PersonProfile() {
           }
           className={canSend ? QUIET_PILL : SOLID_PILL}
         >
-          {gateIcon(gate?.icon, "size-[17px]")}
+          {gateIcon(gate?.icon, "size-[18px]")}
           {t(cta)}
         </button>
       ) : ask ? (
@@ -674,7 +663,11 @@ export function PersonProfile() {
           type="button"
           disabled={busy}
           onClick={() => void act(ask.action)}
-          style={!busy && ask.action === "request" ? askPulse(palette.isDark) : undefined}
+          style={
+            !busy && ask.action === "request"
+              ? askPulse(palette.isDark)
+              : undefined
+          }
           className={canSend ? QUIET_PILL : SOLID_PILL}
         >
           {ask.icon}
@@ -688,13 +681,13 @@ export function PersonProfile() {
         onClick={() => setQr(true)}
         className={TILE_CONTROL}
       >
-        <QrCode className="size-[19px]" aria-hidden />
+        <QrCode className="size-[18px]" aria-hidden />
       </button>
     </div>
   );
 
   return (
-    <div className="relative isolate min-h-dvh bg-card pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-24">
+    <div className="relative isolate min-h-dvh bg-card pb-[calc(26px+env(safe-area-inset-bottom,0px))]">
       <article className="overflow-hidden bg-card">
         <ProfileCover url={profile.cover} art={design.coverArt}>
           <button
@@ -706,7 +699,7 @@ export function PersonProfile() {
             }
             className={COVER_CONTROL}
           >
-            <ArrowLeft className="size-5" aria-hidden />
+            <ArrowLeft className="size-[18px]" aria-hidden />
           </button>
           <button
             type="button"
@@ -717,82 +710,72 @@ export function PersonProfile() {
             onClick={openMenuAt}
             className={COVER_CONTROL}
           >
-            <MoreHorizontal className="size-5" aria-hidden />
+            <MoreHorizontal className="size-[18px]" aria-hidden />
           </button>
         </ProfileCover>
 
-        <div className={cn(PROFILE_MAX, PROFILE_GUTTER, "relative pb-4 sm:pb-5")}>
+        <div className={cn(PROFILE_MAX, PROFILE_GUTTER, "relative")}>
           <div className={PROFILE_HEAD}>
             <div className={PROFILE_FACE}>
-              <div className="relative rounded-full bg-[color-mix(in_srgb,var(--accent)_84%,transparent)] p-[4px] shadow-[0_20px_38px_-22px_color-mix(in_srgb,var(--ink)_72%,transparent)]">
-                <div className="relative rounded-full border-[3px] border-card bg-card p-[3px]">
-                  <FaceButton
-                    user={profile}
-                    size={wide ? PROFILE_PHOTO.wide : PROFILE_PHOTO.narrow}
-                    tone={liveRow ? (liveRow.seen ? "faded" : "accent") : "page"}
-                    label={liveRow ? t("Open their day") : t("Their photo")}
-                    title={t("Hold to see their photo")}
-                    onTap={() => {
-                      if (liveRow) void openDay();
-                      else setFaceOpen(true);
-                    }}
-                    onHold={() => setFaceOpen(true)}
-                  />
-                  {profile.online ? (
-                    <span className="absolute bottom-[6px] right-[6px] size-5 rounded-full border-[3px] border-card bg-[var(--good)]" />
-                  ) : null}
-                </div>
-              </div>
+              <FaceButton
+                user={profile}
+                size={wide ? PROFILE_PHOTO.wide : PROFILE_PHOTO.narrow}
+                ring={liveRow ? (liveFresh ? "new" : "seen") : null}
+                label={liveRow ? t("Open their day") : t("Their photo")}
+                title={t("Hold to see their photo")}
+                onTap={() => {
+                  if (liveRow) void openDay();
+                  else setFaceOpen(true);
+                }}
+                onHold={() => setFaceOpen(true)}
+              />
             </div>
 
             <div className={PROFILE_HEAD_TEXT}>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-3 sm:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   {trading ? (
-                    <ProfessionalLead trade={trading} t={t} className="mb-1 justify-start" />
+                    <ProfessionalLead
+                      trade={trading}
+                      t={t}
+                      className="mb-1.5 justify-start"
+                    />
                   ) : null}
                   <div className="flex min-w-0 items-center gap-2">
-                    <h1 className="truncate text-[28px] font-extrabold leading-[1.05] tracking-[-0.045em] sm:text-[34px]">
+                    <h1 className="truncate text-[26px] font-extrabold leading-[1.08] tracking-[-0.02em] sm:text-[32px]">
                       {name}
                     </h1>
                     {profile.verified ? (
                       <span className="flex shrink-0">
-                        <VerifiedTick size={22} />
+                        <VerifiedTick size={20} />
                       </span>
                     ) : null}
                   </div>
+                  <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-[13px] font-medium text-dim">
+                    <span className="truncate">@{handle}</span>
+                    <span aria-hidden>&middot;</span>
+                    <span className="shrink-0">{t("Privacy:")}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPrivacyOpen(true)}
+                      aria-expanded={privacyOpen}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-[8px] border border-[color-mix(in_srgb,var(--accent)_22%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--card))] px-2.5 py-1 text-[12px] font-semibold capitalize text-accent transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--accent)_13%,var(--card))]"
+                    >
+                      {profile.is_private ? (
+                        <Lock className="size-3.5" aria-hidden />
+                      ) : (
+                        <Globe className="size-3.5" aria-hidden />
+                      )}
+                      {open}
+                      <ChevronDown className="size-3.5" aria-hidden />
+                    </button>
+                  </div>
                 </div>
-                {actionRow}
+                <div className="shrink-0">{actionRow}</div>
               </div>
-
-              <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 text-[13.5px] font-semibold text-dim">
-                <span className="truncate">@{handle}</span>
-                <span aria-hidden>&middot;</span>
-                <span className="shrink-0">{t("Privacy:")}</span>
-                <button
-                  type="button"
-                  onClick={() => setPrivacyOpen(true)}
-                  aria-expanded={privacyOpen}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--accent)_22%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--card))] px-3 py-1 text-[12.5px] font-bold capitalize text-accent transition hover:bg-[color-mix(in_srgb,var(--accent)_13%,var(--card))]"
-                >
-                  {profile.is_private ? (
-                    <Lock className="size-3" aria-hidden />
-                  ) : (
-                    <Globe className="size-3" aria-hidden />
-                  )}
-                  {open}
-                  <ChevronDown className="size-3" aria-hidden />
-                </button>
-              </div>
-
-              {bio ? (
-                <p className="mt-2.5 line-clamp-2 max-w-[62ch] text-[14.5px] font-semibold leading-[1.45] text-[color-mix(in_srgb,var(--ink)_76%,transparent)]">
-                  {bio}
-                </p>
-              ) : null}
 
               {chips.length ? (
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   {chips.map((chip, index) => (
                     <Chip
                       key={`${chip.text}-${index}`}
@@ -804,87 +787,61 @@ export function PersonProfile() {
                 </div>
               ) : null}
 
-              {birthdayToday ? (
-                <span className="mt-2.5 flex max-w-full items-center gap-[7px] rounded-full border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-3 py-[7px]">
-                  <BirthdayCake />
-                  <span className="min-w-0 truncate text-[12px] font-bold text-accent">
-                    {t(`${name}'s birthday is today`)}
-                  </span>
-                </span>
-              ) : null}
+              {birthdayToday ? <BirthdayPill name={name} /> : null}
             </div>
           </div>
 
-          {metrics.length > 0 ? (
-            <div
-              className={cn(
-                "mt-5 grid gap-2 sm:gap-3",
-                metrics.length === 1
-                  ? "grid-cols-1"
-                  : metrics.length === 2
-                    ? "grid-cols-2"
-                    : "grid-cols-3",
-              )}
-            >
-              {metrics.map(({ key, ...metric }) => (
-                <StatCard
-                  key={key}
-                  label={metric.label}
-                  value={metric.value}
-                  icon={metric.icon}
-                  tone={metric.tone}
-                  onTap={metric.onOpen}
-                  trailing={metric.sparkline ? <Sparkline tone={metric.tone} /> : null}
-                />
-              ))}
-            </div>
-          ) : null}
+          <ProfileStats items={metrics} className="mt-5" />
 
           {keepDoor ? (
             justKept ? (
-              <div className="mt-3.5 flex items-center rounded-[18px] border border-[color-mix(in_srgb,var(--good)_38%,transparent)] bg-[color-mix(in_srgb,var(--good)_12%,var(--card))] px-3.5 py-3">
-                <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--good)_16%,transparent)] text-[var(--good)]">
+              <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[color-mix(in_srgb,var(--good)_38%,transparent)] bg-[color-mix(in_srgb,var(--good)_10%,var(--card))] px-4 py-3.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--good)_16%,transparent)] text-[var(--good)]">
                   <CheckCircle2 className="size-[18px]" aria-hidden />
                 </span>
-                <span className="ml-[11px] min-w-0 flex-1">
-                  <span className="block text-[14px] font-bold">{t(`${first} is in your Kept.`)}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold">
+                    {t(`${first} is in your Kept`)}
+                  </span>
                   {keepCount ? (
-                    <span className="mt-0.5 block text-[12px] font-semibold text-dim">
+                    <span className="mt-0.5 block text-[12px] text-dim tabular-nums">
                       {keepCount}
                     </span>
                   ) : null}
                 </span>
               </div>
             ) : (
-              <div className="mt-3.5 rounded-[18px] border border-[color-mix(in_srgb,var(--accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--accent)_9%,var(--card))] px-3.5 pb-3 pt-3.5">
-                <div className="flex items-start">
-                  <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent">
-                    <UserPlus className="size-[18px]" aria-hidden />
+              <div className="mt-4 rounded-[14px] border border-[color-mix(in_srgb,var(--accent)_20%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_7%,var(--card))] p-4 sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-[color-mix(in_srgb,var(--accent)_13%,transparent)] text-accent">
+                    <UserPlus className="size-[19px]" aria-hidden />
                   </span>
-                  <span className="ml-3 min-w-0 flex-1">
-                    <span className="block text-[15.5px] font-extrabold tracking-[-0.2px]">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[14.5px] font-semibold">
                       {t(`Keep ${first}`)}
                     </span>
-                    <span className="mt-[3px] block text-[12.5px] leading-[1.35] text-dim">
-                      {t("They join your Kept, and can message you, call you and send you a moment.")}
+                    <span className="mt-1 block max-w-[66ch] text-[12.5px] leading-5 text-dim">
+                      {t(
+                        "They join your Kept, and can message you, call you and send you a moment",
+                      )}
                     </span>
                   </span>
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void act("follow")}
-                    className="inline-flex select-none items-center justify-center rounded-full bg-accent px-[18px] py-2.5 text-[13px] font-extrabold text-on-accent transition-[transform,background-color,color,opacity] duration-200 ease-out active:scale-[0.97] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-55"
-                  >
-                    {t("Keep")}
-                  </button>
-                  {keepCount ? (
-                    <span className="inline-flex items-center gap-[5px] rounded-full bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] px-2.5 py-[7px] text-[11.5px] font-semibold text-dim">
-                      <Users className="size-[13px]" aria-hidden />
-                      {keepCount}
-                    </span>
-                  ) : null}
+                  <div className="flex shrink-0 items-center gap-3">
+                    {keepCount ? (
+                      <span className="inline-flex items-center gap-2 text-[12px] font-medium text-dim tabular-nums">
+                        <Users className="size-4" aria-hidden />
+                        {keepCount}
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void act("follow")}
+                      className={SOLID_PILL}
+                    >
+                      {t("Keep")}
+                    </button>
+                  </div>
                 </div>
               </div>
             )
@@ -900,84 +857,77 @@ export function PersonProfile() {
         </div>
       </article>
 
-      <div className={cn(PROFILE_MAX, PROFILE_GUTTER)}>
-        <section className={cn(PROFILE_CARD, "mt-3 p-4 sm:p-5")}>
-          <div
-            className={cn(
-              "grid gap-5",
-              details.length > 0 &&
-                "md:grid-cols-[minmax(0,1fr)_240px] md:gap-6",
+      <div className={cn(PROFILE_MAX, PROFILE_GUTTER, PROFILE_SECTION)}>
+        <div className="space-y-4 lg:space-y-5">
+          <ProfileCard>
+            {bio ? (
+              <PosedBio
+                text={bio}
+                character={profile.character ?? null}
+                show={profile.show_character ?? null}
+                className="max-w-[680px] px-0 pt-0"
+              />
+            ) : (
+              <p className="text-[14px] leading-6 text-ink/75">
+                {t("No bio yet")}
+              </p>
             )}
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-[15px] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent">
-                  <UserRound className="size-[21px]" aria-hidden />
-                </span>
-                <h2 className="text-[22px] font-extrabold tracking-[-0.03em]">
-                  {t("About Me")}
-                </h2>
-              </div>
-              {bio ? (
-                <PosedBio
-                  text={bio}
-                  character={profile.character ?? null}
-                  show={profile.show_character ?? null}
-                  className="mt-2 px-0 pt-0"
-                />
-              ) : (
-                <p className="mt-3 text-[14.5px] leading-7 text-ink/75">{t("No bio yet.")}</p>
-              )}
-            </div>
-            {details.length > 0 ? (
-              <div className="space-y-4 md:border-l md:border-line md:pl-6">
+          </ProfileCard>
+
+          {details.length > 0 ? (
+            <ProfileCard title={t("Details")}>
+              <div className="space-y-3.5">
                 {details.map((detail, index) => (
                   <DetailRow key={`${detail.text}-${index}`} {...detail} />
                 ))}
               </div>
-            ) : null}
-          </div>
-        </section>
+            </ProfileCard>
+          ) : null}
 
-        {gate?.title && gate.text_only !== true ? (
-          <div className="mt-3 flex items-start gap-3 rounded-[22px] border border-[color-mix(in_srgb,var(--accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,var(--card))] px-4 py-3.5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent">
-              <Lock className="size-[17px]" aria-hidden />
-            </span>
-            <span className="min-w-0 pt-0.5">
-              <span className="block text-[14.5px] font-bold">
-                {gate.title}
+          {gate?.title && gate.text_only !== true ? (
+            <section
+              className={cn(
+                PROFILE_CARD,
+                "flex items-start gap-3 border-[color-mix(in_srgb,var(--accent)_22%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_7%,var(--card))] p-4 sm:p-5",
+              )}
+            >
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent">
+                <Lock className="size-[18px]" aria-hidden />
               </span>
-              {gate.text ? (
-                <span className="mt-1 block text-[12.5px] leading-[1.45] text-dim">
-                  {gate.text}
+              <span className="min-w-0 pt-0.5">
+                <span className="block text-[14px] font-semibold">
+                  {gate.title}
                 </span>
-              ) : null}
-            </span>
-          </div>
-        ) : null}
+                {gate.text ? (
+                  <span className="mt-1 block text-[12.5px] leading-5 text-dim">
+                    {gate.text}
+                  </span>
+                ) : null}
+              </span>
+            </section>
+          ) : null}
 
-        <MemoriesShelf
-          username={handle}
-          mine={false}
-          author={profile ?? null}
-          variant="showcase"
-          className={cn(PROFILE_CARD, "mt-3 overflow-hidden p-3.5 sm:p-4")}
-        />
+          <MemoriesShelf
+            username={handle}
+            mine={false}
+            author={profile ?? null}
+            variant="showcase"
+            className={cn(PROFILE_CARD, "overflow-hidden p-4 sm:p-5")}
+          />
 
-        {canView ? (
-          <div className={cn(PROFILE_CARD, "mt-3 overflow-hidden p-3.5 sm:p-4")}>
-            <PinnedStrip username={handle} className="pb-3" />
-            <ProfileShelf
-              username={handle}
-              mine={false}
-              hasShowcase={Boolean(profile.is_company)}
-              variant="showcase"
-            />
-          </div>
-        ) : null}
+          {canView ? (
+            <div className={cn(PROFILE_CARD, "overflow-hidden p-4 sm:p-5")}>
+              <PinnedStrip username={handle} className="pb-3" />
+              <ProfileShelf
+                username={handle}
+                mine={false}
+                hasShowcase={Boolean(profile.is_company)}
+                variant="showcase"
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
-
       {birthdayToday ? <BirthdayFall /> : null}
 
       {menu && menuPos
@@ -997,59 +947,61 @@ export function PersonProfile() {
                   right: menuPos.right,
                   maxHeight: menuPos.maxHeight,
                 }}
-                className="absolute w-[min(19rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-[20px] border border-line bg-card p-1.5 shadow-[0_18px_50px_-18px_color-mix(in_srgb,var(--ink)_40%,transparent)]"
+                className="absolute w-[min(19rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-[14px] border border-line bg-card p-1.5 shadow-[0_18px_50px_-18px_color-mix(in_srgb,var(--ink)_40%,transparent)]"
               >
-        <div className="py-1.5">
-          {!isMe ? (
-            <SheetRow
-              icon={<BadgePlus className="size-[21px]" />}
-              label={mine ? t("Change the name") : t("Rename")}
-              line={t("A name only you see")}
-              onClick={() => {
-                setMenu(false);
-                setRenameOpen(true);
-              }}
-            />
-          ) : null}
-          <SheetRow
-            icon={<VolumeX className="size-[21px]" />}
-            label={muted ? t("Unmute their posts") : t("Mute their posts")}
-            onClick={() => void mutePosts()}
-          />
-          {!isMe ? (
-            <SheetRow
-              icon={<Flag className="size-[21px]" />}
-              label={t("Report")}
-              onClick={() => {
-                setMenu(false);
-                setReportOpen(true);
-              }}
-            />
-          ) : null}
-          {convo ? (
-            <>
-              <div className="my-1.5 border-t border-line" />
-              <SheetRow
-                icon={<Zap className="size-[21px]" />}
-                label={t("Spark")}
-                line={t("The run the two of you are on.")}
-                onClick={() => {
-                  setMenu(false);
-                  setSparkOpen(true);
-                }}
-              />
-              <SheetRow
-                icon={<Settings2 className="size-[21px]" />}
-                label={t("Convo settings")}
-                line={t("Wallpaper, theme, disappearing and the rest.")}
-                onClick={() => {
-                  setMenu(false);
-                  setConvoOpen(true);
-                }}
-              />
-            </>
-          ) : null}
-        </div>
+                <div className="py-1.5">
+                  {!isMe ? (
+                    <SheetRow
+                      icon={<BadgePlus className="size-[18px]" />}
+                      label={mine ? t("Change the name") : t("Rename")}
+                      line={t("A name only you see")}
+                      onClick={() => {
+                        setMenu(false);
+                        setRenameOpen(true);
+                      }}
+                    />
+                  ) : null}
+                  <SheetRow
+                    icon={<VolumeX className="size-[18px]" />}
+                    label={
+                      muted ? t("Unmute their posts") : t("Mute their posts")
+                    }
+                    onClick={() => void mutePosts()}
+                  />
+                  {!isMe ? (
+                    <SheetRow
+                      icon={<Flag className="size-[18px]" />}
+                      label={t("Report")}
+                      onClick={() => {
+                        setMenu(false);
+                        setReportOpen(true);
+                      }}
+                    />
+                  ) : null}
+                  {convo ? (
+                    <>
+                      <div className="my-1.5 border-t border-line" />
+                      <SheetRow
+                        icon={<Zap className="size-[18px]" />}
+                        label={t("Spark")}
+                        line={t("The run the two of you are on.")}
+                        onClick={() => {
+                          setMenu(false);
+                          setSparkOpen(true);
+                        }}
+                      />
+                      <SheetRow
+                        icon={<Settings2 className="size-[18px]" />}
+                        label={t("Convo settings")}
+                        line={t("Wallpaper, theme, disappearing and the rest.")}
+                        onClick={() => {
+                          setMenu(false);
+                          setConvoOpen(true);
+                        }}
+                      />
+                    </>
+                  ) : null}
+                </div>
               </div>
             </div>,
             document.body,
@@ -1075,7 +1027,9 @@ export function PersonProfile() {
           onClose={() => setConvoOpen(false)}
           thread={convo}
           kind="convo"
-          onChanged={() => void queryClient.invalidateQueries({ queryKey: ["threads"] })}
+          onChanged={() =>
+            void queryClient.invalidateQueries({ queryKey: ["threads"] })
+          }
           onGone={() => {
             setConvoOpen(false);
             void queryClient.invalidateQueries({ queryKey: ["threads"] });
@@ -1179,11 +1133,11 @@ export function PersonProfile() {
         size="sm"
       >
         <div className="flex items-start gap-3 px-5 py-4">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent">
             {profile.is_private ? (
-              <Lock className="size-[19px]" aria-hidden />
+              <Lock className="size-[18px]" aria-hidden />
             ) : (
-              <Globe className="size-[19px]" aria-hidden />
+              <Globe className="size-[18px]" aria-hidden />
             )}
           </span>
           <p className="pt-0.5 text-[13px] leading-6 text-dim">
@@ -1207,7 +1161,7 @@ export function PersonProfile() {
           <span className="flex items-center gap-2.5">
             <Avatar user={profile} size={40} />
             <span className="min-w-0 text-left">
-              <span className="block truncate text-[15px] font-bold">
+              <span className="block truncate text-[14px] font-medium">
                 {name}
               </span>
               <span className="block truncate text-[12px] text-dim">
@@ -1215,7 +1169,7 @@ export function PersonProfile() {
               </span>
             </span>
           </span>
-          <div className="mt-4 rounded-[20px] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-card p-3.5">
+          <div className="mt-4 rounded-[14px] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-card p-3.5">
             {/* Drawn in the theme's accent rather than the app's near-black: the
                 accent is the one colour a theme guarantees reads as text on its
                 own page, which is the contrast a scanner wants off the card. */}
@@ -1229,7 +1183,7 @@ export function PersonProfile() {
               className="text-accent"
             />
           </div>
-          <p className="mt-3.5 text-center text-[12.5px] leading-[1.4] text-dim">
+          <p className="mt-4 text-center text-[12px] leading-[1.5] text-dim">
             {t("Point the Xelvic scanner at this to open their profile.")}
           </p>
           <button
@@ -1279,13 +1233,14 @@ export function PersonProfile() {
   );
 }
 
+/** One line of the About card: a mark and the thing it names. */
 function DetailRow({ icon: Icon, text, onClick }: Detail) {
   const body = (
     <>
       <span className="flex size-5 shrink-0 items-center justify-center text-[color-mix(in_srgb,var(--ink)_45%,transparent)]">
-        <Icon className="size-[19px]" aria-hidden />
+        <Icon className="size-[18px]" aria-hidden />
       </span>
-      <span className="min-w-0 truncate text-[13.5px] font-semibold text-ink/80">
+      <span className="min-w-0 truncate text-[13px] font-medium text-ink/80">
         {text}
       </span>
     </>
@@ -1297,40 +1252,9 @@ function DetailRow({ icon: Icon, text, onClick }: Detail) {
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full min-w-0 items-center gap-2.5 text-left transition hover:text-accent"
+      className="flex w-full min-w-0 items-center gap-2.5 text-left transition-colors duration-150 hover:text-accent"
     >
       {body}
     </button>
-  );
-}
-
-/** The cake on a birthday line, drawn rather than taken from a font. */
-function BirthdayCake() {
-  return (
-    <svg
-      width={14}
-      height={14}
-      viewBox="0 0 14 14"
-      aria-hidden
-      className="shrink-0 text-accent"
-    >
-      <path
-        d="M7 1.1c.7.9 1.1 1.5 1.1 2a1.1 1.1 0 1 1-2.2 0c0-.5.4-1.1 1.1-2Z"
-        fill="currentColor"
-      />
-      <path
-        d="M2.4 6.2h9.2v1.1c0 .6-.5 1.1-1.1 1.1-.6 0-1.1-.5-1.1-1.1 0 .6-.5 1.1-1.1 1.1-.6 0-1.1-.5-1.1-1.1 0 .6-.5 1.1-1.1 1.1-.6 0-1.1-.5-1.1-1.1 0 .6-.5 1.1-1.1 1.1-.6 0-1.1-.5-1.1-1.1V6.2Z"
-        fill="currentColor"
-        opacity="0.45"
-      />
-      <rect
-        x="2.4"
-        y="9.2"
-        width="9.2"
-        height="3.4"
-        rx="1"
-        fill="currentColor"
-      />
-    </svg>
   );
 }
