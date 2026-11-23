@@ -619,7 +619,6 @@ function initialsOf(name: string): string {
 export type CardFace = {
   name?: string | null;
   avatar?: string | null;
-  online?: boolean | null;
 };
 
 /**
@@ -813,20 +812,6 @@ function face(
       weight: 700,
       colour: "#FFFFFF",
     });
-  }
-
-  if (who?.online) {
-    const dotX = cx + r * 0.72;
-    const dotY = cy + r * 0.72;
-    const dot = options.radius ? Math.max(14, r * 0.26) : 22;
-    ctx.beginPath();
-    ctx.arc(dotX, dotY, dot, 0, Math.PI * 2);
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(dotX, dotY, dot * 0.73, 0, Math.PI * 2);
-    ctx.fillStyle = CARD_GOOD;
-    ctx.fill();
   }
 
   const nameSize = options.nameSize ?? 40;

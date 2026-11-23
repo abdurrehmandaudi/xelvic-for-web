@@ -29,6 +29,8 @@ Disallow: /settings
 Disallow: /deals
 Disallow: /qr
 Disallow: /circles/
+Disallow: /videos
+Disallow: /kids
 
 # The static sitemap lists the landing page. Public profiles, drops and vibes
 # need the server-side sitemap described in docs/PUBLIC_CONTENT_AND_SEO.md.

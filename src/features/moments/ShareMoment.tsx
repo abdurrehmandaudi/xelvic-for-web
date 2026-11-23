@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { LoaderCircle, Lock, Users, EyeOff } from "lucide-react";
+import { LoaderCircle, Lock, MapPin, Users, EyeOff, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/overlays/Modal";
+import { cn } from "@/utils/cn";
 import { errorMessage } from "@/utils/errors";
 import { uploadAsset } from "@/utils/upload";
 import { useToast } from "@/hooks/useToast";
 import { momentsService } from "@/services/moments.service";
+import { MomentEditor } from "./MomentEditor";
+import { MomentPlaceSheet } from "./MomentPlaceSheet";
 import {
   audienceIds,
   audienceLabel,
@@ -42,25 +45,36 @@ export function ShareMoment({
 }) {
   const [audience, setAudience] = useState<Audience>(EVERYONE);
   const [audienceOpen, setAudienceOpen] = useState(false);
+  const [place, setPlace] = useState("");
+  const [placeOpen, setPlaceOpen] = useState(false);
+  const [edited, setEdited] = useState<MomentPick[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState("");
   const { toast } = useToast();
 
+  const needsEdit =
+    edited === null &&
+    picks.length > 1 &&
+    picks.every((pick) => pick.kind === "image");
+  const held = edited ?? picks;
+
   useEffect(() => {
     if (!open) return;
     setAudience(EVERYONE);
+    setPlace("");
+    setEdited(null);
     setBusy(false);
     setStage("");
   }, [open]);
 
   const previews = useMemo(
-    () => picks.map((pick) => ({ ...pick, url: URL.createObjectURL(pick.file) })),
-    [picks],
+    () => held.map((pick) => ({ ...pick, url: URL.createObjectURL(pick.file) })),
+    [held],
   );
   useEffect(() => () => previews.forEach((row) => URL.revokeObjectURL(row.url)), [previews]);
 
-  const photos = picks.filter((pick) => pick.kind === "image").length;
-  const clips = picks.length - photos;
+  const photos = held.filter((pick) => pick.kind === "image").length;
+  const clips = held.length - photos;
   const what =
     photos && clips
       ? `${photos} photo${photos === 1 ? "" : "s"} and ${clips} clip${clips === 1 ? "" : "s"}`
@@ -69,16 +83,18 @@ export function ShareMoment({
         : `${photos} photo${photos === 1 ? "" : "s"}`;
 
   async function share() {
-    if (busy || !picks.length) return;
+    if (busy || !held.length) return;
     setBusy(true);
     try {
+      const where = place.trim();
       const items: Record<string, unknown>[] = [];
-      for (const [index, pick] of picks.entries()) {
-        setStage(`Uploading ${index + 1} of ${picks.length}...`);
+      for (const [index, pick] of held.entries()) {
+        setStage(`Uploading ${index + 1} of ${held.length}...`);
         const asset = await uploadAsset(pick.file);
         items.push({
           kind: pick.kind === "video" ? "video" : "image",
           asset: asset.id,
+          ...(where ? { place: where } : {}),
         });
       }
       setStage("Putting it up...");
@@ -110,7 +126,7 @@ export function ShareMoment({
         footer={
           <div className="flex items-center justify-between gap-3">
             <span className="min-w-0 flex-1 truncate text-[11.5px] text-dim">{stage || what}</span>
-            <Button onClick={() => void share()} loading={busy} disabled={!picks.length}>
+            <Button onClick={() => void share()} loading={busy} disabled={!held.length}>
               Share
             </Button>
           </div>
@@ -146,6 +162,42 @@ export function ShareMoment({
             <span className="text-[11.5px] font-bold text-dim">Change</span>
           </button>
 
+          <button
+            type="button"
+            onClick={() => setPlaceOpen(true)}
+            disabled={busy}
+            className="flex w-full items-center gap-3 rounded-[14px] border border-line bg-paper px-3.5 py-3 text-left transition hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--line))]"
+          >
+            <MapPin className="size-5 shrink-0 text-accent" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11.5px] text-dim">Place</span>
+              <span className={cn("block truncate text-[14.5px] font-semibold", !place && "text-dim")}>
+                {place || "Add a place"}
+              </span>
+            </span>
+            {place ? (
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label="Remove the place"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setPlace("");
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.stopPropagation();
+                  setPlace("");
+                }}
+                className="flex size-7 items-center justify-center rounded-full text-dim transition hover:text-ink"
+              >
+                <X className="size-4" />
+              </span>
+            ) : (
+              <span className="text-[11.5px] font-bold text-dim">Change</span>
+            )}
+          </button>
+
           {busy ? (
             <p className="flex items-center gap-2 text-[12px] text-dim">
               <LoaderCircle className="size-4 animate-spin" /> {stage || "Putting it up..."}
@@ -165,6 +217,18 @@ export function ShareMoment({
         onClose={() => setAudienceOpen(false)}
         onPick={setAudience}
       />
+      <MomentPlaceSheet
+        open={placeOpen}
+        current={place || null}
+        onClose={() => setPlaceOpen(false)}
+        onPick={setPlace}
+      />
+      {needsEdit ? (
+        <MomentEditor
+          files={picks.map((pick) => pick.file)}
+          onDone={(files) => setEdited(files.map((file) => ({ file, kind: "image" as const })))}
+        />
+      ) : null}
     </>
   );
 }

@@ -3,9 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   BadgeCheck,
+  Ban,
   Bell,
   Bookmark,
   CircleHelp,
+  Fingerprint,
   Handshake,
   Heart,
   Languages,
@@ -25,6 +27,8 @@ import { ConfirmDialog, Modal } from "@/components/overlays/Modal";
 import { PrivacyConfirm } from "@/components/overlays/PrivacyConfirm";
 import { MarketPurse, MarketplaceView, type MarketTab } from "@/features/marketplace/MarketplaceView";
 import { LanguageView } from "@/features/settings/LanguageView";
+import { AuthView } from "@/features/settings/AuthView";
+import { BlockedView } from "@/features/settings/BlockedView";
 import { DevicesView } from "@/features/settings/DevicesView";
 import { KeptView } from "@/features/settings/KeptView";
 import { LockChatView } from "@/features/settings/LockChatView";
@@ -32,6 +36,7 @@ import { NotificationsView } from "@/features/settings/NotificationsView";
 import { PermissionsView } from "@/features/settings/PermissionsView";
 import { ProfessionalView } from "@/features/professional/ProfessionalView";
 import { RefineProfileView } from "@/features/settings/RefineProfileView";
+import { ShowcaseManagerView } from "@/features/showcase/ShowcaseManagerView";
 import { VerifyView } from "@/features/verify/VerifyView";
 import {
   SettingsGroup,
@@ -55,9 +60,12 @@ type SettingsView =
   | "permissions"
   | "lock"
   | "professional"
+  | "showcase"
   | "marketplace"
+  | "auth"
   | "verify"
   | "kept"
+  | "blocked"
   | "devices";
 
 const VIEWS: SettingsView[] = [
@@ -68,9 +76,12 @@ const VIEWS: SettingsView[] = [
   "permissions",
   "lock",
   "professional",
+  "showcase",
   "marketplace",
+  "auth",
   "verify",
   "kept",
+  "blocked",
   "devices",
 ];
 
@@ -416,15 +427,21 @@ export function SettingsPage() {
                 ? t("Lock chat")
                 : view === "professional"
                   ? t("Professional profile")
-                  : view === "marketplace"
-                    ? t("Marketplace")
-                    : view === "verify"
-                      ? t("Get verified")
-                      : view === "kept"
-                        ? t("Kept")
-                        : view === "devices"
-                          ? t("Where you are signed in")
-                          : t("Controls");
+                  : view === "showcase"
+                    ? t("Showcase")
+                    : view === "auth"
+                      ? t("Auth")
+                        : view === "marketplace"
+                          ? t("Marketplace")
+                          : view === "verify"
+                            ? t("Get verified")
+                            : view === "kept"
+                              ? t("Kept")
+                              : view === "blocked"
+                                ? t("Blocked accounts")
+                                : view === "devices"
+                                  ? t("Where you are signed in")
+                                  : t("Controls");
 
   /*
    * Professional details is the one settings page that draws its own header.
@@ -443,6 +460,8 @@ export function SettingsPage() {
    * fields and the two pictures on their way up — lives in that screen.
    */
   if (view === "profile") return <RefineProfileView onBack={goBack} />;
+
+  if (view === "showcase") return <ShowcaseManagerView onBack={goBack} />;
 
   return (
     <SettingsShell
@@ -528,6 +547,12 @@ export function SettingsPage() {
               }
             />
             <SettingsRow
+              icon={<Ban className="size-5" />}
+              title={t("Blocked accounts")}
+              note={t("People you have blocked, and the way to undo it.")}
+              onClick={() => goSubpage("blocked")}
+            />
+            <SettingsRow
               icon={<Lock className="size-5" />}
               title={t("Lock chat")}
               note="The vault, and a way to reset it if you lose the code."
@@ -576,6 +601,14 @@ export function SettingsPage() {
                 onClick={() => goSubpage("professional")}
               />
             ) : null}
+            {professionalOn ? (
+              <SettingsRow
+                icon={<Store className="size-5" />}
+                title={t("Showcase")}
+                note="The showcases your profile shows."
+                onClick={() => goSubpage("showcase")}
+              />
+            ) : null}
             {/* Deals, and only for the accounts that can be in one. A deal needs
                 a public creator with 2k followers on one side or a brand on the
                 other, and below the floor the row is a door onto a screen that
@@ -614,6 +647,12 @@ export function SettingsPage() {
           </SettingsGroup>
 
           <SettingsGroup title={t("Account")}>
+            <SettingsRow
+              icon={<Fingerprint className="size-5" />}
+              title={t("Auth")}
+              note="Email, number, birthday and gender."
+              onClick={() => goSubpage("auth")}
+            />
             <SettingsRow
               icon={<UserRound className="size-5" />}
               title={t("Profile")}
@@ -702,9 +741,13 @@ export function SettingsPage() {
         <MarketplaceView initialTab={marketOpensOn} />
       ) : null}
 
+      {view === "auth" ? <AuthView /> : null}
+
       {view === "verify" ? <VerifyView /> : null}
 
       {view === "kept" ? <KeptView ownerId={user?.id ?? ""} /> : null}
+
+      {view === "blocked" ? <BlockedView /> : null}
 
       {view === "devices" ? <DevicesView /> : null}
 

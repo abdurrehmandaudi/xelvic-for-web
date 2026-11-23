@@ -4,6 +4,7 @@ import {
   Bell,
   Bookmark,
   ChevronDown,
+  Clapperboard,
   GalleryVerticalEnd,
   Headphones,
   LogOut,
@@ -57,6 +58,7 @@ const primary = [
   { to: "/drops", label: "Drops", icon: GalleryVerticalEnd, page: "drops" as ShellPage },
   { to: "/moments", label: "Moments", icon: CirclePlay, page: "moments" as ShellPage },
   { to: "/convo", label: "Convo", icon: MessageCircle, page: "convo" as ShellPage },
+  { to: "/videos", label: "Videos", icon: Clapperboard, page: "videos" as ShellPage },
   { to: "/audio", label: "Audio", icon: Headphones, page: "audio" as ShellPage },
   { to: "/live", label: "Live", icon: Radio, page: "live" as ShellPage },
 ];
@@ -75,6 +77,8 @@ const secondary = [
 function titleForPath(pathname: string): string {
   if (pathname.startsWith("/convo")) return "Convo";
   if (pathname.startsWith("/moments")) return "Moments";
+  if (pathname.startsWith("/videos")) return "Videos";
+  if (pathname.startsWith("/kids")) return "Kids";
   if (pathname.startsWith("/audio")) return "Audio";
   if (pathname.startsWith("/live")) return "Live";
   if (pathname.startsWith("/search")) return "Search";
@@ -90,6 +94,7 @@ function pageForPath(pathname: string): ShellPage | null {
   if (pathname === "/drops" || pathname.startsWith("/drops/")) return "drops";
   if (pathname.startsWith("/moments")) return "moments";
   if (pathname.startsWith("/convo")) return "convo";
+  if (pathname.startsWith("/videos")) return "videos";
   if (pathname.startsWith("/audio")) return "audio";
   if (pathname.startsWith("/live")) return "live";
   return null;

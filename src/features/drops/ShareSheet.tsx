@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, Check, Link2, Search, X } from "lucide-react";
+import { ArrowUp, Check, ChevronRight, Link2, Search, X } from "lucide-react";
 import { FiShare2 } from "react-icons/fi";
+import { cn } from "@/utils/cn";
 import { Avatar } from "@/components/ui/Avatar";
-import { Button, Spinner } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Button";
 import { Modal } from "@/components/overlays/Modal";
 import { chatService } from "@/services/chat.service";
 import { dropsService } from "@/services/drops.service";
 import { errorMessage } from "@/utils/errors";
+import { DELETED_ACCOUNT } from "@/utils/format";
 import { useToast } from "@/hooks/useToast";
 import type { Drop, ThreadCard } from "@/types/api";
+import { threadGone } from "@/features/convo/model";
 import { dropBase } from "./model";
 
 /**
@@ -53,6 +56,7 @@ import { dropBase } from "./model";
 /** What a convo is called: its own title, or the person on the other side. */
 function titleOf(thread: ThreadCard) {
   const person = thread.member ?? thread.members?.[0]?.user;
+  if (threadGone(thread)) return DELETED_ACCOUNT;
   return thread.title || person?.name || person?.username || "Convo";
 }
 
@@ -257,8 +261,8 @@ export function ShareSheet({
         {/* The box narrows the convos already in hand. The app's card is handed
             no people search on this road — `_Share` passes only the threads
             page — so nothing is asked of a server here either. */}
-        <div className="px-4 pb-2 pt-0.5">
-          <div className="flex items-center gap-2 rounded-[12px] border border-line bg-card px-3">
+        <div className="px-4 pb-2.5 pt-1">
+          <div className="flex items-center gap-2 rounded-full border border-line bg-[color-mix(in_srgb,var(--ink)_3%,var(--card))] px-3.5 transition focus-within:border-[color-mix(in_srgb,var(--accent)_38%,var(--line))] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_9%,transparent)]">
             <Search className="size-[18px] shrink-0 text-dim" aria-hidden />
             <input
               value={query}
@@ -279,20 +283,6 @@ export function ShareSheet({
             ) : null}
           </div>
         </div>
-
-        {/* The send button is pinned under the box rather than sitting at the end
-            of the strip, so it is in the same place whether one person is ticked
-            or ten — and it is a button and not another row, because the one thing
-            on the card that ends the job should not look like the things that do
-            not. Drawn only while there is somebody to send to. */}
-        {chosen.size > 0 ? (
-          <div className="px-4 pb-1 pt-2.5">
-            <Button variant="primary" className="w-full" onClick={() => void send()} disabled={sending}>
-              {sending ? <Spinner className="size-4" /> : <ArrowUp className="size-5" strokeWidth={2.6} />}
-              {sending ? "Sending..." : sendLabel}
-            </Button>
-          </div>
-        ) : null}
 
         <div className="min-h-[104px]">
           {threads.isLoading ? (
@@ -319,25 +309,26 @@ export function ShareSheet({
                     onClick={() => toggle(thread)}
                     aria-pressed={ticked}
                     aria-label={`Send to ${title}`}
-                    className="flex w-[66px] shrink-0 flex-col items-center pt-1.5"
+                    className="group flex w-[72px] shrink-0 flex-col items-center pt-1.5 transition hover:-translate-y-0.5"
                   >
                     {/* A ring and a tick, not a colour laid over the picture:
                         somebody's face is not a swatch to tint. */}
                     <span
-                      className={
+                      className={cn(
+                        "flex rounded-full p-[3px] transition",
                         ticked
-                          ? "rounded-full border-2 border-accent p-[2px]"
-                          : "rounded-full border-2 border-transparent p-[2px]"
-                      }
+                          ? "bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] ring-2 ring-accent"
+                          : "ring-1 ring-[color-mix(in_srgb,var(--ink)_10%,transparent)] group-hover:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]",
+                      )}
                     >
                       <Avatar
                         user={person}
                         src={thread.avatar}
                         name={title}
-                        size={52}
+                        size={54}
                         badge={
                           ticked ? (
-                            <span className="flex size-4 items-center justify-center rounded-full border-2 border-[var(--card)] bg-accent text-[var(--ink)]">
+                            <span className="flex size-[18px] items-center justify-center rounded-full border-2 border-[var(--card)] bg-accent text-on-accent">
                               <Check className="size-2.5" strokeWidth={3.5} />
                             </span>
                           ) : undefined
@@ -345,11 +336,10 @@ export function ShareSheet({
                       />
                     </span>
                     <span
-                      className={
-                        ticked
-                          ? "mt-1 w-full truncate text-center text-[11px] font-bold text-ink"
-                          : "mt-1 w-full truncate text-center text-[11px] text-dim"
-                      }
+                      className={cn(
+                        "mt-1.5 w-full truncate text-center text-[11px]",
+                        ticked ? "font-bold text-ink" : "text-dim",
+                      )}
                     >
                       {title}
                     </span>
@@ -363,6 +353,26 @@ export function ShareSheet({
             </p>
           )}
         </div>
+
+        {chosen.size > 0 ? (
+          <div className="px-4 pt-2.5">
+            <button
+              type="button"
+              onClick={() => void send()}
+              disabled={sending}
+              className="flex w-full items-center justify-center gap-2.5 rounded-full bg-accent px-4 py-2.5 text-[14px] font-extrabold tracking-[-0.01em] text-on-accent shadow-[0_6px_18px_color-mix(in_srgb,var(--accent)_26%,transparent)] transition-[transform,filter,opacity] duration-[160ms] ease-out-soft hover:brightness-[1.05] active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span className="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-[rgb(255_255_255_/_0.22)]">
+                {sending ? (
+                  <Spinner className="size-4 text-on-accent" />
+                ) : (
+                  <ArrowUp className="size-[15px]" strokeWidth={3} aria-hidden />
+                )}
+              </span>
+              <span className="truncate">{sending ? "Sending..." : sendLabel}</span>
+            </button>
+          </div>
+        ) : null}
 
         <p className="px-4 pb-0.5 pt-2.5 text-[12px] font-bold tracking-[0.4px] text-dim">
           Outside app
@@ -412,15 +422,19 @@ function Row({
       type="button"
       onClick={onClick}
       disabled={busy}
-      className="flex w-full items-center gap-3 rounded-[12px] px-4 py-3 text-left transition hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)] disabled:opacity-50"
+      className="group flex w-full items-center gap-3 rounded-[14px] px-3.5 py-2.5 text-left transition hover:bg-[color-mix(in_srgb,var(--accent)_7%,transparent)] disabled:opacity-50"
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-[13px] border border-[color-mix(in_srgb,var(--accent)_18%,var(--line))] bg-[var(--accent-soft)] text-accent transition group-hover:border-[color-mix(in_srgb,var(--accent)_38%,var(--line))]">
         {icon}
       </span>
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="block text-[13.5px] font-extrabold">{label}</span>
         <span className="block text-[11px] text-dim">{line}</span>
       </span>
+      <ChevronRight
+        className="size-4 shrink-0 text-dim transition group-hover:translate-x-0.5 group-hover:text-accent"
+        aria-hidden
+      />
     </button>
   );
 }

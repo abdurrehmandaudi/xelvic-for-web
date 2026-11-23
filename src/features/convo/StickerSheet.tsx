@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
+import { Search, Star, X } from "lucide-react";
 import { Spinner } from "@/components/ui/Button";
 import {
   SHELF,
@@ -13,10 +13,14 @@ import { StickerArt } from "@/components/media/StickerArt";
 import { cn } from "@/utils/cn";
 import {
   siftShelf,
-  shelvesOf,
   stickersService,
   type ShelfSticker,
+  type StickerKind,
 } from "@/services/stickers.service";
+
+type Narrow = "all" | "recent" | "saved";
+
+const HOLD_MS = 420;
 
 export function StickerSheet({
   open,
@@ -31,7 +35,12 @@ export function StickerSheet({
 }) {
   const [rows, setRows] = useState<ShelfSticker[]>([]);
   const [find, setFind] = useState("");
-  const [pack, setPack] = useState("");
+  const [kind, setKind] = useState<StickerKind>("sticker");
+  const [narrow, setNarrow] = useState<Narrow>("all");
+  const [saved, setSaved] = useState<ShelfSticker[]>([]);
+  const [recent, setRecent] = useState<ShelfSticker[]>([]);
+  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didHold = useRef(false);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [eager, setEager] = useState(false);
@@ -88,9 +97,13 @@ export function StickerSheet({
   // does: a search that survived a close would hide the shelf the next time
   // somebody looked at it.
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setSaved(stickersService.saved());
+      setRecent(stickersService.recent());
+    } else {
       setFind("");
-      setPack("");
+      setNarrow("all");
+      setKind("sticker");
     }
   }, [open]);
 
@@ -106,9 +119,39 @@ export function StickerSheet({
     return () => document.removeEventListener("pointerdown", away);
   }, [open, onClose]);
 
-  const packs = useMemo(() => shelvesOf(rows), [rows]);
-  const shown = useMemo(() => siftShelf(rows, find, pack), [rows, find, pack]);
-  const here = packs.find((shelf) => shelf.id === pack);
+  const themed = useMemo(() => {
+    if (narrow === "saved") return saved;
+    if (narrow === "recent") return recent;
+    return rows;
+  }, [narrow, saved, recent, rows]);
+  const halved = useMemo(
+    () => themed.filter((row) => row.kind === kind),
+    [themed, kind],
+  );
+  const shown = useMemo(() => siftShelf(halved, find), [halved, find]);
+  const empties = halved.length === 0;
+  const starred = useMemo(
+    () => new Set(saved.map((row) => row.url)),
+    [saved],
+  );
+
+  function toggleStar(row: ShelfSticker) {
+    stickersService.star(row);
+    setSaved(stickersService.saved());
+  }
+
+  function pressStart(row: ShelfSticker) {
+    didHold.current = false;
+    hold.current = setTimeout(() => {
+      didHold.current = true;
+      toggleStar(row);
+    }, HOLD_MS);
+  }
+
+  function pressEnd() {
+    if (hold.current) window.clearTimeout(hold.current);
+    hold.current = null;
+  }
 
   return (
     <div
@@ -138,6 +181,24 @@ export function StickerSheet({
             </button>
           ) : null}
         </div>
+        <div className="flex h-8 shrink-0 items-center rounded-md border border-line bg-card p-0.5">
+          {(["gif", "sticker"] as const).map((half) => (
+            <button
+              key={half}
+              type="button"
+              onClick={() => setKind(half)}
+              className={cn(
+                "flex h-7 items-center rounded px-2 text-[10px] font-bold uppercase tracking-[0.04em] transition",
+                kind === half
+                  ? "bg-[var(--accent-soft)] text-accent"
+                  : "text-dim hover:text-ink",
+              )}
+              aria-pressed={kind === half}
+            >
+              {half === "gif" ? "GIF" : "Sticker"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* The row that names what is on the shelf. The emoji picker has one —
@@ -147,7 +208,11 @@ export function StickerSheet({
           ke jitna kijiye"*. */}
       <div className={SHELF_TITLE}>
         <p className={SHELF_TITLE_TEXT}>
-          {here ? here.name || "Pack" : "All stickers"}
+          {narrow === "saved"
+            ? "Saved"
+            : narrow === "recent"
+              ? "History"
+              : "All stickers"}
         </p>
         {rows.length ? (
           <p className={cn(SHELF_TITLE_TEXT, "shrink-0")}>{shown.length}</p>
@@ -171,7 +236,13 @@ export function StickerSheet({
           <div className="flex h-full items-center justify-center px-4 text-center text-[12px] text-dim">
             {find.trim()
               ? `Nothing for "${find.trim()}"`
-              : "Nothing in this pack."}
+              : empties
+                ? narrow === "saved"
+                  ? "Nothing starred yet. Hold a picture to star it."
+                  : narrow === "recent"
+                    ? "Nothing sent yet."
+                    : `Nothing on the ${kind === "gif" ? "GIF" : "sticker"} shelf.`
+                : "Nothing here."}
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-1">
@@ -179,12 +250,34 @@ export function StickerSheet({
               <button
                 key={row.id}
                 type="button"
-                onClick={() => onPick(row)}
-                className="flex aspect-square items-center justify-center rounded-[10px] p-1.5 transition hover:bg-[var(--accent-soft)] active:scale-95"
+                onPointerDown={() => pressStart(row)}
+                onPointerUp={pressEnd}
+                onPointerLeave={pressEnd}
+                onPointerCancel={pressEnd}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  toggleStar(row);
+                }}
+                onClick={() => {
+                  if (didHold.current) {
+                    didHold.current = false;
+                    return;
+                  }
+                  stickersService.noteSent(row);
+                  setRecent(stickersService.recent());
+                  onPick(row);
+                }}
+                className="relative flex aspect-square items-center justify-center rounded-[10px] p-1.5 transition hover:bg-[var(--accent-soft)] active:scale-95"
                 aria-label={row.name || "Sticker"}
                 title={row.packName || row.name || undefined}
               >
                 <StickerArt url={row.url} eager={eager} />
+                {starred.has(row.url) ? (
+                  <Star
+                    className="absolute right-1 top-1 size-3.5 fill-current text-accent"
+                    aria-hidden
+                  />
+                ) : null}
               </button>
             ))}
           </div>
@@ -194,35 +287,27 @@ export function StickerSheet({
       {/* Always drawn, even for a shelf that has only one pack: a bar that
           comes and goes takes a row's height with it, and a panel that changes
           size with what came back from the network is the whole complaint. */}
-      <div className={cn(SHELF_FOOTER, "no-scrollbar overflow-x-auto")}>
-        <button
-          type="button"
-          onClick={() => setPack("")}
-          className={cn(
-            "flex h-6 shrink-0 items-center rounded-full px-2 text-[10px] font-bold transition",
-            pack === ""
-              ? "bg-[var(--accent-soft)] text-accent ring-1 ring-accent"
-              : "text-dim hover:bg-[var(--accent-soft)] hover:text-accent",
-          )}
-          aria-pressed={pack === ""}
-        >
-          All
-        </button>
-        {packs.map((shelf) => (
+      <div className={cn(SHELF_FOOTER, "justify-center")}>
+        {(
+          [
+            ["recent", "History"],
+            ["saved", "Saved"],
+            ["all", "All"],
+          ] as const
+        ).map(([key, label]) => (
           <button
-            key={shelf.id}
+            key={key}
             type="button"
-            onClick={() => setPack(shelf.id)}
+            onClick={() => setNarrow(key)}
             className={cn(
-              "flex h-6 max-w-[120px] shrink-0 items-center truncate rounded-full px-2 text-[10px] font-bold transition",
-              pack === shelf.id
+              "flex h-6 shrink-0 items-center rounded-full px-2.5 text-[10px] font-bold transition",
+              narrow === key
                 ? "bg-[var(--accent-soft)] text-accent ring-1 ring-accent"
                 : "text-dim hover:bg-[var(--accent-soft)] hover:text-accent",
             )}
-            title={shelf.name || undefined}
-            aria-pressed={pack === shelf.id}
+            aria-pressed={narrow === key}
           >
-            {shelf.name || "Pack"}
+            {label}
           </button>
         ))}
       </div>

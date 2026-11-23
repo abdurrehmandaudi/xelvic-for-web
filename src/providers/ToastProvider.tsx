@@ -5,17 +5,24 @@ import { cn } from "@/utils/cn";
 
 type ToastTone = "info" | "success" | "error";
 
+interface ToastAction {
+  label: string;
+  onAction: () => void;
+}
+
 interface Toast {
   id: number;
   title: string;
   description?: string;
   tone: ToastTone;
+  action?: ToastAction;
 }
 
 interface ToastInput {
   title: string;
   description?: string;
   tone?: ToastTone;
+  action?: ToastAction;
 }
 
 export interface ToastContextValue {
@@ -36,11 +43,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toast = useCallback(
-    ({ title, description, tone = "info" }: ToastInput) => {
+    ({ title, description, tone = "info", action }: ToastInput) => {
       counter.current += 1;
       const id = counter.current;
-      setItems((current) => [...current.slice(-3), { id, title, description, tone }]);
-      const timer = window.setTimeout(() => dismiss(id), tone === "error" ? 6500 : 4200);
+      setItems((current) => [...current.slice(-3), { id, title, description, tone, action }]);
+      const timer = window.setTimeout(
+        () => dismiss(id),
+        tone === "error" || action ? 6500 : 4200,
+      );
       timers.current.set(id, timer);
     },
     [dismiss],
@@ -70,20 +80,32 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <div
               key={item.id}
               className={cn(
-                "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-control px-4 py-3 text-white shadow-xl animate-fade-up",
-                item.tone === "error" ? "bg-[#8e1f26]" : item.tone === "success" ? "bg-[#0b5c3b]" : "bg-solid",
+                "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-control px-4 py-3 text-on-accent shadow-xl animate-fade-up",
+                item.tone === "error" ? "bg-[var(--bad)]" : item.tone === "success" ? "bg-[var(--good)]" : "bg-solid",
               )}
               role="status"
             >
               <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold leading-5">{item.title}</p>
-                {item.description ? <p className="mt-0.5 text-xs leading-5 text-white/75">{item.description}</p> : null}
+                {item.description ? <p className="mt-0.5 text-xs leading-5 text-on-accent/75">{item.description}</p> : null}
               </div>
+              {item.action ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    item.action?.onAction();
+                    dismiss(item.id);
+                  }}
+                  className="shrink-0 self-center rounded-lg px-2 py-1 text-xs font-extrabold text-on-accent/90 transition hover:bg-on-accent/10 hover:text-on-accent"
+                >
+                  {item.action.label}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => dismiss(item.id)}
-                className="-mr-1 -mt-1 rounded-lg p-1 text-white/60 transition hover:bg-white/10 hover:text-white"
+                className="-mr-1 -mt-1 rounded-lg p-1 text-on-accent/60 transition hover:bg-on-accent/10 hover:text-on-accent"
                 aria-label="Dismiss"
               >
                 <X className="size-3.5" />

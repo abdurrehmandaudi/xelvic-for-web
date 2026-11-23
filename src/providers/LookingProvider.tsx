@@ -60,8 +60,7 @@ export interface LookingContextValue {
  * on their screen. Both expire on the server, so both are repeated on a timer:
  * a person sitting still is the case most worth telling.
  *
- * **This is not presence.** The green dot is a REST field on a card
- * (`UserCard.online`), and the phone's separate `Presence` store — which
+ * **This is not presence.** The phone's separate `Presence` store — which
  * re-asks the server who is online — is not ported here. What is ported is the
  * half the character over the composer needs.
  *

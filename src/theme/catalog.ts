@@ -1,7 +1,7 @@
 import { asset, optionalAsset } from "@/utils/asset";
 import type { ThemeMark } from "@/theme/ThemeMarkArt";
 
-export type ShellPage = "drops" | "moments" | "convo" | "audio" | "live";
+export type ShellPage = "drops" | "moments" | "convo" | "videos" | "audio" | "live";
 
 /** The bar a reading wears. See `XChrome` on the Android side. */
 export type ChromeKind = "glass" | "dark" | "grey";

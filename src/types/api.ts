@@ -68,6 +68,7 @@ export interface UserCard {
    * flag for the same reason.
    */
   can_open?: boolean;
+  deleted?: boolean;
   last_seen?: string | null;
   theme?: string | null;
   /**
@@ -793,11 +794,13 @@ export interface Message {
     id: ID;
     kind: string;
     body: string;
-    sender: { id: ID; name: string };
+    sender: { id: ID; name: string; deleted?: boolean };
     deleted_for_all?: boolean;
   } | null;
   asset?: Asset | null;
   payload?: Record<string, unknown> | null;
+  enc?: Record<string, unknown> | null;
+  encrypted?: boolean;
   poll?: MessagePoll | null;
   /**
    * The tally under a bubble, and who is behind each row of it.
@@ -844,6 +847,7 @@ export interface MessageReactor {
   username: string;
   name: string;
   verified?: boolean;
+  deleted?: boolean;
   avatar?: string | null;
 }
 
@@ -889,6 +893,7 @@ export interface ThreadCard {
   title?: string;
   avatar?: string | null;
   other?: UserCard | null;
+  deleted?: boolean;
   members?: ThreadMember[];
   member?: UserCard;
   preview?: ThreadPreview | null;
@@ -918,6 +923,7 @@ export interface ThreadCard {
   vanish_mode?: string;
   vanish_at?: string | null;
   wallpaper?: string | null;
+  wallpaper_asset?: string | null;
   tint?: string | null;
   cleared_ordinal?: number;
   last_read_ordinal?: number;

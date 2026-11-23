@@ -1,5 +1,5 @@
 import { useRef, type KeyboardEvent, type PointerEvent } from "react";
-import { BellOff, Cake, Pin, Timer, Users } from "lucide-react";
+import { BellOff, Cake, Check, Pin, Sparkles, Timer, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/utils/cn";
 import { count } from "@/utils/format";
@@ -11,6 +11,7 @@ import {
   listLine,
   stamp,
   threadFace,
+  threadGone,
   threadTitle,
   threadUnread,
 } from "./model";
@@ -117,7 +118,10 @@ export function ConvoRow({
   active,
   spark,
   moment,
+  picking,
+  picked,
   onOpen,
+  onToggle,
   onActions,
   onOpenMoment,
   onOpenSpark,
@@ -126,13 +130,17 @@ export function ConvoRow({
   active?: boolean;
   spark?: Spark | null;
   moment?: { seen?: boolean; author?: string } | null;
+  picking?: boolean;
+  picked?: boolean;
   onOpen: () => void;
+  onToggle?: () => void;
   onActions: () => void;
   onOpenMoment?: (username: string) => void;
   onOpenSpark?: () => void;
 }) {
   const title = threadTitle(thread);
   const face = threadFace(thread);
+  const gone = threadGone(thread);
   const unread = threadUnread(thread);
   const hot = unread > 0;
   const marked = hot || active;
@@ -140,8 +148,8 @@ export function ConvoRow({
   const tone = lineTone(line, unread);
   const group = thread.kind === "group";
   const username = face?.username;
-  const ring = Boolean(username && moment && onOpenMoment);
-  const longPress = useLongPress(onActions);
+  const ring = Boolean(username && moment && onOpenMoment && !gone && !picking);
+  const longPress = useLongPress(picking ? () => undefined : onActions);
 
   const style = hot
     ? { background: HOT_FILL, borderColor: HOT_EDGE }
@@ -152,11 +160,13 @@ export function ConvoRow({
   const onKey = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      onOpen();
+      if (picking) onToggle?.();
+      else onOpen();
     }
     if (
-      event.key === "ContextMenu" ||
-      (event.shiftKey && event.key === "F10")
+      !picking &&
+      (event.key === "ContextMenu" ||
+        (event.shiftKey && event.key === "F10"))
     ) {
       event.preventDefault();
       onActions();
@@ -165,9 +175,10 @@ export function ConvoRow({
 
   return (
     <div
-      role="link"
+      role={picking ? "checkbox" : "link"}
       tabIndex={0}
-      aria-current={active ? "page" : undefined}
+      aria-checked={picking ? Boolean(picked) : undefined}
+      aria-current={active && !picking ? "page" : undefined}
       aria-label={`${title}${unread ? `, ${unread} unread` : ""}`}
       onClick={(event) => {
         if (longPress.fired.current) {
@@ -176,21 +187,35 @@ export function ConvoRow({
           event.stopPropagation();
           return;
         }
-        onOpen();
+        if (picking) onToggle?.();
+        else onOpen();
       }}
       onKeyDown={onKey}
       onContextMenu={(event) => {
         event.preventDefault();
-        onActions();
+        if (!picking) onActions();
       }}
       {...longPress.handlers}
       className={cn(
         "group relative flex min-h-[64px] cursor-pointer items-center gap-2 overflow-hidden px-1.5 pl-2 pr-2.5 outline-none transition-colors hover:bg-accent/5",
         "border-b border-[color-mix(in_srgb,var(--line)_70%,transparent)] focus-visible:ring-2 focus-visible:ring-accent/50",
-        marked && "border",
+        marked && !picking && "border",
       )}
-      style={style}
+      style={picking ? undefined : style}
     >
+      {picking ? (
+        <span
+          className={cn(
+            "flex size-[22px] shrink-0 items-center justify-center rounded-full border transition",
+            picked
+              ? "border-accent bg-accent text-on-accent"
+              : "border-[color-mix(in_srgb,var(--ink)_35%,transparent)] text-transparent",
+          )}
+          aria-hidden
+        >
+          <Check className="size-3.5" strokeWidth={3} />
+        </span>
+      ) : null}
       <span className="relative flex size-[46px] shrink-0 items-center justify-center">
         {ring ? (
           <button
@@ -210,10 +235,22 @@ export function ConvoRow({
             aria-label={`Open ${title}'s moments`}
             title="Moments"
           >
-            <Avatar user={face} name={title} src={thread.avatar} size={42} />
+            <Avatar
+              user={face}
+              name={title}
+              src={thread.avatar}
+              size={42}
+              deleted={gone}
+            />
           </button>
         ) : (
-          <Avatar user={face} name={title} src={thread.avatar} size={44} />
+          <Avatar
+            user={face}
+            name={title}
+            src={thread.avatar}
+            size={44}
+            deleted={gone}
+          />
         )}
       </span>
       <div className="min-w-0 flex-1">
@@ -226,6 +263,13 @@ export function ConvoRow({
               className="size-3.5 shrink-0 text-dim"
               strokeWidth={2.2}
               aria-label="Group"
+            />
+          ) : null}
+          {thread.kind === "agent" ? (
+            <Sparkles
+              className="size-3.5 shrink-0 text-accent"
+              strokeWidth={2.2}
+              aria-label="Xelvic Agent"
             />
           ) : null}
           {/* The count, at the end of the name and never on the far right of the
@@ -252,7 +296,7 @@ export function ConvoRow({
 
       <div className="flex shrink-0 items-center">
         {thread.pinned ? <PinMark hot={hot} /> : null}
-        {isBirthdayTodayIn(thread.other) ? <CakeMark /> : null}
+        {!gone && isBirthdayTodayIn(thread.other) ? <CakeMark /> : null}
         {/* The small timer mark: this run's clock is nearly out. It is a glyph
             and not a figure — the hours live on the sheet — and it comes out for
             one of two reasons that say the same thing: my own silence, or the

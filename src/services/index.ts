@@ -32,3 +32,4 @@ export { sparksService } from "./sparks.service";
 export { stickersService } from "./stickers.service";
 export { uploadService } from "./upload.service";
 export { verifyService } from "./verify.service";
+export { videosService } from "./videos.service";

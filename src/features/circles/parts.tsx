@@ -322,7 +322,7 @@ export function Faces({ day }: { day: CircleDay }) {
         {shown.map((person, index) => (
           <span
             key={String(person.id)}
-            className="rounded-full border-[1.5px] border-[var(--page)]"
+            className="flex rounded-full border-[1.5px] border-[var(--page)]"
             style={{ marginInlineStart: index === 0 ? 0 : -9 }}
           >
             <Avatar user={person} size={31} />

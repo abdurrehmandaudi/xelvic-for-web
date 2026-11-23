@@ -28,6 +28,14 @@ import { PollMoment } from "@/features/moments/PollMoment";
 import { ShareMoment, type MomentPick } from "@/features/moments/ShareMoment";
 import { TextMoment } from "@/features/moments/TextMoment";
 import { momentRingFor, momentStill, railStill } from "@/features/moments/rail";
+import { SuggestShelf } from "@/features/drops/SuggestShelf";
+import {
+  cutMoments,
+  loadSuggestState,
+  momentsCutToday,
+  nextSuggestKind,
+  rememberShown,
+} from "@/features/drops/suggest";
 import { FaceDialog, SheetRow } from "@/features/profile/parts";
 import { SensitiveVeil } from "@/features/drops/SensitiveVeil";
 import { cn } from "@/utils/cn";
@@ -197,7 +205,7 @@ function RailCard({
             cover is on — the veil is over the whole tile and a face left on top
             of it would be half the picture still showing. */}
         {row.sensitive ? null : (
-          <span className="absolute left-1.5 top-1.5 rounded-full bg-card p-[1.5px]">
+          <span className="absolute left-1.5 top-1.5 flex rounded-full bg-card p-[1.5px]">
             <Avatar user={row.author} name={name} size={26} />
           </span>
         )}
@@ -284,6 +292,12 @@ export function MomentsPage() {
   const [faceFor, setFaceFor] = useState<UserCard | null>(null);
   const [keepOpen, setKeepOpen] = useState(false);
   const [params, setParams] = useSearchParams();
+
+  const account = user?.username ?? "";
+  const suggestMemory = useMemo(() => loadSuggestState(account), [account]);
+  const [suggestCut, setSuggestCut] = useState(false);
+  const showSuggest =
+    Boolean(account) && !suggestCut && !momentsCutToday(suggestMemory);
 
   const designs = useMemo(() => [...themes, ...shelf], [themes, shelf]);
 
@@ -596,6 +610,19 @@ export function MomentsPage() {
             last child of the page's own column, so it scrolls away under the
             rail rather than sitting beside it. */}
         <CirclesSection />
+
+        {showSuggest ? (
+          <SuggestShelf
+            kind={nextSuggestKind(suggestMemory)}
+            moments
+            className="mt-4"
+            onShown={(kind) => rememberShown(account, kind)}
+            onCut={() => {
+              cutMoments(account);
+              setSuggestCut(true);
+            }}
+          />
+        ) : null}
       </div>
 
       {/* A hold on a face in the rail: the picture, the way to their page, and

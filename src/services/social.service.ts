@@ -1,5 +1,19 @@
 import api from "@/config/axios";
-import type { ChatGate, Relation, RequestsBundle, UserCard } from "@/types/api";
+import type { ChatGate, ID, Relation, RequestsBundle, UserCard } from "@/types/api";
+
+export interface Suggestion {
+  id: ID;
+  username: string;
+  name: string;
+  avatar: string | null;
+  bio?: string;
+  crew?: number;
+  verified?: boolean;
+  following?: boolean;
+  reason?: string;
+  is_private?: boolean;
+  can_open?: boolean;
+}
 
 /**
  * The three answers `/social/users/{id}/follow|withdraw|block/` can give.
@@ -33,6 +47,17 @@ export const socialService = {
     return response.data;
   },
 
+  suggest: async (
+    kind: string,
+    limit = 5,
+  ): Promise<{ kind?: string; reason?: string; results: Suggestion[] }> => {
+    const response = await api.get<{ kind?: string; reason?: string; results: Suggestion[] }>(
+      "/social/suggest/",
+      { params: { kind, limit } },
+    );
+    return response.data;
+  },
+
   follow: async <T = SocialState>(userId: string): Promise<T> => {
     const response = await api.post<T>(`/social/users/${userId}/follow/`, {});
     return response.data;
@@ -52,6 +77,11 @@ export const socialService = {
 
   block: async <T = SocialState>(userId: string): Promise<T> => {
     const response = await api.post<T>(`/social/users/${userId}/block/`, {});
+    return response.data;
+  },
+
+  blocked: async (): Promise<UserCard[]> => {
+    const response = await api.get<UserCard[]>("/social/blocked/");
     return response.data;
   },
 

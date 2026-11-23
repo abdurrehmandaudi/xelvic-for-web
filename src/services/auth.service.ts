@@ -57,8 +57,39 @@ export const authService = {
     await api.post("/auth/deactivate/", { password });
   },
 
-  changePassword: async (current_password: string, password: string): Promise<void> => {
-    await api.post("/auth/password/change/", { current_password, password });
+  changePassword: async (
+    current_password: string,
+    password: string,
+    logoutEverywhere = true,
+  ): Promise<{ signed_out?: number }> => {
+    const response = await api.post<{ signed_out?: number }>("/auth/password/change/", {
+      current_password,
+      password,
+      logout_everywhere: logoutEverywhere,
+    });
+    return response.data;
+  },
+
+  askContact: async (contact: string, password: string): Promise<Record<string, unknown>> => {
+    const response = await api.post<Record<string, unknown>>("/auth/me/contact/", {
+      contact,
+      password,
+    });
+    return response.data;
+  },
+
+  verifyContact: async (contact: string, password: string, code: string): Promise<Me> => {
+    const response = await api.post<Me>("/auth/me/contact/verify/", {
+      contact,
+      password,
+      code,
+    });
+    return response.data;
+  },
+
+  setIdentity: async (patch: Record<string, unknown>): Promise<Me> => {
+    const response = await api.patch<Me>("/auth/me/identity/", patch);
+    return response.data;
   },
 
   // ---- the account itself -------------------------------------------------

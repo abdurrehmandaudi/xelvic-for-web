@@ -28,6 +28,10 @@ import type {
  * carried, taken down, or kept in a memory.
  */
 
+export interface MemoryWithUpload extends Memory {
+  moment_at?: string | null;
+}
+
 /** The body every composer posts — see `MomentCreateSerializer` in `apps/moments`. */
 export interface MomentPost {
   items: Record<string, unknown>[];
@@ -234,8 +238,8 @@ export const momentsService = {
   },
 
   /** Somebody's memory shelves, by handle — the same strip on their page. */
-  memoriesByUser: async (username: string): Promise<{ memories: Memory[] }> => {
-    const response = await api.get<{ memories: Memory[] }>(
+  memoriesByUser: async (username: string): Promise<{ memories: MemoryWithUpload[] }> => {
+    const response = await api.get<{ memories: MemoryWithUpload[] }>(
       `/moments/memories/users/${encodeURIComponent(username)}/`,
     );
     return response.data;

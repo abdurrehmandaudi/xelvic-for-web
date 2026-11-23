@@ -48,18 +48,31 @@ export interface ShelfSticker {
   id: string;
   name: string;
   url: string;
+  kind: StickerKind;
   /** The shelf it came off, as that catalogue names it. */
   pack: string;
   packName: string;
   words: string;
 }
 
+export type StickerKind = "gif" | "sticker";
+
 function text(value: unknown): string {
   return value == null ? "" : String(value);
 }
 
+function kindOf(row: Record<string, unknown>, fallback: StickerKind): StickerKind {
+  const said = `${text(row.kind)} ${text(row.type)}`.toLowerCase();
+  if (said.includes("gif")) return "gif";
+  if (said.includes("sticker")) return "sticker";
+  return fallback;
+}
+
 /** One row of the sticker service's answer: `pack` is an object and there are `tags`. */
-export function shelfRowFromService(raw: unknown): ShelfSticker | null {
+export function shelfRowFromService(
+  raw: unknown,
+  kind: StickerKind = "sticker",
+): ShelfSticker | null {
   if (!raw || typeof raw !== "object") return null;
   const row = raw as Record<string, unknown>;
   const url = text(row.url);
@@ -77,6 +90,7 @@ export function shelfRowFromService(raw: unknown): ShelfSticker | null {
     id,
     name,
     url,
+    kind: kindOf(row, kind),
     pack: text(pack.id),
     packName,
     words: [name, packName, ...tags].join(" ").toLowerCase(),
@@ -99,6 +113,7 @@ export function shelfRowFromOwn(raw: Sticker): ShelfSticker | null {
     id: text(raw.id),
     name,
     url,
+    kind: "sticker",
     pack,
     packName: "",
     words: [name, keywords, pack].join(" ").toLowerCase(),
@@ -119,7 +134,7 @@ let shelfPending: Promise<ShelfSticker[]> | null = null;
 let serviceDown = false;
 let shelfSink: ((rows: ShelfSticker[]) => void) | null = null;
 
-const SHELF_KEY = "xelvic.stickers.shelf.v1";
+const SHELF_KEY = "xelvic.stickers.shelf.v2";
 
 function usableShelf(rows: unknown): ShelfSticker[] | null {
   if (!Array.isArray(rows)) return null;
@@ -158,15 +173,14 @@ function keepShelf(rows: ShelfSticker[]) {
   }
 }
 
-/** The service's shelf, read a page at a time until it runs out. */
-async function askService(
-  onPage?: (rows: ShelfSticker[]) => void,
-): Promise<ShelfSticker[]> {
+/** One half of the house's shelf, read a page at a time until it runs out. */
+async function askHalf(kind: StickerKind): Promise<ShelfSticker[]> {
+  const shelf = kind === "gif" ? "gifs" : "stickers";
   const rows: ShelfSticker[] = [];
   let offset = 0;
   while (offset < SHELF) {
     const response = await fetch(
-      `${STICKER_SERVICE}/stickers?limit=${PAGE}&offset=${offset}`,
+      `${STICKER_SERVICE}/${shelf}?limit=${PAGE}&offset=${offset}`,
       { headers: { Accept: "application/json" } },
     );
     if (!response.ok) {
@@ -178,13 +192,10 @@ async function askService(
       : ((answer as { data?: unknown } | null)?.data ?? []);
     const list = Array.isArray(page) ? page : [];
     for (const raw of list) {
-      const row = shelfRowFromService(raw);
+      const row = shelfRowFromService(raw, kind);
       if (row) rows.push(row);
     }
     offset += PAGE;
-    if (rows.length) onPage?.(rows.slice());
-    // A page shorter than the one asked for is the end when the service does
-    // not say how many there are.
     if (list.length < PAGE) break;
     const matched = Number((answer as { matched?: unknown } | null)?.matched);
     if (Number.isFinite(matched) && matched > 0 && offset >= matched) break;
@@ -192,7 +203,23 @@ async function askService(
   return rows;
 }
 
-/** Our own server's shelf — the road taken when the service has refused. */
+async function askService(
+  onPage?: (rows: ShelfSticker[]) => void,
+): Promise<ShelfSticker[]> {
+  const rows: ShelfSticker[] = [];
+  for (const kind of ["gif", "sticker"] as const) {
+    try {
+      const half = await askHalf(kind);
+      rows.push(...half);
+      if (rows.length) onPage?.(rows.slice());
+    } catch {
+      continue;
+    }
+  }
+  if (!rows.length) throw new Error("the sticker service answered nothing");
+  return rows;
+}
+
 async function askOwnServer(): Promise<ShelfSticker[]> {
   const response = await api.get<{ stickers?: Sticker[] }>("/stickers/");
   const rows = Array.isArray(response.data?.stickers) ? response.data.stickers : [];
@@ -208,6 +235,27 @@ async function askOwnServer(): Promise<ShelfSticker[]> {
  * instead of widening it — the app's own rule, kept here so the sheet and the
  * phone cannot drift apart on what "cat hat" means.
  */
+const SAVED_KEY = "xelvic.stickers.saved.v1";
+const RECENT_KEY = "xelvic.stickers.recent.v1";
+const KEPT_ROWS = 60;
+
+function readRows(key: string): ShelfSticker[] {
+  try {
+    const raw = localStorage.getItem(key);
+    return usableShelf(raw ? JSON.parse(raw) : null) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRows(key: string, rows: ShelfSticker[]): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(rows.slice(0, KEPT_ROWS)));
+  } catch {
+    return;
+  }
+}
+
 export function siftShelf(
   rows: readonly ShelfSticker[],
   query: string,
@@ -322,6 +370,27 @@ export const stickersService = {
   packs: async (): Promise<{ packs: StickerPack[] }> => {
     const response = await api.get<{ packs: StickerPack[] }>("/stickers/packs/");
     return response.data;
+  },
+
+  /** The pictures this browser has starred, newest first. */
+  saved: (): ShelfSticker[] => readRows(SAVED_KEY),
+
+  /** The pictures this browser has sent into a convo, newest first. */
+  recent: (): ShelfSticker[] => readRows(RECENT_KEY),
+
+  /** Star a picture, or take the star off. Answers whether it is starred now. */
+  star: (row: ShelfSticker): boolean => {
+    const held = readRows(SAVED_KEY);
+    const at = held.findIndex((one) => one.url === row.url);
+    const next = at >= 0 ? held.filter((_, index) => index !== at) : [row, ...held];
+    writeRows(SAVED_KEY, next);
+    return at < 0;
+  },
+
+  /** Remember a picture that was sent, for the history shelf. */
+  noteSent: (row: ShelfSticker): void => {
+    const held = readRows(RECENT_KEY).filter((one) => one.url !== row.url);
+    writeRows(RECENT_KEY, [row, ...held]);
   },
 
   /** A door for tests: forget the shelf, so the next ask reads it again. */

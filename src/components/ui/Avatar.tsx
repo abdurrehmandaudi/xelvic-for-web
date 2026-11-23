@@ -1,17 +1,19 @@
 import { useState, type ReactNode } from "react";
+import { UserRound } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { initialsOf } from "@/utils/format";
 import { useMediaUrl } from "@/hooks/useMediaUrl";
 import type { UserCard } from "@/types/api";
 
 interface AvatarProps {
-  user?: Pick<UserCard, "name" | "username" | "avatar"> | null;
+  user?: Pick<UserCard, "name" | "username" | "avatar" | "deleted"> | null;
   src?: string | null;
   name?: string;
   size?: number;
   className?: string;
   ring?: boolean;
   muted?: boolean;
+  deleted?: boolean;
   badge?: ReactNode;
 }
 
@@ -23,17 +25,20 @@ export function Avatar({
   className,
   ring,
   muted,
+  deleted,
   badge,
 }: AvatarProps) {
   const displayName = name || user?.name || user?.username || "";
-  const initial = initialsOf(displayName);
+  const gone = deleted === true || user?.deleted === true;
+  const blank = displayName.trim() === "";
+  const initial = initialsOf(displayName, "");
   const media = useMediaUrl(src ?? user?.avatar);
   const [broken, setBroken] = useState(false);
-  const image = media.src && !media.failed && !broken;
+  const image = media.src && !media.failed && !broken && !gone && !blank;
 
   return (
     <span
-      className={cn("relative inline-flex shrink-0", className)}
+      className={cn("relative flex shrink-0", className)}
       style={{ width: size, height: size }}
     >
       <span
@@ -53,13 +58,20 @@ export function Avatar({
             decoding="async"
             draggable={false}
           />
+        ) : gone || blank ? (
+          <UserRound
+            className="text-accent opacity-70"
+            style={{ width: Math.max(12, size * 0.52), height: Math.max(12, size * 0.52) }}
+            strokeWidth={2.4}
+            aria-hidden
+          />
         ) : (
           <span
             className="font-extrabold tracking-tight text-accent"
             style={{ fontSize: Math.max(11, size * 0.32) }}
             aria-hidden
           >
-            {initial || "?"}
+            {initial}
           </span>
         )}
       </span>
@@ -68,12 +80,12 @@ export function Avatar({
   );
 }
 
-export function AvatarStack({ users, size = 26 }: { users: Pick<UserCard, "id" | "name" | "username" | "avatar">[]; size?: number }) {
+export function AvatarStack({ users, size = 26 }: { users: Pick<UserCard, "id" | "name" | "username" | "avatar" | "deleted">[]; size?: number }) {
   const shown = users.slice(0, 3);
   return (
     <span className="flex -space-x-2">
       {shown.map((user) => (
-        <span key={user.id} className="rounded-full border-2 border-[var(--card)]">
+        <span key={user.id} className="flex rounded-full border-2 border-[var(--card)]">
           <Avatar user={user} size={size} />
         </span>
       ))}

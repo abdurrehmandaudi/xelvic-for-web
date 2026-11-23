@@ -400,7 +400,7 @@ function Place({ entry, size, inset = 0 }: { entry: Entry; size: number; inset?:
     <div className="flex flex-col items-center" style={{ paddingTop: inset }}>
       <div className="relative">
         <span
-          className="block rounded-full border bg-card p-[3px]"
+          className="flex rounded-full border bg-card p-[3px]"
           style={{ borderColor: entry.me ? "var(--accent)" : "var(--line)", borderWidth: entry.me ? 2 : 1 }}
         >
           <Avatar name={entry.name} src={entry.avatar} size={size} />

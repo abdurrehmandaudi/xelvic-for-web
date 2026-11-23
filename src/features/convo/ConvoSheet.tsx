@@ -15,6 +15,7 @@ import {
   LogOut,
   Palette,
   Pin,
+  SquareCheck,
   Trash2,
   Users,
   X,
@@ -26,8 +27,10 @@ import {
   PromptDialog,
 } from "@/components/overlays/Modal";
 import { Spinner } from "@/components/ui/Button";
+import { apiUrl } from "@/config/urls";
 import { cn } from "@/utils/cn";
 import { errorMessage } from "@/utils/errors";
+import { uploadAsset } from "@/utils/upload";
 import { useToast } from "@/hooks/useToast";
 import { chatService } from "@/services/chat.service";
 import { socialService } from "@/services/social.service";
@@ -43,17 +46,8 @@ import {
   wallUrl,
   TINT_HEX,
 } from "./skin";
-import { threadFace, threadTitle } from "./model";
+import { threadFace, threadGone, threadTitle } from "./model";
 import { aliasOf, rememberName, useNames } from "./names";
-import {
-  OWN_WALL_OPACITY,
-  clearOwnWall,
-  ownWallOf,
-  readWallImage,
-  setOwnWall,
-  setOwnWallOpacity,
-  useOwnWall,
-} from "./look";
 
 type View = "main" | "vanish" | "walls" | "tints";
 type Confirming = "clear" | "trash" | "leave" | "block" | null;
@@ -130,14 +124,17 @@ function SheetHead({
 }) {
   const title = threadTitle(thread);
   const face = threadFace(thread);
+  const gone = threadGone(thread);
   const under =
-    thread.kind === "group"
-      ? thread.member_count === 1
-        ? "1 member"
-        : `${thread.member_count ?? 0} members`
-      : face
-        ? `@${face.username}`
-        : "Direct convo";
+    gone
+      ? ""
+      : thread.kind === "group"
+        ? thread.member_count === 1
+          ? "1 member"
+          : `${thread.member_count ?? 0} members`
+        : face
+          ? `@${face.username}`
+          : "Direct convo";
   return (
     <div
       className="sticky h-[56px] top-0 z-10 flex items-center gap-3 border-b border-line px-3.5 py-[8px] backdrop-blur-xl"
@@ -146,7 +143,13 @@ function SheetHead({
           "linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, var(--card)), color-mix(in srgb, var(--card) 92%, transparent) 68%)",
       }}
     >
-      <Avatar user={face} name={title} src={thread.avatar} size={42} />
+      <Avatar
+        user={face}
+        name={title}
+        src={thread.avatar}
+        size={42}
+        deleted={gone}
+      />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[15px] font-extrabold tracking-[-0.25px]">
           {title}
@@ -178,6 +181,7 @@ export function ConvoSheet({
   onGone,
   onGroupSettings,
   onMedia,
+  onSelectMore,
   variant = "modal",
 }: {
   open: boolean;
@@ -190,6 +194,7 @@ export function ConvoSheet({
   onGone?: () => void;
   onGroupSettings?: (thread: ThreadDetail) => void;
   onMedia?: () => void;
+  onSelectMore?: () => void;
   /** `panel` fills the caller's column instead of opening a dialog. */
   variant?: "modal" | "panel";
 }) {
@@ -233,7 +238,6 @@ export function ConvoSheet({
   // service methods take a plain id rather than the row.
   const threadId = row?.id ?? "";
   const catalog = detail.data?.catalog;
-  const own = useOwnWall(threadId);
 
   useEffect(() => {
     if (!open) {
@@ -247,6 +251,10 @@ export function ConvoSheet({
   }, [open, thread?.id, totalPins]);
 
   if (!row) return null;
+
+  const sharedWall = row.wallpaper_asset
+    ? apiUrl(`/chat/assets/${row.wallpaper_asset}/content/`)
+    : null;
 
   const group = row.kind === "group";
   const self = row.self === true;
@@ -372,11 +380,9 @@ export function ConvoSheet({
       wallpaper: row?.wallpaper ?? "default",
       tint: row?.tint ?? "default",
     };
-    const photo = patch.wallpaper === undefined ? null : ownWallOf(threadId);
     setBusy(key);
     setOverrides((current) => ({ ...current, ...patch }));
     onSkin?.(patch);
-    if (patch.wallpaper !== undefined) clearOwnWall(threadId);
     try {
       const response = await chatService.skin(threadId, patch);
       setOverrides((current) => ({ ...current, ...response }));
@@ -390,7 +396,6 @@ export function ConvoSheet({
     } catch (error) {
       setOverrides((current) => ({ ...current, ...before }));
       onSkin?.(before);
-      if (photo) setOwnWall(threadId, photo.src, photo.opacity);
       toast({
         title: "Could not change that",
         description: errorMessage(error),
@@ -405,28 +410,15 @@ export function ConvoSheet({
     if (busy) return;
     setBusy("wallpaper");
     try {
-      const src = await readWallImage(file);
-      const kept = setOwnWall(threadId, src, OWN_WALL_OPACITY);
-      setOverrides((current) => ({ ...current, wallpaper: "default" }));
-      onSkin?.({ wallpaper: "default" });
-      setView("main");
-      toast({
-        title: kept
-          ? "Wallpaper set to your photo."
-          : "Wallpaper set for this session.",
-        description: kept
-          ? undefined
-          : "This browser would not keep the photo, so it goes when the page reloads.",
-        tone: kept ? "success" : "info",
+      const asset = await uploadAsset(file, { kind: "image", skipMetadata: true });
+      const response = await chatService.skin(threadId, {
+        wallpaper_asset: asset.id,
       });
-      void chatService
-        .skin(threadId, { wallpaper: "default" })
-        .then((response) => {
-          setOverrides((current) => ({ ...current, ...response }));
-          onSkin?.(response);
-          changed();
-        })
-        .catch(() => undefined);
+      setOverrides((current) => ({ ...current, ...response }));
+      onSkin?.(response);
+      changed();
+      setView("main");
+      toast({ title: "Wallpaper set for both of you.", tone: "success" });
     } catch (error) {
       toast({
         title: "Could not set photo",
@@ -438,23 +430,27 @@ export function ConvoSheet({
     }
   }
 
-  function removeCustomWallpaper() {
+  async function removeCustomWallpaper() {
     if (busy) return;
-    clearOwnWall(threadId);
-    setView("main");
-    toast({ title: "Wallpaper: None", tone: "success" });
-    void chatService
-      .skin(threadId, { wallpaper: "default" })
-      .then((response) => {
-        setOverrides((current) => ({ ...current, ...response }));
-        onSkin?.(response);
-        changed();
-      })
-      .catch(() => undefined);
-  }
-
-  function setCustomWallpaperOpacity(opacity: number) {
-    setOwnWallOpacity(threadId, opacity);
+    setBusy("wallpaper");
+    try {
+      const response = await chatService.skin(threadId, {
+        wallpaper_asset: null,
+      });
+      setOverrides((current) => ({ ...current, ...response }));
+      onSkin?.(response);
+      changed();
+      setView("main");
+      toast({ title: "Wallpaper: None", tone: "success" });
+    } catch (error) {
+      toast({
+        title: "Could not take the photo down",
+        description: errorMessage(error),
+        tone: "error",
+      });
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function toggleBlock() {
@@ -656,6 +652,14 @@ export function ConvoSheet({
                 onClick={() => void toggleMute()}
               />
             ) : null}
+            {kind === "list" && !self && onSelectMore ? (
+              <ActionRow
+                icon={<SquareCheck className="size-4" />}
+                label="Select more"
+                line="Pick several convos at once."
+                onClick={onSelectMore}
+              />
+            ) : null}
             <ActionRow
               icon={
                 row.vaulted ? (
@@ -694,9 +698,9 @@ export function ConvoSheet({
                 <ActionRow
                   icon={<Image className="size-4" />}
                   label="Wallpaper"
-                  line="Behind this convo, on your side only."
+                  line="Behind this convo, for both of you."
                   right={
-                    own
+                    row.wallpaper_asset
                       ? "Your photo"
                       : (walls.find(
                           (wall) =>
@@ -833,56 +837,23 @@ export function ConvoSheet({
         <>
           <SubHead
             title="Wallpaper"
-            line="Behind this convo only. The other side keeps theirs."
+            line="Behind this convo, for both of you."
             onBack={() => setView("main")}
           />
-          {own ? (
+          {sharedWall ? (
             <div className="p-4">
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[12px] font-extrabold">Your photo</span>
-                  <span className="text-[12px] text-accent font-bold">
-                    {Math.round(own.opacity * 100)}%
-                  </span>
-                </div>
-                <div className="relative aspect-[0.72] overflow-hidden rounded-[13px] border border-accent ring-2 ring-accent/25">
-                  <img
-                    src={own.src}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                  <div
-                    className="absolute inset-0 bg-[var(--page)]"
-                    style={{ opacity: 1 - own.opacity }}
-                  />
-                </div>
+              <div className="relative aspect-[0.72] overflow-hidden rounded-[13px] border border-accent ring-2 ring-accent/25">
+                <img src={sharedWall} alt="" className="h-full w-full object-cover" />
               </div>
-              <div className="space-y-3">
-                <div>
-                  <span className="size-5 shrink-0 text-[10.5px] font-bold text-dim">How much shows</span>
-                  <label className="flex items-center gap-2 ">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={Math.round(own.opacity * 100)}
-                      onChange={(e) =>
-                        setCustomWallpaperOpacity(Number(e.target.value) / 100)
-                      }
-                      className="flex-1 h-1.5 appearance-none bg-[var(--line)] rounded-full accent-accent"
-                    />
-                  </label>
-                </div>
-                <button
-                  type="button"
-                  onClick={removeCustomWallpaper}
-                  disabled={busy !== null}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--bad)_30%,var(--line))] bg-[color-mix(in_srgb,var(--bad)_8%,transparent)] px-3 py-2 text-[13px] font-bold text-[var(--bad)] transition hover:brightness-95 disabled:opacity-50"
-                >
-                  <Eraser className="size-4" />
-                  Remove
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => void removeCustomWallpaper()}
+                disabled={busy !== null}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--bad)_30%,var(--line))] bg-[color-mix(in_srgb,var(--bad)_8%,transparent)] px-3 py-2 text-[13px] font-bold text-[var(--bad)] transition hover:brightness-95 disabled:opacity-50"
+              >
+                <Eraser className="size-4" />
+                Remove
+              </button>
             </div>
           ) : null}
           <div className="grid grid-cols-3 gap-2.5 p-3">
@@ -906,25 +877,29 @@ export function ConvoSheet({
               disabled={busy !== null}
               className={cn(
                 "relative aspect-[0.75] overflow-hidden rounded-lg border bg-card transition",
-                own
+                sharedWall
                   ? "border-accent ring-2 ring-accent/25"
                   : "border-line hover:border-accent/40",
               )}
             >
-              <span className="flex h-full w-full items-center justify-center flex-col gap-2 bg-[color-mix(in_srgb,var(--page)_88%,var(--card))] text-[10px] font-bold text-dim">
+              {sharedWall ? (
+                <img src={sharedWall} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              ) : null}
+              <span className="relative flex h-full w-full items-center justify-center flex-col gap-2 bg-[color-mix(in_srgb,var(--page)_88%,var(--card))] text-[10px] font-bold text-dim">
                 <span className="flex size-10 items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent">
                   <Image className="size-5" />
                 </span>
                 <span>Your photo</span>
               </span>
-              {own ? (
+              {sharedWall ? (
                 <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-accent text-on-accent">
                   <Check className="size-3" />
                 </span>
               ) : null}
             </button>
             {walls.map((wall) => {
-              const picked = !own && (row.wallpaper ?? "default") === wall.key;
+              const picked =
+                !row.wallpaper_asset && (row.wallpaper ?? "default") === wall.key;
               const url = wallUrl(wall.key);
               return (
                 <button
@@ -1034,7 +1009,7 @@ export function ConvoSheet({
         onClose={() => setConfirming(null)}
         onConfirm={() => void confirmBlock()}
         title={`Block ${first}?`}
-        body="They cannot reach you, and neither of you sees the other online. The convo stays where it is."
+        body="They cannot reach you. The convo stays where it is."
         note="You can undo this from the same sheet."
         confirmLabel="Block"
         destructive

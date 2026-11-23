@@ -1,4 +1,5 @@
 import api from "@/config/axios";
+import { e2ee, openPage, type Envelope } from "@/crypto/e2ee";
 import type {
   Asset,
   Channel,
@@ -43,7 +44,7 @@ export interface ThreadList {
   unread?: number;
 }
 
-/** The body `messages/send/` accepts — the same fields the send screen builds. */
+/** One send, in the shape the action dispatcher takes it. */
 export interface SendPayload {
   kind?: string;
   body?: string;
@@ -51,8 +52,59 @@ export interface SendPayload {
   asset?: string;
   payload?: Record<string, unknown>;
   channel?: string | null;
+  audience?: string[];
   /** Reused on a retry, so the server's `(sender, client_id)` dedupe holds. */
   client_id?: string;
+}
+
+const SEAL_STORE_KEY = "xelvic.e2ee.seals";
+const SEAL_STORE_LIMIT = 200;
+
+const seals = new Map<string, Envelope>();
+
+function storedSeals(): Record<string, Envelope> {
+  try {
+    if (typeof localStorage === "undefined") return {};
+    const raw = localStorage.getItem(SEAL_STORE_KEY);
+    if (!raw) return {};
+    const data: unknown = JSON.parse(raw);
+    if (!data || typeof data !== "object" || Array.isArray(data)) return {};
+    return data as Record<string, Envelope>;
+  } catch {
+    return {};
+  }
+}
+
+function sealedFor(clientId: string | undefined): Envelope | undefined {
+  if (!clientId) return undefined;
+  const held = seals.get(clientId);
+  if (held) return held;
+  const stored = storedSeals()[clientId];
+  if (stored) seals.set(clientId, stored);
+  return stored;
+}
+
+function rememberSeal(clientId: string | undefined, envelope: Envelope): void {
+  if (!clientId) return;
+  if (seals.size >= SEAL_STORE_LIMIT) {
+    const oldest = seals.keys().next().value;
+    if (oldest !== undefined) seals.delete(oldest);
+  }
+  seals.set(clientId, envelope);
+  try {
+    if (typeof localStorage === "undefined") return;
+    const all = storedSeals();
+    all[clientId] = envelope;
+    const keys = Object.keys(all);
+    if (keys.length > SEAL_STORE_LIMIT) {
+      for (const key of keys.slice(0, keys.length - SEAL_STORE_LIMIT)) {
+        delete all[key];
+      }
+    }
+    localStorage.setItem(SEAL_STORE_KEY, JSON.stringify(all));
+  } catch {
+    return;
+  }
 }
 
 /** One name in a message's delivery buckets. */
@@ -64,6 +116,7 @@ export interface MessageReceipt {
 /** A thread's own look: which backdrop it stands on and which tint it wears. */
 export interface SkinPayload {
   wallpaper?: string;
+  wallpaper_asset?: string | null;
   tint?: string;
 }
 
@@ -113,7 +166,10 @@ export const chatService = {
   },
 
   /** The backdrop and the tint this convo wears. */
-  skin: async (threadId: string, patch: SkinPayload): Promise<{ wallpaper: string; tint: string }> => {
+  skin: async (
+    threadId: string,
+    patch: SkinPayload,
+  ): Promise<{ wallpaper: string; tint: string; wallpaper_asset?: string | null }> => {
     const response = await api.patch<{ wallpaper: string; tint: string }>(
       `/chat/threads/${threadId}/skin/`,
       patch,
@@ -129,6 +185,15 @@ export const chatService = {
   /** Removes the thread outright. */
   removeThread: async (threadId: string): Promise<void> => {
     await api.delete(`/chat/threads/${threadId}/`);
+  },
+
+  /** Takes a pile off the list in one ask — all of it, or none of it. */
+  removeThreads: async (ids: string[]): Promise<{ deleted: number }> => {
+    const response = await api.post<{ deleted: number }>(
+      "/chat/threads/bulk-delete/",
+      { ids },
+    );
+    return response.data;
   },
 
   /** Steps out of a group, leaving it behind for everybody else. */
@@ -291,7 +356,7 @@ export const chatService = {
   /** The newest page of a thread's messages. */
   messages: async (threadId: string): Promise<Page<Message>> => {
     const response = await api.get<Page<Message>>(`/chat/threads/${threadId}/messages/`);
-    return response.data;
+    return openPage(response.data);
   },
 
   /**
@@ -300,21 +365,76 @@ export const chatService = {
    */
   messagesAt: async (path: string): Promise<Page<Message>> => {
     const response = await api.get<Page<Message>>(path);
-    return response.data;
+    return openPage(response.data);
   },
 
   /** Sends one message and answers with the row the server made of it. */
   send: async (threadId: string, payload: SendPayload): Promise<{ message: Message }> => {
-    const response = await api.post<{ message: Message }>(
-      `/chat/threads/${threadId}/messages/send/`,
-      payload,
-    );
-    return response.data;
+    const kind = payload.kind ?? "text";
+    const plain = payload.body ?? "";
+    let envelope: Envelope | null = null;
+    if (
+      kind === "text" &&
+      plain.length > 0 &&
+      !payload.asset &&
+      payload.audience !== undefined
+    ) {
+      void e2ee.prepare().catch(() => undefined);
+      envelope = sealedFor(payload.client_id) ?? null;
+      if (!envelope) {
+        envelope = await e2ee.seal(plain, payload.audience);
+        if (envelope) rememberSeal(payload.client_id, envelope);
+      }
+    }
+    const carried: Record<string, unknown> = {
+      thread_id: threadId,
+      kind,
+      body: envelope ? "" : plain,
+    };
+    if (envelope) carried.enc = envelope;
+    if (payload.reply_to) carried.reply_to = payload.reply_to;
+    if (payload.asset) carried.asset = payload.asset;
+    if (payload.payload) carried.payload = payload.payload;
+    if (payload.channel) carried.channel = payload.channel;
+    if (payload.client_id) carried.message_client_id = payload.client_id;
+    const response = await api.post<{
+      replayed: boolean;
+      result: { message: Message };
+    }>("/chat/actions/", {
+      client_id: crypto.randomUUID(),
+      action: "message.send",
+      payload: carried,
+    });
+    const result = response.data.result;
+    if (result?.message) result.message = await e2ee.absorb(result.message);
+    return result;
   },
 
   /** Rewrites a message's words. */
-  edit: async (threadId: string, messageId: string, body: string): Promise<void> => {
-    await api.patch(`/chat/threads/${threadId}/messages/${messageId}/`, { body });
+  edit: async (
+    threadId: string,
+    messageId: string,
+    body: string,
+    options: { audience?: string[]; sealed?: boolean } = {},
+  ): Promise<void> => {
+    if (options.sealed) {
+      const envelope = options.audience
+        ? await e2ee.seal(body, options.audience)
+        : null;
+      if (!envelope) {
+        throw new Error(
+          "That line is sealed, and it could not be sealed again just now. Open the conversation and try once more.",
+        );
+      }
+      await api.patch(`/chat/threads/${threadId}/messages/${messageId}/`, {
+        body: "",
+        enc: envelope,
+      });
+      return;
+    }
+    await api.patch(`/chat/threads/${threadId}/messages/${messageId}/`, {
+      body,
+    });
   },
 
   /** Removes it from this copy, or — with `all` — for everybody. */
@@ -400,7 +520,12 @@ export const chatService = {
     const response = await api.get<{ query: string; messages: Message[] }>("/chat/search/", {
       params: { q },
     });
-    return response.data;
+    const data = response.data;
+    if (!data?.messages?.length) return data;
+    const messages = await Promise.all(
+      data.messages.map((one) => e2ee.absorb(one)),
+    );
+    return { ...data, messages };
   },
 
   // ---- the vault ----------------------------------------------------------

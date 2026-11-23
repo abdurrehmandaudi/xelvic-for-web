@@ -3,12 +3,15 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import {
   ArrowRight,
+  Baby,
   BarChart3,
   Bell,
+  BellOff,
   Bookmark,
   Clapperboard,
   ImagePlus,
   MessageCircle,
+  MoreVertical,
   Music2,
   Play,
   Plus,
@@ -23,10 +26,12 @@ import { Modal } from "@/components/overlays/Modal";
 import { PageHeader } from "@/components/layout/Page";
 import { EmptyState, ErrorState } from "@/components/ui/States";
 import { VerifiedTick } from "@/components/icons/Tick";
+import { SheetRow } from "@/features/profile/parts";
 import { DropCard } from "@/features/drops/DropCard";
 import { DropComposer, type ComposerMode } from "@/features/drops/DropComposer";
 import { EditDrop } from "@/features/drops/EditDrop";
 import { SensitiveVeil } from "@/features/drops/SensitiveVeil";
+import { SuggestShelf } from "@/features/drops/SuggestShelf";
 import { VibeViewer } from "@/features/drops/VibeViewer";
 import { dropsFeedQuery, dropsVibesQuery } from "@/features/drops/feedQueries";
 import {
@@ -38,10 +43,18 @@ import {
   walkOf,
 } from "@/features/drops/mix";
 import { dropIsClip } from "@/features/drops/model";
+import {
+  dismissKind,
+  loadSuggestState,
+  rememberShown,
+  suggestShelfSpots,
+  type SuggestSpot,
+} from "@/features/drops/suggest";
 import { chatService } from "@/services/chat.service";
 import { socialService } from "@/services/social.service";
 import { cn } from "@/utils/cn";
 import { count, timeAgoShort } from "@/utils/format";
+import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useWideScreen } from "@/hooks/useWideScreen";
 import type { Drop, Page } from "@/types/api";
@@ -282,7 +295,7 @@ function VibeCard({ vibe, onOpen }: { vibe: Drop; onOpen: () => void }) {
           )}
         </SensitiveVeil>
 
-        <span className="absolute start-2 top-2 rounded-full bg-card p-[2px] shadow-[0_2px_8px_rgb(8_8_12_/_0.18)]">
+        <span className="absolute start-2 top-2 flex rounded-full bg-card p-[2px] shadow-[0_2px_8px_rgb(8_8_12_/_0.18)]">
           <Avatar user={vibe.author} size={28} />
         </span>
         <span className="absolute bottom-2 start-2">
@@ -337,8 +350,10 @@ export function DropsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const wide = useWideScreen();
+  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [vibeIndex, setVibeIndex] = useState<number | null>(null);
   const composing = params.get("compose") === "1";
   const modeParam = params.get("mode");
@@ -524,6 +539,49 @@ export function DropsPage() {
     [filling, shelf, woven],
   );
 
+  const account = user?.username ?? "";
+  const [memory, setMemory] = useState(() => loadSuggestState(account));
+  useEffect(() => {
+    setMemory(loadSuggestState(account));
+  }, [account]);
+  const [suggestSeed] = useState(() => Math.floor(Math.random() * 0x80000000));
+  const [closedShelves, setClosedShelves] = useState<Set<string>>(new Set());
+
+  const spots = useMemo(
+    () =>
+      suggestShelfSpots(woven.length, {
+        seed: suggestSeed,
+        lastKind: memory.lastKind,
+        dismissed: memory.dismissedKinds,
+      }),
+    [woven.length, suggestSeed, memory],
+  );
+
+  const feedRows = useMemo(() => {
+    const byAfter = new Map<number, SuggestSpot[]>();
+    for (const spot of spots) {
+      const key = `${spot.after}-${spot.kind}`;
+      if (closedShelves.has(key)) continue;
+      byAfter.set(spot.after, [...(byAfter.get(spot.after) ?? []), spot]);
+    }
+    const out: Array<{ drop: Drop } | { spot: SuggestSpot }> = [];
+    woven.forEach((drop, index) => {
+      out.push({ drop });
+      for (const spot of byAfter.get(index + 1) ?? []) out.push({ spot });
+    });
+    return out;
+  }, [woven, spots, closedShelves]);
+
+  function dropShelf(spot: SuggestSpot) {
+    setClosedShelves((current) => new Set(current).add(`${spot.after}-${spot.kind}`));
+  }
+
+  function closeShelf(spot: SuggestSpot) {
+    dropShelf(spot);
+    if (account) dismissKind(account, spot.kind);
+    setMemory(loadSuggestState(account));
+  }
+
   /**
    * The next page, asked for as the foot of the feed comes into view.
    *
@@ -636,6 +694,14 @@ export function DropsPage() {
             >
               Create
             </Button>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]"
+              aria-label="More"
+            >
+              <MoreVertical className="size-[18px]" />
+            </button>
           </>
         }
       />
@@ -651,6 +717,23 @@ export function DropsPage() {
           on a desktop. */}
       <div className="mx-auto grid w-full max-w-[860px] gap-6 px-3 pt-1 sm:px-4 md:px-7 xl:grid-cols-[minmax(0,470px)_300px] xl:justify-center xl:gap-8">
         <div className="mx-auto w-full min-w-0 max-w-[470px] space-y-3">
+          <Link
+            to="/kids"
+            className="flex items-center gap-3 rounded-[20px] border border-line bg-card px-4 py-3 shadow-[0_8px_24px_rgb(19_19_26_/_0.04)] transition hover:border-accent/40"
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--accent-soft)] text-accent">
+              <Baby className="size-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[14px] font-extrabold">
+                Kids
+              </span>
+              <span className="mt-0.5 block truncate text-[11.5px] text-dim">
+                Pictures, clips and stories picked for children.
+              </span>
+            </span>
+            <ArrowRight className="size-4 shrink-0 text-dim" />
+          </Link>
           {rail.length ? (
             <section
               aria-labelledby="drops-vibe-heading"
@@ -725,13 +808,24 @@ export function DropsPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {woven.map((row) => (
-                  // Each card is its own box: a card below the fold is not laid
-                  // out or painted until the scroll nears it, which is what
-                  // keeps a fifty-drop feed's first paint as cheap as a five.
-                  <div key={row.id} className="feed-item">
-                  <DropCard
-                    drop={row}
+                {feedRows.map((row) =>
+                  "spot" in row ? (
+                    <SuggestShelf
+                      key={`shelf-${row.spot.after}-${row.spot.kind}`}
+                      kind={row.spot.kind}
+                      onShown={(kind) => {
+                        rememberShown(account, kind);
+                      }}
+                      onClose={() => closeShelf(row.spot)}
+                      onEmpty={() => dropShelf(row.spot)}
+                    />
+                  ) : (
+                    <div key={row.drop.id} className="feed-item">
+                    <DropCard
+                      drop={row.drop}
+                    // Each card is its own box: a card below the fold is not laid
+                    // out or painted until the scroll nears it, which is what
+                    // keeps a fifty-drop feed's first paint as cheap as a five.
                     // A clip in the feed has somewhere to be opened, and it is
                     // the same place whether it is a Vibe the weave wove in or a
                     // plain video somebody posted: the walk. The app's own rule —
@@ -744,11 +838,12 @@ export function DropsPage() {
                     //
                     // A picture is still left alone, which is the app's answer
                     // too: nothing on the phone happens on a tap on a still.
-                    onOpen={dropIsClip(row) ? () => openVibe(row) : undefined}
+                    onOpen={dropIsClip(row.drop) ? () => openVibe(row.drop) : undefined}
                     onRemoved={forget}
                   />
                   </div>
-                ))}
+                  ),
+                )}
                 {filling ? (
                   vibes.hasNextPage ? (
                     <div ref={foot} className="flex justify-center py-4">
@@ -839,6 +934,25 @@ export function DropsPage() {
             onClick={() => {
               setCreateOpen(false);
               navigate("/moments?compose=1");
+            }}
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title="More"
+        size="sm"
+      >
+        <div className="pb-2">
+          <SheetRow
+            icon={<BellOff className="size-[18px]" />}
+            label="Muted accounts"
+            line="Their posts stay out of your feed until you unmute them."
+            onClick={() => {
+              setMenuOpen(false);
+              navigate("/drops/muted");
             }}
           />
         </div>

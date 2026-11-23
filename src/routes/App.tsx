@@ -20,8 +20,11 @@ import {
   DropPage,
   DropsPage,
   InsightsPage,
+  KidsPage,
   LivePage,
+  LiveWatchPage,
   MomentsPage,
+  MutedPage,
   OwnQrPage,
   PlaylistPage,
   ProfilePage,
@@ -37,6 +40,8 @@ import {
   SparksPage,
   TagPage,
   VibeStudioPage,
+  VideosPage,
+  WatchLaterPage,
 } from "@/routes/lazyPages";
 import { NotFoundPage, ProtectedRoute, PublicOnly } from "@/routes/ProtectedRoute";
 import { Spinner } from "@/components/ui/Button";
@@ -83,7 +88,7 @@ export default function App() {
       <Route path="/u/:username" element={<LazyPage page={PublicProfilePage} />} />
       <Route path="/d/:dropId" element={<LazyPage page={PublicDropPage} />} />
       <Route path="/v/:vibeId" element={<LazyPage page={PublicVibePage} />} />
-      {/* The signed-in app. A pathless layout rather than a `/app` prefix: its
+      {/* The signed-in app. A pathless layout rather than a `/drops` prefix: its
           own addresses are the site's addresses — `xelvic.com/drops/…`,
           `xelvic.com/profile/shariq` — and `/` stays the sign-in door. */}
       <Route
@@ -94,6 +99,7 @@ export default function App() {
         }
       >
         <Route path="drops" element={<LazyPage page={DropsPage} />} />
+        <Route path="drops/muted" element={<LazyPage page={MutedPage} />} />
         <Route path="drops/:dropId" element={<LazyPage page={DropPage} />} />
         {/* A Vibe has no single signed-in page yet; `/vibes/<id>` is the address
             a shared link wears, and a signed-in reader gets the same read-only
@@ -134,6 +140,13 @@ export default function App() {
           path="audio/:playlistId"
           element={<LazyPage page={PlaylistPage} />}
         />
+        <Route path="videos" element={<LazyPage page={VideosPage} />} />
+        <Route path="videos/watch-later" element={<LazyPage page={WatchLaterPage} />} />
+        {/* The video page the upstream branch added. Live rooms keep the
+            existing `/live/:roomId` page; a video of a live broadcast opens
+            here. */}
+        <Route path="videos/:id" element={<LazyPage page={LiveWatchPage} />} />
+        <Route path="kids" element={<LazyPage page={KidsPage} />} />
         <Route path="live" element={<LazyPage page={LivePage} />} />
         <Route path="live/:roomId" element={<LazyPage page={RoomPage} />} />
         <Route path="profile/:username" element={<LazyPage page={ProfilePage} />} />
