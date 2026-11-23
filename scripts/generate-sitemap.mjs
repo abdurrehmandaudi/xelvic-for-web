@@ -15,7 +15,7 @@
  * Environment:
  *   SITEMAP_API          endpoint to read (default: `/api/v1/public/sitemap`)
  *   SITEMAP_PAGES_FILE   read a JSON array from disk instead (tests/exports)
- *   SITE_ORIGIN          public origin (default: https://web.xelvic.com)
+ *   SITE_ORIGIN          public origin (default: https://xelvic.com)
  *   SITEMAP_OUT          output file (default: public/sitemap.xml)
  *
  * Sitemaps are limited to 50,000 URLs / 50 MB each. Past that this writes a
@@ -26,7 +26,9 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
-const SITE_ORIGIN = (process.env.SITE_ORIGIN || "https://web.xelvic.com").replace(/\/+$/, "");
+// `xelvic.com` is the live origin; `web.xelvic.com` was retired and now
+// answers 301. A sitemap that names a redirecting host wastes the crawl.
+const SITE_ORIGIN = (process.env.SITE_ORIGIN || "https://xelvic.com").replace(/\/+$/, "");
 const SITEMAP_API =
   process.env.SITEMAP_API || "https://api.xelvic.com/api/v1/public/sitemap";
 const OUT = process.env.SITEMAP_OUT || path.resolve("public/sitemap.xml");

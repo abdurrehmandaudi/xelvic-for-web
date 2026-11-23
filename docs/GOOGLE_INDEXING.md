@@ -14,14 +14,14 @@ The short version:
 
 ## 0. Before anything is submitted
 
-- [ ] The new build is deployed at `https://web.xelvic.com` (the currently live
-      deployment is an older UI).
+- [ ] The current client is deployed at `https://xelvic.com` (the API's
+      `/sitemap.xml` and `/sitemap-<kind>.xml` are already served there).
 - [ ] The API serves anonymous GETs for public profiles, drops and vibes
       (`docs/PUBLIC_CONTENT_AND_SEO.md` §2). Until then every public page is a
       gate marked `noindex`, and Google will correctly decline to index it.
-- [ ] `https://web.xelvic.com/robots.txt` is reachable and points at the
+- [ ] `https://xelvic.com/robots.txt` is reachable and points at the
       sitemap.
-- [ ] `https://web.xelvic.com/sitemap.xml` is reachable.
+- [ ] `https://xelvic.com/sitemap.xml` is reachable.
 - [ ] A public profile, drop and vibe each render real content in a private
       browser window (not a lock), with the right `<title>`, description and
       canonical in the page source after rendering.
@@ -39,7 +39,7 @@ protocols.
    `google-site-verification=…`
 4. Add it at the DNS provider for `xelvic.com` and verify.
 
-A **URL-prefix** property for `https://web.xelvic.com` also works if DNS access
+A **URL-prefix** property for `https://xelvic.com` also works if DNS access
 is awkward. That method offers an HTML file; drop it into `public/` (it will be
 served from the site root) and deploy.
 
@@ -52,7 +52,7 @@ sitemap.xml
 ```
 
 and submit. The full URL is
-`https://web.xelvic.com/sitemap.xml`.
+`https://xelvic.com/sitemap.xml`.
 
 ### 1.3 Ask for the first pages to be crawled
 
@@ -110,7 +110,7 @@ Bing usually follows the same sitemap. IndexNow lets the server push changed
 URLs immediately:
 
 1. generate a key (a random hex string) and serve it at
-   `https://web.xelvic.com/<key>.txt`;
+   `https://xelvic.com/<key>.txt`;
 2. `POST https://api.indexnow.org/indexnow` with `{host, key, keyLocation,
    urlList}` when public posts change.
 
