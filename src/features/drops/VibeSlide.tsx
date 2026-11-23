@@ -435,14 +435,8 @@ export function VibeSlide({
 
       {paused && !playerOpen ? (
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="flex size-16 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm">
-            <svg
-              viewBox="0 0 24 24"
-              className="size-7 fill-current"
-              aria-hidden
-            >
-              <path d="M8 5v14l11-7z" />
-            </svg>
+          <span className="flex size-[58px] items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm">
+            <Play className="size-7 fill-current" strokeWidth={0} aria-hidden />
           </span>
         </span>
       ) : null}

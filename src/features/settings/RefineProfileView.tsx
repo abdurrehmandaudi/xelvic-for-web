@@ -3,7 +3,7 @@ import { Camera, Hourglass, Image as ImageIcon, ImagePlus, Lock, Trash2 } from "
 import { Avatar } from "@/components/ui/Avatar";
 import { AuthedImage } from "@/components/media/Media";
 import { Modal } from "@/components/overlays/Modal";
-import { FieldLabel, SettingsShell } from "@/features/settings/parts";
+import { FieldLabel, SettingsShell, SettingsSwitch } from "@/features/settings/parts";
 import { errorMessage } from "@/utils/errors";
 import { cn } from "@/utils/cn";
 import { useAuth } from "@/hooks/useAuth";
@@ -115,6 +115,7 @@ export function RefineProfileView({ onBack }: { onBack: () => void }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [logoutEverywhere, setLogoutEverywhere] = useState(true);
   const [passwordBusy, setPasswordBusy] = useState(false);
 
   async function changePassword() {
@@ -124,11 +125,18 @@ export function RefineProfileView({ onBack }: { onBack: () => void }) {
     }
     setPasswordBusy(true);
     try {
-      await authService.changePassword(currentPassword, newPassword);
+      const answer = await authService.changePassword(currentPassword, newPassword, logoutEverywhere);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      toast({ title: t("Password changed"), tone: "success" });
+      const ended = Number(answer?.signed_out ?? 0);
+      toast({
+        title:
+          logoutEverywhere && ended > 0
+            ? t("Password changed. Other phones have been signed out.")
+            : t("Password changed"),
+        tone: "success",
+      });
     } catch (error) {
       toast({ title: errorMessage(error), tone: "error" });
     } finally {
@@ -459,6 +467,17 @@ export function RefineProfileView({ onBack }: { onBack: () => void }) {
               autoComplete="new-password"
               minLength={8}
             />
+            <div className="flex items-center justify-between gap-3 pt-0.5">
+              <span className="min-w-0">
+                <span className="block text-[14px] font-semibold">{t("Log out from all places")}</span>
+                <span className="mt-0.5 block text-[12px] text-dim">{t("This phone stays signed in.")}</span>
+              </span>
+              <SettingsSwitch
+                on={logoutEverywhere}
+                onChange={() => setLogoutEverywhere((current) => !current)}
+                label={t("Log out from all places")}
+              />
+            </div>
             <div className="flex justify-end">
               <button
                 type="submit"

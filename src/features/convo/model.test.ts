@@ -3,6 +3,7 @@ import {
   inUnreadLane,
   lineTone,
   listLine,
+  threadGone,
   threadTitle,
   threadUnread,
   threadUnreadOther,
@@ -97,8 +98,8 @@ describe("the Unread lane", () => {
     expect(threadUnreadOther(thread({ unread_count: 3 }))).toBeNull();
   });
 
-  it("includes every convo with a waiting line", () => {
-    expect(inUnreadLane(thread({ unread_count: 2, unread_other_count: 0 }))).toBe(true);
+  it("leaves out a convo whose waiting lines are all Sparks", () => {
+    expect(inUnreadLane(thread({ unread_count: 2, unread_other_count: 0 }))).toBe(false);
     expect(inUnreadLane(thread({ unread_count: 3, unread_other_count: 1 }))).toBe(true);
     expect(inUnreadLane(thread({ unread_count: 1 }))).toBe(true);
     expect(inUnreadLane(thread({ unread_count: 0, unread_other_count: 0 }))).toBe(false);
@@ -137,5 +138,60 @@ describe("threadTitle", () => {
       ),
     ).toBe("sam");
     expect(threadTitle(thread({}))).toBe("Conversation");
+  });
+
+  it("calls a convo whose other side deleted their account by the app's words", () => {
+    // The server keeps the name and the face on the wire through the thirty-day
+    // window, so a row that read `other.name` would name somebody who is not
+    // there to answer for it. `deleted` is on the row and on the card, and each
+    // shape answers the same.
+    expect(threadTitle(thread({ deleted: true }))).toBe("Deleted account");
+    expect(
+      threadTitle(
+        thread({
+          other: {
+            id: "u1",
+            username: "ada",
+            name: "Ada",
+            avatar: null,
+            initials: "A",
+            deleted: true,
+          },
+        }),
+      ),
+    ).toBe("Deleted account");
+  });
+
+  it("leaves a group's own title alone when a member has gone", () => {
+    // A group is not the deleted person: the fact belongs to a seat in its
+    // roster, never to the row, and the roster is where it is said.
+    expect(
+      threadTitle(
+        thread({ kind: "group", title: "Crew", deleted: true }),
+      ),
+    ).toBe("Crew");
+  });
+});
+
+describe("threadGone", () => {
+  it("reads the fact off a direct row, in either shape the server sends it", () => {
+    expect(threadGone(thread({ deleted: true }))).toBe(true);
+    expect(
+      threadGone(
+        thread({
+          other: {
+            id: "u1",
+            username: "ada",
+            name: "Ada",
+            avatar: null,
+            initials: "A",
+            deleted: true,
+          },
+        }),
+      ),
+    ).toBe(true);
+    const purged = thread({ other: null, deleted: true });
+    expect(threadGone(purged)).toBe(true);
+    expect(threadGone(thread({ deleted: false }))).toBe(false);
   });
 });

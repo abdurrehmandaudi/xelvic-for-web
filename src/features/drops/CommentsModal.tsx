@@ -9,6 +9,7 @@ import {
   Lock,
   Mic,
   Pencil,
+  Reply,
   Send,
   Smile,
   Trash,
@@ -137,9 +138,16 @@ function CommentRow({
 
   return (
     <div
-      className="flex gap-2.5 py-[7px] pe-2"
-      style={{ paddingInlineStart: isReply ? 56 : 14 }}
+      className="relative flex gap-2.5 py-1.5 pe-2.5"
+      style={{ paddingInlineStart: isReply ? 58 : 14 }}
     >
+      {isReply ? (
+        <span
+          aria-hidden
+          className="absolute bottom-2 top-0 w-px bg-[color-mix(in_srgb,var(--ink)_10%,transparent)]"
+          style={{ insetInlineStart: 40 }}
+        />
+      ) : null}
       <Link to={`/app/u/${comment.author.username}`} className="shrink-0">
         <Avatar user={comment.author} size={isReply ? 26 : 36} />
       </Link>
@@ -151,40 +159,44 @@ function CommentRow({
         onPointerCancel={up}
         onClick={press2}
       >
-        <div className="flex items-baseline gap-1.5">
-          <Link
-            to={`/app/u/${comment.author.username}`}
-            className={cn(
-              "truncate font-bold hover:underline",
-              isReply ? "text-[12.5px] text-accent" : "text-[13px]",
-            )}
-          >
-            {comment.author.username}
-          </Link>
-          {comment.author.verified ? <VerifiedTick size={13} /> : null}
-          <span className="shrink-0 text-[11px] text-dim">{relativeTime(comment.created_at)}</span>
-        </div>
-        <div className="mt-0.5">
-          <RespondBody body={comment.body} mentions={comment.mentions} />
-        </div>
-        {comment.sticker ? (
-          <div className="mt-1.5">
-            <RespondSticker sticker={comment.sticker} />
+        <div className="rounded-[16px] border border-line bg-[color-mix(in_srgb,var(--accent)_4%,var(--card))] px-3 py-2 transition">
+          <div className="flex items-baseline gap-1.5">
+            <Link
+              to={`/app/u/${comment.author.username}`}
+              className={cn(
+                "truncate font-bold hover:underline",
+                isReply ? "text-[12.5px] text-accent" : "text-[13px]",
+              )}
+            >
+              {comment.author.username}
+            </Link>
+            {comment.author.verified ? <VerifiedTick size={13} /> : null}
+            <span className="shrink-0 text-[11px] text-dim">{relativeTime(comment.created_at)}</span>
           </div>
-        ) : null}
-        {comment.asset ? (
-          <div className="mt-1.5">
-            <RespondMedia asset={comment.asset} />
+          <div className="mt-1">
+            <RespondBody body={comment.body} mentions={comment.mentions} />
           </div>
-        ) : null}
-        <div className="mt-[3px] flex items-center gap-4">
+          {comment.sticker ? (
+            <div className="mt-1.5">
+              <RespondSticker sticker={comment.sticker} />
+            </div>
+          ) : null}
+          {comment.asset ? (
+            <div className="mt-1.5">
+              <RespondMedia asset={comment.asset} />
+            </div>
+          ) : null}
+        </div>
+        <div className="mt-1.5 flex items-center gap-1.5 ps-1">
           <button
             type="button"
             onClick={() => void agree()}
             disabled={busy}
             className={cn(
-              "flex items-center gap-1 text-[11.5px] font-bold transition",
-              liked ? "text-accent" : "text-dim hover:text-ink",
+              "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11.5px] font-bold transition",
+              liked
+                ? "bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent"
+                : "text-dim hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] hover:text-ink",
             )}
             aria-label={liked ? "Take the felt back" : "Feel this"}
             aria-pressed={liked}
@@ -195,8 +207,9 @@ function CommentRow({
           <button
             type="button"
             onClick={onReply}
-            className="text-[11.5px] font-bold text-dim transition hover:text-ink"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11.5px] font-bold text-dim transition hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] hover:text-ink"
           >
+            <Reply className="size-[14px]" aria-hidden />
             Reply
           </button>
         </div>
@@ -851,12 +864,12 @@ export function CommentsModal({
         <Button
           type="submit"
           size="sm"
-          className="size-11 shrink-0 p-0"
+          className="size-11 shrink-0 rounded-full p-0 shadow-[0_4px_14px_color-mix(in_srgb,var(--accent)_28%,transparent)]"
           disabled={(!body.trim() && !attach && !sticker) || uploading}
           loading={sending}
           aria-label={onNotes ? "Send note" : "Send respond"}
         >
-          {!sending ? <Send className="size-4" /> : null}
+          {!sending ? <Send className="size-[18px]" /> : null}
         </Button>
       </form>
     </div>
@@ -887,7 +900,8 @@ export function CommentsModal({
           )
         }
       >
-        <div className="flex gap-1 border-b border-line px-4">
+        <div className="px-4 pb-3 pt-3">
+          <div className="flex gap-1 rounded-full border border-line bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] p-1">
           {(["comments", "notes"] as const).map((key) => (
             <button
               key={key}
@@ -895,13 +909,16 @@ export function CommentsModal({
               onClick={() => switchTab(key)}
               aria-pressed={tab === key}
               className={cn(
-                "-mb-px border-b-2 px-2 pb-2.5 pt-2 text-[14px] font-bold transition",
-                tab === key ? "border-accent text-ink" : "border-transparent text-dim hover:text-ink",
+                "flex-1 rounded-full px-3 py-1.5 text-[13px] font-bold transition",
+                tab === key
+                  ? "bg-card text-ink shadow-[0_1px_4px_rgba(17,17,26,0.08)]"
+                  : "text-dim hover:text-ink",
               )}
             >
               {key === "comments" ? "Comments" : "Notes"}
             </button>
           ))}
+          </div>
         </div>
 
         {!onNotes ? (

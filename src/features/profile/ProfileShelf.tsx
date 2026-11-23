@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { AudioLines, ListMusic, Play } from "lucide-react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  AudioLines,
+  ChevronRight,
+  LayoutGrid,
+  List,
+  ListMusic,
+  Pin,
+  Play,
+  Store,
+} from "lucide-react";
 import { AuthedImage } from "@/components/media/Media";
 import { apiPathFrom } from "@/config/urls";
 import { dropsService } from "@/services/drops.service";
+import { ShowcaseShelf } from "@/features/showcase/ShowcaseShelf";
 import { errorMessage } from "@/utils/errors";
 import { cn } from "@/utils/cn";
 import { usePreferences } from "@/hooks/usePreferences";
@@ -92,6 +102,19 @@ function stillOf(drop: Drop): string | null {
 }
 
 /**
+ * Where a tile goes.
+ *
+ * A Vibe is a row in its own table and has no drop page �?" `/drops/{id}/`
+ * would 404 on it. It opens in the Vibes walk where it plays, which is the
+ * same door every other list of clips uses; a drop opens on its own page.
+ */
+function dropTo(drop: Drop): string {
+  return drop.kind === "vibe"
+    ? `/app/drops?vibe=${encodeURIComponent(drop.id)}`
+    : `/app/drops/${drop.id}`;
+}
+
+/**
  * One square in the grid.
  *
  * Ported from `DropSquare`. A tile is a third of the row less the 18-point
@@ -99,23 +122,20 @@ function stillOf(drop: Drop): string | null {
  * mark in its own top corner: a clip gets a play, a sound gets its own mark,
  * and a note is the words it holds rather than a picture it does not have.
  */
-export function Square({ drop }: { drop: Drop }) {
+export function Square({ drop, showcase = false }: { drop: Drop; showcase?: boolean }) {
   const { t } = usePreferences();
   const still = stillOf(drop);
   const clip = drop.kind === "video" || drop.kind === "vibe";
   const sound = isSound(drop);
   const words = String(drop.body ?? "").trim();
 
-  // A Vibe is a row in its own table and has no drop page — `/drops/{id}/`
-  // would 404 on it. It opens in the Vibes walk where it plays, which is the
-  // same door every other list of clips uses; a drop opens on its own page.
-  const to =
-    drop.kind === "vibe" ? `/app/drops?vibe=${encodeURIComponent(drop.id)}` : `/app/drops/${drop.id}`;
-
   return (
     <Link
-      to={to}
-      className="relative aspect-square overflow-hidden rounded-[10px] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
+      to={dropTo(drop)}
+      className={cn(
+        "relative overflow-hidden bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]",
+        showcase ? "aspect-[4/5] rounded-[14px]" : "aspect-square rounded-[10px]",
+      )}
     >
       {still ? (
         <AuthedImage
@@ -159,11 +179,167 @@ export function Square({ drop }: { drop: Drop }) {
   );
 }
 
-type Shelf = "drops" | "vibes" | "audios";
-
-export function ProfileShelf({ username, mine }: { username: string; mine: boolean }) {
+function ShelfRow({ drop }: { drop: Drop }) {
   const { t } = usePreferences();
+  const still = stillOf(drop);
+  const sound = isSound(drop);
+  const clip = drop.kind === "video" || drop.kind === "vibe";
+  const title =
+    String(drop.title ?? "").trim() ||
+    (sound ? soundName(drop, t("Audio")) : String(drop.body ?? "").trim()) ||
+    t("A drop");
+
+  return (
+    <Link
+      to={dropTo(drop)}
+      className="flex items-center gap-3 rounded-[16px] border border-line bg-card p-2.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]"
+    >
+      <span className="relative flex size-[56px] shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
+        {still ? (
+          <AuthedImage
+            src={still}
+            alt=""
+            className="absolute inset-0 h-full w-full"
+            imgClassName="h-full w-full"
+          />
+        ) : sound ? (
+          <SoundMark kind={drop.sound_kind} className="size-5 text-accent" />
+        ) : clip ? (
+          <Play className="size-5 fill-current text-accent" aria-hidden />
+        ) : (
+          <span className="line-clamp-3 px-1 text-center text-[8px] leading-[1.25]">
+            {String(drop.body ?? "").trim() || t("A drop")}
+          </span>
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-extrabold">{title}</span>
+        <span className="mt-0.5 block truncate text-[11.5px] text-dim">
+          {kindLabel(drop, t)}
+          {drop.created_at ? ` \u00b7 ${new Date(drop.created_at).toLocaleDateString()}` : ""}
+        </span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-dim" aria-hidden />
+    </Link>
+  );
+}
+
+function kindLabel(drop: Drop, t: (key: string) => string): string {
+  if (isSound(drop)) return t("Audio");
+  if (drop.kind === "video" || drop.kind === "vibe") return t("Vibe");
+  if (drop.kind === "image") return t("Photo");
+  if (drop.kind === "poll") return t("Poll");
+  return t("Note");
+}
+
+export function PinnedStrip({
+  username,
+  className,
+}: {
+  username: string;
+  className?: string;
+}) {
+  const { t } = usePreferences();
+  const answer = useQuery({
+    queryKey: ["pinned", username],
+    queryFn: () => dropsService.pinned(username),
+    enabled: Boolean(username),
+    retry: false,
+  });
+  const pinned = answer.data?.pinned ?? [];
+  if (!pinned.length) return null;
+
+  return (
+    <div className={className}>
+      <div className="flex items-center gap-1.5 pb-2">
+        <Pin className="size-3.5 text-dim" aria-hidden />
+        <span className="text-[12px] font-bold tracking-[0.3px] text-dim">
+          {t("Pinned")}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+        {pinned.map((drop) => (
+          <PinnedTile key={String(drop.id)} drop={drop} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PinnedTile({ drop }: { drop: Drop }) {
+  const { t } = usePreferences();
+  const still = stillOf(drop);
+  const sound = isSound(drop);
+  const clip = drop.kind === "video" || drop.kind === "vibe";
+  const words = String(drop.body ?? "").trim();
+  const title =
+    String(drop.title ?? "").trim() ||
+    (sound ? soundName(drop, t("Audio")) : words) ||
+    t("A drop");
+
+  return (
+    <Link to={dropTo(drop)} className="flex min-w-0 flex-col">
+      <span className="relative block aspect-square overflow-hidden rounded-[14px] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
+        {still ? (
+          <AuthedImage
+            src={still}
+            alt=""
+            className="absolute inset-0 h-full w-full"
+            imgClassName="h-full w-full"
+          />
+        ) : sound ? (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <SoundMark kind={drop.sound_kind} className="size-6 text-accent" />
+          </span>
+        ) : clip ? (
+          <span className="absolute inset-0 flex items-center justify-center text-accent">
+            <Play className="size-[22px] fill-current" aria-hidden />
+          </span>
+        ) : (
+          <span className="absolute inset-0 flex items-center justify-center p-2">
+            <span className="line-clamp-4 text-center text-[12px] leading-[1.3]">
+              {words || t("A drop")}
+            </span>
+          </span>
+        )}
+        {clip ? (
+          <span className="absolute right-1.5 top-1.5 flex size-[23px] items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ink)_55%,transparent)] text-[var(--page)]">
+            <Play className="size-[14px] fill-current" aria-hidden />
+          </span>
+        ) : null}
+        {sound && still ? (
+          <span className="absolute right-1.5 top-1.5 flex size-[23px] items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ink)_55%,transparent)] text-[var(--page)]">
+            <SoundMark kind={drop.sound_kind} className="size-[14px]" />
+          </span>
+        ) : null}
+      </span>
+      <span className="mt-2 block truncate text-[13px] font-extrabold">
+        {title}
+      </span>
+      <span className="mt-0.5 block truncate text-[11.5px] text-dim">
+        {kindLabel(drop, t)}
+      </span>
+    </Link>
+  );
+}
+
+type Shelf = "drops" | "vibes" | "showcase" | "audios";
+
+export function ProfileShelf({
+  username,
+  mine,
+  hasShowcase = false,
+  variant = "default",
+}: {
+  username: string;
+  mine: boolean;
+  hasShowcase?: boolean;
+  variant?: "default" | "showcase";
+}) {
+  const { t } = usePreferences();
+  const showcase = variant === "showcase";
   const [tab, setTab] = useState<Shelf>("drops");
+  const [layout, setLayout] = useState<"grid" | "list">("grid");
 
   const shelf = useInfiniteQuery<ShelfPage>({
     queryKey: ["profile-shelf", username],
@@ -223,10 +399,11 @@ export function ProfileShelf({ username, mine }: { username: string; mine: boole
     return () => observer.disconnect();
   }, [active, locked]);
 
-  const pills: { key: Shelf; label: string }[] = [
-    { key: "drops", label: t("Drops") },
-    { key: "vibes", label: t("Vibes") },
-    { key: "audios", label: t("Audios") },
+  const pills: { key: Shelf; label: string; icon: typeof LayoutGrid }[] = [
+    { key: "drops", label: t("Drops"), icon: LayoutGrid },
+    { key: "vibes", label: t("Vibes"), icon: Play },
+    ...(hasShowcase ? [{ key: "showcase" as const, label: t("Showcase"), icon: Store }] : []),
+    { key: "audios", label: t("Audios"), icon: AudioLines },
   ];
 
   const spinner = (
@@ -237,15 +414,23 @@ export function ProfileShelf({ username, mine }: { username: string; mine: boole
 
   /** The app's own one-line answer, drawn where a grid would be. */
   const line = (text: string) => (
-    <p className="px-[18px] py-5 text-[13px] leading-5 text-dim">{text}</p>
+    <p
+      className={cn(
+        "py-5 text-[13px] leading-5 text-dim",
+        showcase ? "px-1" : "px-[18px]",
+      )}
+    >
+      {text}
+    </p>
   );
 
   function body() {
+    if (tab === "showcase") return <ShowcaseShelf username={username} mine={mine} />;
     if (shelf.isLoading) return spinner;
     if (shelf.isError) return line(errorMessage(shelf.error));
     if (locked) {
       return (
-        <div className="px-[18px] py-12 text-center">
+        <div className={cn("py-12 text-center", showcase ? "px-1" : "px-[18px]")}>
           <p className="text-[13.5px] font-extrabold">{gate?.title || t("This account is private")}</p>
           <p className="mx-auto mt-1 max-w-[320px] text-[12px] leading-5 text-dim">
             {gate?.text || t("Keep this account to see what they put up.")}
@@ -255,15 +440,32 @@ export function ProfileShelf({ username, mine }: { username: string; mine: boole
     }
 
     const grid = (list: Drop[], busy: boolean) => (
-      <div className="px-[18px]">
-        <div className="grid grid-cols-3 gap-1">
+      <div className={showcase ? undefined : "px-[18px]"}>
+        <div
+          className={cn(
+            "grid",
+            showcase ? "grid-cols-3 gap-2 sm:grid-cols-5" : "grid-cols-3 gap-1",
+          )}
+        >
           {list.map((drop) => (
-            <Square key={String(drop.id)} drop={drop} />
+            <Square key={String(drop.id)} drop={drop} showcase={showcase} />
           ))}
         </div>
         {busy ? spinner : null}
       </div>
     );
+
+    const rows = (list: Drop[], busy: boolean) => (
+      <div className={cn("flex flex-col gap-2", showcase ? undefined : "px-[18px]")}>
+        {list.map((drop) => (
+          <ShelfRow key={String(drop.id)} drop={drop} />
+        ))}
+        {busy ? spinner : null}
+      </div>
+    );
+
+    const shelfView = (list: Drop[], busy: boolean) =>
+      showcase && layout === "list" ? rows(list, busy) : grid(list, busy);
 
     if (tab === "vibes") {
       if (vibes.isLoading && !vibeRows.length) return spinner;
@@ -271,11 +473,11 @@ export function ProfileShelf({ username, mine }: { username: string; mine: boole
       if (!vibeRows.length) {
         return line(mine ? t("No vibes yet.") : t("Nothing here yet."));
       }
-      return grid(vibeRows, vibes.isFetchingNextPage);
+      return shelfView(vibeRows, vibes.isFetchingNextPage);
     }
 
     const list = tab === "audios" ? sounds : drops;
-    if (list.length) return grid(list, shelf.isFetchingNextPage);
+    if (list.length) return shelfView(list, shelf.isFetchingNextPage);
     // A private account does not drop — "private" and "posted where anybody can
     // read it" are two answers to one question — so the empty line says so
     // rather than offering a way in that is not there.
@@ -297,26 +499,72 @@ export function ProfileShelf({ username, mine }: { username: string; mine: boole
 
   return (
     <div>
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-[18px] pb-1.5 pt-[18px]">
+      <div
+        className={cn(
+          "no-scrollbar flex overflow-x-auto",
+          showcase
+            ? "items-center gap-2 pb-3"
+            : "gap-2 px-[18px] pb-1.5 pt-[18px]",
+        )}
+      >
         {pills.map((pill) => {
           const on = tab === pill.key;
+          const Icon = pill.icon;
           return (
             <button
               key={pill.key}
               type="button"
               onClick={() => setTab(pill.key)}
               className={cn(
-                "shrink-0 rounded-full border px-3.5 py-[7px] text-[13px] tracking-[0.2px] transition",
+                "shrink-0 rounded-full border tracking-[0.2px] transition",
+                showcase
+                  ? "inline-flex items-center gap-1.5 px-4 py-2.5 text-[13.5px]"
+                  : "px-3.5 py-[7px] text-[13px]",
                 on
-                  ? "border-[color-mix(in_srgb,var(--accent)_50%,transparent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] font-bold text-accent"
-                  : "border-transparent bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] font-semibold text-dim",
+                  ? showcase
+                    ? "border-transparent bg-accent font-bold text-on-accent shadow-[0_8px_18px_-12px_color-mix(in_srgb,var(--accent)_90%,transparent)]"
+                    : "border-[color-mix(in_srgb,var(--accent)_50%,transparent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] font-bold text-accent"
+                  : "border-transparent bg-[color-mix(in_srgb,var(--ink)_5%,transparent)] font-semibold text-[color-mix(in_srgb,var(--ink)_70%,transparent)]",
               )}
               aria-pressed={on}
             >
+              {showcase ? <Icon className="size-4" aria-hidden /> : null}
               {pill.label}
             </button>
           );
         })}
+        {showcase && tab !== "showcase" ? (
+          <div className="ml-auto flex shrink-0 items-center gap-1 rounded-[14px] border border-line bg-card p-1">
+            <button
+              type="button"
+              onClick={() => setLayout("grid")}
+              aria-label={t("Grid")}
+              aria-pressed={layout === "grid"}
+              className={cn(
+                "flex size-9 items-center justify-center rounded-[11px] transition",
+                layout === "grid"
+                  ? "bg-accent text-on-accent shadow-[0_10px_20px_-12px_color-mix(in_srgb,var(--accent)_90%,transparent)]"
+                  : "text-dim hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]",
+              )}
+            >
+              <LayoutGrid className="size-[17px]" aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayout("list")}
+              aria-label={t("List")}
+              aria-pressed={layout === "list"}
+              className={cn(
+                "flex size-8 items-center justify-center rounded-[10px] transition",
+                layout === "list"
+                  ? "bg-accent text-on-accent shadow-[0_10px_20px_-12px_color-mix(in_srgb,var(--accent)_90%,transparent)]"
+                  : "text-dim hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]",
+              )}
+            >
+              <List className="size-[17px]" aria-hidden />
+            </button>
+          </div>
+        ) : null}
       </div>
       <div className="mt-1">{body()}</div>
       <div ref={foot} className="h-px" />

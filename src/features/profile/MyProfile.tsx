@@ -1,24 +1,28 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Bookmark,
+  ChevronDown,
   ChevronRight,
-  ChevronsUpDown,
   ExternalLink,
+  Gem,
   Globe,
   LineChart,
   Lock,
   Mail,
   MapPin,
-  MoreVertical,
+  MoreHorizontal,
+  Pencil,
   QrCode,
   Settings,
   UserRound,
+  Users,
+  Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { Backdrop } from "@/components/layout/Backdrop";
-import { AuthedImage } from "@/components/media/Media";
 import { ConfirmDialog, Modal } from "@/components/overlays/Modal";
 import { PrivacyConfirm } from "@/components/overlays/PrivacyConfirm";
 import { VerifiedTick } from "@/components/icons/Tick";
@@ -26,15 +30,35 @@ import { BirthdayFall } from "@/features/profile/BirthdayFall";
 import { isBirthdayTodayIn } from "@/features/profile/birthday";
 import { MemoriesShelf } from "@/features/profile/MemoriesShelf";
 import { PosedBio } from "@/features/profile/PosedBio";
-import { ProfileShelf } from "@/features/profile/ProfileShelf";
-import { Floating, FaceButton, FaceDialog, SheetRow, Stat } from "@/features/profile/parts";
-import { ProfessionalLead, ProfessionalPill, linkPillIcon } from "@/features/professional/parts";
+import { PinnedStrip, ProfileShelf } from "@/features/profile/ProfileShelf";
+import {
+  Chip,
+  COVER_CONTROL,
+  FaceButton,
+  FaceDialog,
+  PROFILE_CARD,
+  PROFILE_FACE,
+  PROFILE_GUTTER,
+  PROFILE_HEAD,
+  PROFILE_HEAD_TEXT,
+  PROFILE_MAX,
+  PROFILE_PHOTO,
+  ProfileCover,
+  QUIET_PILL,
+  SheetRow,
+  SOLID_PILL,
+  Sparkline,
+  StatCard,
+  TILE_CONTROL,
+} from "@/features/profile/parts";
+import { ProfessionalLead, linkPillIcon } from "@/features/professional/parts";
 import { linkLabel } from "@/features/professional/model";
 import { sparksService } from "@/services/sparks.service";
 import { cn } from "@/utils/cn";
 import { useAuth } from "@/hooks/useAuth";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useTheme } from "@/hooks/useTheme";
+import { useWideScreen } from "@/hooks/useWideScreen";
 import { useToast } from "@/hooks/useToast";
 import { authService } from "@/services/auth.service";
 import type { Me } from "@/types/api";
@@ -43,12 +67,12 @@ import type { Me } from "@/types/api";
  * My own profile — the page about me, drawn from my account rather than from
  * somebody else's copy of it.
  *
- * Ported from `app/lib/screens/profile.dart`, and it is deliberately a
- * different page from the one that reads somebody else's: this one carries the
- * privacy pill, the four counts with their taps, the way in to Insights, my
- * Memories with the card that makes one, and the three floating buttons. None
- * of that belongs on a stranger's page, and the app keeps the two screens apart
- * for exactly that reason.
+ * Ported from `app/lib/screens/profile.dart`. The two pages wear one design —
+ * the owner asked for that on 2026-11-21, having read the same head drawn two
+ * ways — and they differ only in what they offer: this one carries the privacy
+ * pill, the four counts with their taps, the way in to Insights, my Memories
+ * with the card that makes one, and my own controls where the other page has
+ * the convo's.
  *
  * The numbers are read from `Me` and never from the profile endpoint. The app
  * makes the same choice — `_me` on this screen is the session's own account —
@@ -56,21 +80,13 @@ import type { Me } from "@/types/api";
  * switches say, so a page that asked somebody else's endpoint would draw a
  * number that had been hidden from nobody.
  *
- * The head, the row of numbers, the floating discs and the sheet rows are
- * shared with the page about somebody else — see `profile/parts.tsx` — because
+ * The head, the row of numbers, the controls and the sheet rows are shared
+ * with the page about somebody else — see `profile/parts.tsx` — because
  * the two pages describe one person and the app's own copies of these have
  * already drifted apart once.
  */
 
-/** The band's geometry, from `profile.dart`'s own constants. */
-const COVER_HEIGHT = 210;
-const COVER_RADIUS = 32;
-const PHOTO_SIZE = 92;
-/** Where the head starts: the band less the 74 points the face hangs over it. */
-const BODY_TOP = COVER_HEIGHT - 74;
-
-export function MyProfile() {
-  const { user, updateUser } = useAuth();
+export function MyProfile() {  const { user, updateUser } = useAuth();
   const { design, profileBackdrop } = useTheme();
   const { t } = usePreferences();
   const { toast } = useToast();
@@ -85,6 +101,7 @@ export function MyProfile() {
   const [going, setGoing] = useState<{ url: string; word: string } | null>(null);
 
   const me = user as Me | null;
+  const wide = useWideScreen("(min-width: 1024px)");
 
   /**
    * The Spark, live.
@@ -109,11 +126,6 @@ export function MyProfile() {
 
   const trade = me?.is_company ? String(me?.category ?? "").trim() : "";
   const links = useMemo(() => me?.links ?? [], [me?.links]);
-  const restFilled = Boolean(
-    String(me?.address ?? "").trim() ||
-      String(me?.contact_email ?? "").trim() ||
-      links.some((row) => String(row.url ?? "").trim()),
-  );
 
   /** The figure the bio is said by, and the art the band wears when I have no cover. */
   const build = useMemo(() => design, [design]);
@@ -142,262 +154,292 @@ export function MyProfile() {
 
   if (!me) return null;
 
+  const linkRows = links.filter((row) => String(row.url ?? "").trim());
+  const chips: { text: string; mark: ReactNode; onOpen?: () => void }[] = [];
+  for (const row of linkRows) {
+    const url = String(row.url ?? "").trim();
+    const word = linkLabel(row, t("Link"));
+    chips.push({
+      text: word,
+      mark: linkPillIcon(row.label, url),
+      onOpen: () => setGoing({ url, word }),
+    });
+  }
+
+  const bio = String(me.bio ?? "").trim();
+  const details: { icon: LucideIcon; text: string; onClick?: () => void }[] = [];
+  const address = me.is_company ? String(me.address ?? "").trim() : "";
+  const email = me.is_company ? String(me.contact_email ?? "").trim() : "";
+  if (address) details.push({ icon: MapPin, text: address });
+  if (email) {
+    details.push({
+      icon: Mail,
+      text: email,
+      onClick: () => {
+        window.location.href = `mailto:${email}`;
+      },
+    });
+  }
+
+  const counts = (
+    <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+      <StatCard
+        label={t("Drops")}
+        value={me.posts_count}
+        icon={Gem}
+        tone="var(--tone-pink)"
+        trailing={<Sparkline tone="var(--tone-pink)" />}
+      />
+      <StatCard
+        label={t("Crew")}
+        value={me.followers_count}
+        icon={Users}
+        tone="var(--tone-blue)"
+        onTap={() => navigate(`/app/u/${handle}/crew/followers`)}
+        faded={me.show_crew !== true}
+      />
+      <StatCard
+        label={t("Kept")}
+        value={me.following_count}
+        icon={Bookmark}
+        tone="var(--tone-teal)"
+        onTap={() => navigate(`/app/u/${handle}/crew/following`)}
+      />
+      <StatCard
+        label={t("Spark")}
+        value={typeof sparks.data?.total === "number" ? sparks.data.total : null}
+        icon={Zap}
+        tone="var(--tone-violet)"
+        onTap={() => navigate("/app/sparks")}
+        faded={me.show_sparks === false}
+        trailing={<Sparkline tone="var(--tone-violet)" />}
+      />
+    </div>
+  );
+
+  const actionRow = (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link to="/app/settings?section=profile" className={SOLID_PILL}>
+        <Pencil className="size-[18px]" aria-hidden />
+        {t("Edit profile")}
+      </Link>
+      <Link to="/app/saved" className={QUIET_PILL}>
+        <Bookmark className="size-[18px]" aria-hidden />
+        {t("Saved")}
+      </Link>
+      <Link
+        to="/app/qr"
+        aria-label={t("My QR code")}
+        title={t("My QR code")}
+        className={TILE_CONTROL}
+      >
+        <QrCode className="size-[19px]" aria-hidden />
+      </Link>
+    </div>
+  );
+
   return (
-    <div className="relative isolate mx-auto w-full max-w-[760px] pb-[calc(100px+env(safe-area-inset-bottom,0px))] md:pb-16">
+    <div className="relative isolate min-h-dvh bg-card pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-24">
       {/* The page's own ground, and the lowest thing on it: a theme that drew a
           profile stands behind this whole page, the same way it stands behind
-          the five the shell holds. Drawn first so the band and everything in the
+          the five the shell holds. Drawn first so the card and everything in the
           list sit on it rather than under it — and only on this page, which is
           the half of the pair the app gives one to. */}
       <Backdrop backdrop={profileBackdrop} position="absolute" />
 
-      {/* The cover leads the page instead of standing behind it, so the whole
-          page scrolls as one — the owner asked for that on 2026-09-28 ("upar
-          scroll karne par cover image bhi upar jaye"). The face still hangs
-          over the band's lower edge, and the head is pushed down onto it by the
-          same arithmetic the fixed band used. */}
-      <div
-        className="absolute inset-x-0 top-0 overflow-hidden bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]"
-        style={{ height: COVER_HEIGHT, borderBottomLeftRadius: COVER_RADIUS, borderBottomRightRadius: COVER_RADIUS }}
-      >
-        {me.cover ? (
-          <>
-            <AuthedImage src={me.cover} alt="" className="h-full w-full" imgClassName="h-full w-full" />
-            {/* A single-tone scrim rather than a gradient: a busy photograph and
-                the discs floating over it have to stay readable, and the photo
-                is still the photo. */}
-            <span className="absolute inset-0 bg-[color-mix(in_srgb,#13131A_18%,transparent)]" />
-          </>
-        ) : build.coverArt ? (
-          <img src={build.coverArt} alt="" className="h-full w-full object-cover" />
-        ) : null}
-      </div>
-
-      <div className="relative" style={{ paddingTop: BODY_TOP }}>
-        <div className="flex flex-col items-center px-[18px]">
-          {/* My face, and the same large photo behind it the app gives a tap
-              here (`_showPhoto`). No ring: the app draws one on somebody else's
-              page, where their day is news to me, and never on my own. */}
-          <FaceButton
-            user={me}
-            size={PHOTO_SIZE}
-            tone="page"
-            label={t("Your photo")}
-            onTap={() => setPhoto(true)}
-          />
-          <span className="h-3" />
-          {/* The trade stands above the name: `Developer` on its own line,
-              `Daudi` under it. It led the name on one line for part of
-              2026-10-24, until the owner asked for it above instead. */}
-          {trade ? (
-            <>
-              <ProfessionalLead trade={trade} t={t} />
-              <span className="h-1" />
-            </>
-          ) : null}
-          <span className="flex max-w-full items-center justify-center">
-            <span className="truncate text-center text-[22px] font-extrabold tracking-[-0.5px]">{name}</span>
-            {me.verified ? (
-              <span className="ml-1.5 flex shrink-0">
-                <VerifiedTick size={18} />
-              </span>
-            ) : null}
-          </span>
-          <p className="mt-[3px] text-center text-[12.5px] text-dim">{t(`@${handle} · you`)}</p>
-
-          {/* What this page shows to somebody who is not me, said in one pill
-              and changeable from here. A private account is the case the pill
-              exists for — it is the only page that says so — but a public one
-              wears it too, because the way to close the door should not be
-              three taps away in Controls when the page about it is right here. */}
-          <span className="h-[9px]" />
+      <article className="overflow-hidden bg-card">
+        <ProfileCover url={me.cover} art={build.coverArt}>
           <button
             type="button"
-            disabled={privacyBusy}
-            onClick={() => setPrivacyGoing(!privateAccount)}
-            className={cn(
-              "flex max-w-full items-center gap-[5px] rounded-full border py-[5px] pl-2.5 pr-[9px] transition",
-              privateAccount
-                ? "border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent"
-                : "border-line bg-[color-mix(in_srgb,var(--ink)_5%,transparent)] text-dim",
-            )}
+            aria-label={t("Back")}
+            title={t("Back")}
+            onClick={() =>
+              window.history.length > 1 ? navigate(-1) : navigate("/app/drops")
+            }
+            className={COVER_CONTROL}
           >
-            <span
-              className={cn("shrink-0", privateAccount ? "text-accent" : "text-dim")}
-              aria-hidden
-            >
-              {privateAccount ? <Lock className="size-[13px]" /> : <Globe className="size-[13px]" />}
-            </span>
-            <span
-              className={cn(
-                "truncate text-[11.5px] font-semibold",
-                privateAccount ? "text-accent" : "text-dim",
-              )}
-            >
-              {privacyBusy
-                ? t("Saving...")
-                : privateAccount
-                  ? t("Private · only people you accept")
-                  : t("Public · anyone can see your posts")}
-            </span>
-            <ChevronsUpDown
-              className={cn(
-                "size-3 shrink-0 opacity-65",
-                privateAccount ? "text-accent" : "text-dim",
-              )}
-              aria-hidden
-            />
+            <ArrowLeft className="size-5" aria-hidden />
           </button>
-
-          {birthdayToday ? (
-            <>
-              <span className="h-2.5" />
-              <p className="text-center text-[12.5px] font-semibold text-accent">
-                {t(`Happy birthday, ${name}!`)}
-              </p>
-            </>
-          ) : null}
-        </div>
-
-        {/* Every place the account can be reached, directly under the handle
-            rather than under the numbers and the era. The owner asked on
-            2026-10-24 for the icons and links to sit under the username. The
-            trade is not here — it leads the name above, so the page says it
-            once. */}
-        {me.is_company ? (
-          <div className="px-[18px]">
-            {restFilled ? (
-              <div className="mt-3 flex flex-wrap justify-center gap-[7px]">
-                {String(me.address ?? "").trim() ? (
-                  <ProfessionalPill
-                    bare
-                    icon={<MapPin className="size-4 text-accent" aria-hidden />}
-                    label={String(me.address).trim()}
-                  />
-                ) : null}
-                {String(me.contact_email ?? "").trim() ? (
-                  <ProfessionalPill
-                    bare
-                    icon={<Mail className="size-4 text-accent" aria-hidden />}
-                    label={String(me.contact_email).trim()}
-                    // The mail mark is a door: the address is already on the
-                    // phone, so there is nothing to confirm before it opens.
-                    onClick={() => {
-                      window.location.href = `mailto:${String(me.contact_email).trim()}`;
-                    }}
-                  />
-                ) : null}
-                {links.map((row, index) => {
-                  const url = String(row.url ?? "").trim();
-                  if (!url) return null;
-                  const word = linkLabel(row, t("Link"));
-                  return (
-                    <ProfessionalPill
-                      key={`${url}-${index}`}
-                      bare
-                      // The mark is read off the label and the address together,
-                      // so an Instagram link wears the camera even when it was
-                      // labelled "My page".
-                      icon={linkPillIcon(row.label, url)}
-                      label={word}
-                      onClick={() => setGoing({ url, word })}
-                    />
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="mt-3 text-center text-[12.5px] text-dim">
-                {t("Fill the rest in and it shows up right here.")}
-              </p>
-            )}
-          </div>
-        ) : null}
-
-        {/* The four numbers, in one row under the head. */}
-        <div className="flex items-center justify-around px-[18px] pt-4">
-          <Stat label={t("Drops")} value={me.posts_count} />
-          <Stat
-            label={t("Crew")}
-            value={me.followers_count}
-            onTap={() => navigate(`/app/u/${handle}/crew/followers`)}
-            faded={me.show_crew !== true}
-          />
-          <Stat
-            label={t("Kept")}
-            value={me.following_count}
-            onTap={() => navigate(`/app/u/${handle}/crew/following`)}
-          />
-          <Stat
-            label={t("Spark")}
-            value={typeof sparks.data?.total === "number" ? sparks.data.total : null}
-            onTap={() => navigate("/app/sparks")}
-            // The Sparks row defaults on, so it is off only when the server has
-            // said so outright.
-            faded={me.show_sparks === false}
-          />
-        </div>
-
-        {/* The era, on its own line under the numbers. The user asked for the
-            numbers first and the sentence below them — *"bio(era) neeche rahe
-            drops,crew,kept sparks iske neeche rahe"*. */}
-        <PosedBio
-          text={String(me.bio ?? "").trim() || t("No era yet.")}
-          character={me.character ?? null}
-          show={null}
-        />
-
-        {/* The way in to Insights: a row rather than a fifth number, because it
-            opens a screen rather than answering a question the four already
-            asked. Only ever here, on my own page. */}
-        <div className="px-[18px] pt-4">
-          <Link
-            to="/app/insights"
-            className="flex items-center rounded-[16px] border border-line bg-card px-3.5 py-3 transition hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]"
+          <button
+            type="button"
+            aria-label={t("More")}
+            title={t("More")}
+            onClick={() => setMenu(true)}
+            className={COVER_CONTROL}
           >
-            <LineChart className="size-5 shrink-0 text-accent" aria-hidden />
-            <span className="ml-3 min-w-0 flex-1">
-              <span className="block text-[14.5px] font-bold">{t("Insights")}</span>
-              <span className="mt-0.5 block truncate text-[11.5px] text-dim">
-                {t("Views, new crew, interactions and what worked")}
-              </span>
-            </span>
-            <ChevronRight className="size-[18px] shrink-0 text-dim" aria-hidden />
-          </Link>
+            <MoreHorizontal className="size-5" aria-hidden />
+          </button>
+        </ProfileCover>
+
+        <div className={cn(PROFILE_MAX, PROFILE_GUTTER, "relative pb-4 sm:pb-5")}>
+          <div className={PROFILE_HEAD}>
+            <div className={PROFILE_FACE}>
+              <div className="relative rounded-full bg-[color-mix(in_srgb,var(--accent)_84%,transparent)] p-[4px] shadow-[0_20px_38px_-22px_color-mix(in_srgb,var(--ink)_72%,transparent)]">
+                <div className="rounded-full border-[3px] border-card bg-card p-[3px]">
+                  <FaceButton
+                    user={me}
+                    size={wide ? PROFILE_PHOTO.wide : PROFILE_PHOTO.narrow}
+                    tone="page"
+                    label={t("Your photo")}
+                    onTap={() => setPhoto(true)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className={PROFILE_HEAD_TEXT}>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-3 sm:justify-between">
+                <div className="min-w-0">
+                  {/* The trade stands above the name: `Developer` on its own
+                      line, `Daudi` under it. It led the name on one line for
+                      part of 2026-10-24, until the owner asked for it above
+                      instead. */}
+                  {trade ? (
+                    <ProfessionalLead trade={trade} t={t} className="mb-1 justify-start" />
+                  ) : null}
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h1 className="truncate text-[28px] font-extrabold leading-[1.05] tracking-[-0.045em] sm:text-[34px]">
+                      {name}
+                    </h1>
+                    {me.verified ? (
+                      <span className="flex shrink-0">
+                        <VerifiedTick size={22} />
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                {actionRow}
+              </div>
+
+              <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 text-[13.5px] font-semibold text-dim">
+                <span className="truncate">{t(`@${handle} · you`)}</span>
+                {/* What this page shows to somebody who is not me, said in one
+                    pill and changeable from here. A private account is the
+                    case the pill exists for — it is the only page that says so
+                    — but a public one wears it too, because the way to close
+                    the door should not be three taps away in Controls when the
+                    page about it is right here. */}
+                <button
+                  type="button"
+                  disabled={privacyBusy}
+                  onClick={() => setPrivacyGoing(!privateAccount)}
+                  aria-expanded={privacyGoing !== null}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--accent)_22%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--card))] px-3 py-1 text-[12.5px] font-bold capitalize text-accent transition hover:bg-[color-mix(in_srgb,var(--accent)_13%,var(--card))] disabled:opacity-55"
+                >
+                  {privateAccount ? (
+                    <Lock className="size-3.5" aria-hidden />
+                  ) : (
+                    <Globe className="size-3.5" aria-hidden />
+                  )}
+                  {privacyBusy ? t("Saving...") : privateAccount ? t("Private") : t("Public")}
+                  <ChevronDown className="size-3.5" aria-hidden />
+                </button>
+              </div>
+
+              {bio ? (
+                <p className="mt-2.5 line-clamp-2 max-w-[62ch] text-[14.5px] font-semibold leading-[1.45] text-[color-mix(in_srgb,var(--ink)_76%,transparent)]">
+                  {bio}
+                </p>
+              ) : null}
+
+              {chips.length ? (
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  {chips.map((chip, index) => (
+                    <Chip
+                      key={`${chip.text}-${index}`}
+                      icon={chip.mark}
+                      label={chip.text}
+                      onClick={chip.onOpen}
+                    />
+                  ))}
+                </div>
+              ) : null}
+
+              {birthdayToday ? (
+                <span className="mt-2.5 inline-flex max-w-full items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-3.5 py-2 text-[13px] font-bold text-accent">
+                  {t(`Happy birthday, ${name}!`)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          {counts}
         </div>
+      </article>
+
+      <div className={cn(PROFILE_MAX, PROFILE_GUTTER)}>
+        <section className={cn(PROFILE_CARD, "mt-3 p-4 sm:p-5")}>
+          <div
+            className={cn(
+              "grid gap-5",
+              details.length > 0 && "md:grid-cols-[minmax(0,1fr)_240px] md:gap-6",
+            )}
+          >
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-[15px] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent">
+                  <UserRound className="size-[21px]" aria-hidden />
+                </span>
+                <h2 className="text-[22px] font-extrabold tracking-[-0.03em]">{t("About Me")}</h2>
+              </div>
+              {/* The era, said by the figure the account wears — the same
+                  widget their own page draws, so one person is described one
+                  way on both halves of the pair. */}
+              <PosedBio
+                text={bio || t("No era yet.")}
+                character={me.character ?? null}
+                show={null}
+                className="mt-2 px-0 pt-0"
+              />
+            </div>
+            {details.length > 0 ? (
+              <div className="space-y-4 md:border-l md:border-line md:pl-6">
+                {details.map((detail, index) => (
+                  <DetailRow key={`${detail.text}-${index}`} {...detail} />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        {/* The way in to Insights: a card of its own, because it opens a screen
+            rather than answering anything the counts above already asked. Only
+            ever here, on my own page. */}
+        <Link
+          to="/app/insights"
+          className={cn(
+            PROFILE_CARD,
+            "mt-3 flex items-center px-4 py-3.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]",
+          )}
+        >
+          <LineChart className="size-5 shrink-0 text-accent" aria-hidden />
+          <span className="ml-3 min-w-0 flex-1">
+            <span className="block text-[14.5px] font-bold">{t("Insights")}</span>
+            <span className="mt-0.5 block truncate text-[11.5px] text-dim">
+              {t("Views, new crew, interactions and what worked")}
+            </span>
+          </span>
+          <ChevronRight className="size-[18px] shrink-0 text-dim" aria-hidden />
+        </Link>
 
         {/* Memories, kept where they have always been: their own strip up the
             page, above the row of tabs, not folded into it. Drawn even with
             nothing on it, because this is my own and the card at the end of it
             is how one gets made. */}
-        <div className="pt-4">
-          <MemoriesShelf
-            username={handle}
-            mine
-            author={user}
-            onAdd={() => navigate("/app/moments?memories=1")}
-          />
-        </div>
+        <MemoriesShelf
+          username={handle}
+          mine
+          author={user}
+          variant="showcase"
+          onAdd={() => navigate("/app/moments?memories=1")}
+          className={cn(PROFILE_CARD, "mt-3 overflow-hidden p-3.5 sm:p-4")}
+        />
 
         {/* What was dropped, under what was kept. */}
-        <ProfileShelf username={handle} mine />
-      </div>
-
-      {/* The floating layer: the way out on the left, and on the right the way
-          in to the account's own business — editing the page, the code somebody
-          photographs, and the shelf I put things by on. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between p-3">
-        <span className="pointer-events-auto">
-          <Floating
-            icon={<ArrowLeft className="size-[19px]" />}
-            label={t("Back")}
-            onTap={() => (window.history.length > 1 ? navigate(-1) : navigate("/app/drops"))}
-          />
-        </span>
-        <span className="pointer-events-auto flex flex-col items-end gap-2.5">
-          <Floating icon={<MoreVertical className="size-[19px]" />} label={t("More")} onTap={() => setMenu(true)} />
-          <Floating icon={<QrCode className="size-[19px]" />} label={t("My QR code")} onTap={() => navigate("/app/qr")} />
-          <Floating icon={<Bookmark className="size-[19px]" />} label={t("Saved")} onTap={() => navigate("/app/saved")} />
-        </span>
+        <div className={cn(PROFILE_CARD, "mt-3 overflow-hidden p-3.5 sm:p-4")}>
+          <PinnedStrip username={handle} className="pb-3" />
+          <ProfileShelf username={handle} mine hasShowcase={Boolean(me.is_company)} variant="showcase" />
+        </div>
       </div>
 
       {/* And the day itself, falling down my own page — the same balloons that
@@ -462,5 +504,29 @@ export function MyProfile() {
         icon={<ExternalLink className="size-5" />}
       />
     </div>
+  );
+}
+
+/** One line of the About card: a mark and the thing it names. */
+function DetailRow({ icon: Icon, text, onClick }: { icon: LucideIcon; text: string; onClick?: () => void }) {
+  const body = (
+    <>
+      <span className="flex size-5 shrink-0 items-center justify-center text-[color-mix(in_srgb,var(--ink)_45%,transparent)]">
+        <Icon className="size-[19px]" aria-hidden />
+      </span>
+      <span className="min-w-0 truncate text-[13.5px] font-semibold text-ink/80">{text}</span>
+    </>
+  );
+  if (!onClick) {
+    return <div className="flex min-w-0 items-center gap-2.5">{body}</div>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full min-w-0 items-center gap-2.5 text-left transition hover:text-accent"
+    >
+      {body}
+    </button>
   );
 }

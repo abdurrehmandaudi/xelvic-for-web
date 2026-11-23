@@ -27,7 +27,7 @@ export function waveShape(seed: number, count: number) {
 
 function KindGlyph({ room, size }: { room: SpaceRoom; size: number }) {
   const Icon = room.kind === "stream" ? Video : room.kind === "ama" ? HelpCircle : Mic;
-  return <Icon style={{ width: size * 0.36, height: size * 0.36 }} className="text-white" aria-hidden />;
+  return <Icon style={{ width: size * 0.36, height: size * 0.36 }} className="text-on-accent" aria-hidden />;
 }
 
 /** The room's cover: tone, wave across the bottom third, and its kind's glyph. */
@@ -59,7 +59,7 @@ export function RoomCover({
         {bars.map((bar, index) => (
           <span
             key={index}
-            className="flex-1 rounded-[2px] bg-white/35"
+            className="flex-1 rounded-[2px] bg-on-accent/35"
             style={{ height: size * 0.05 + bar * size * 0.15, marginInline: size * 0.008 }}
           />
         ))}

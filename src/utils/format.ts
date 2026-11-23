@@ -158,6 +158,25 @@ export function firstName(name: string) {
   return name.trim().split(/\s+/)[0] || name;
 }
 
+export const DELETED_ACCOUNT = "Deleted account";
+
+export function isDeletedPerson(
+  person: { deleted?: boolean } | null | undefined,
+): boolean {
+  return person?.deleted === true;
+}
+
+export function personLabel(
+  person:
+    | { name?: string | null; username?: string | null; deleted?: boolean }
+    | null
+    | undefined,
+  fallback = "",
+): string {
+  if (isDeletedPerson(person)) return DELETED_ACCOUNT;
+  return (person?.name ?? "").trim() || (person?.username ?? "").trim() || fallback;
+}
+
 export function plural(value: number, one: string, many = `${one}s`) {
   return `${count(value)} ${value === 1 ? one : many}`;
 }

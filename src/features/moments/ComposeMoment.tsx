@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AtSign, Check, ImagePlus, LoaderCircle, ShieldAlert, Users, X } from "lucide-react";
+import { AtSign, Check, ImagePlus, LoaderCircle, MapPin, ShieldAlert, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/overlays/Modal";
 import { cn } from "@/utils/cn";
@@ -16,6 +16,8 @@ import {
   MentionSheet,
   type Audience,
 } from "./AudienceSheet";
+import { MomentEditor } from "./MomentEditor";
+import { MomentPlaceSheet } from "./MomentPlaceSheet";
 import type { MomentPick } from "./ShareMoment";
 
 /**
@@ -51,8 +53,11 @@ export function ComposeMoment({
   const [people, setPeople] = useState<UserCard[]>([]);
   const [audience, setAudience] = useState<Audience>(EVERYONE);
   const [sensitive, setSensitive] = useState(false);
+  const [place, setPlace] = useState("");
   const [audienceOpen, setAudienceOpen] = useState(false);
   const [mentionOpen, setMentionOpen] = useState(false);
+  const [placeOpen, setPlaceOpen] = useState(false);
+  const [editing, setEditing] = useState<File[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -81,11 +86,13 @@ export function ComposeMoment({
     setPeople([]);
     setAudience(EVERYONE);
     setSensitive(false);
+    setPlace("");
+    setEditing(null);
     setBusy(false);
     setStage("");
   }, [open, seed]);
 
-  function addFiles(files: File[]) {
+  function stagePicks(files: File[]) {
     if (!files.length) return;
     setPicks((current) => [
       ...current,
@@ -96,6 +103,16 @@ export function ComposeMoment({
     ]);
   }
 
+  function addFiles(files: File[]) {
+    if (!files.length) return;
+    const images = files.filter((file) => !file.type.startsWith("video/"));
+    if (files.length > 1 && images.length === files.length) {
+      setEditing(files);
+      return;
+    }
+    stagePicks(files);
+  }
+
   async function post() {
     if (busy) return;
     if (!picks.length && !caption.trim()) {
@@ -104,6 +121,7 @@ export function ComposeMoment({
     }
     setBusy(true);
     try {
+      const where = place.trim();
       const items: Record<string, unknown>[] = [];
       for (const [index, pick] of picks.entries()) {
         setStage(`Uploading ${index + 1} of ${picks.length}...`);
@@ -113,9 +131,12 @@ export function ComposeMoment({
           asset: asset.id,
           ...(index === 0 && caption.trim() ? { body: caption.trim() } : {}),
           ...(people.length ? { mentions: people.map((person) => person.id) } : {}),
+          ...(where ? { place: where } : {}),
         });
       }
-      if (!items.length) items.push({ kind: "text", body: caption.trim() });
+      if (!items.length) {
+        items.push({ kind: "text", body: caption.trim(), ...(where ? { place: where } : {}) });
+      }
       setStage("Putting it up...");
       await momentsService.post({
         items,
@@ -233,6 +254,42 @@ export function ComposeMoment({
 
           <button
             type="button"
+            onClick={() => setPlaceOpen(true)}
+            disabled={busy}
+            className="flex w-full items-center gap-3 rounded-[14px] border border-line bg-paper px-3.5 py-3 text-left transition hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--line))]"
+          >
+            <MapPin className="size-5 shrink-0 text-accent" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11.5px] text-dim">Place</span>
+              <span className={cn("block truncate text-[14.5px] font-semibold", !place && "text-dim")}>
+                {place || "Add a place"}
+              </span>
+            </span>
+            {place ? (
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label="Remove the place"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setPlace("");
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.stopPropagation();
+                  setPlace("");
+                }}
+                className="flex size-7 items-center justify-center rounded-full text-dim transition hover:text-ink"
+              >
+                <X className="size-4" />
+              </span>
+            ) : (
+              <span className="text-[11.5px] font-bold text-dim">Change</span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setSensitive((value) => !value)}
             aria-pressed={sensitive}
             disabled={busy}
@@ -286,6 +343,21 @@ export function ComposeMoment({
         onClose={() => setMentionOpen(false)}
         onPick={setPeople}
       />
+      <MomentPlaceSheet
+        open={placeOpen}
+        current={place || null}
+        onClose={() => setPlaceOpen(false)}
+        onPick={setPlace}
+      />
+      {editing ? (
+        <MomentEditor
+          files={editing}
+          onDone={(files) => {
+            setEditing(null);
+            stagePicks(files);
+          }}
+        />
+      ) : null}
     </>
   );
 }

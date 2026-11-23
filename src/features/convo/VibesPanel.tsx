@@ -237,7 +237,7 @@ export function VibesPanel({ onClose }: { onClose: () => void }) {
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center gap-1 px-1.5 pb-3 pt-[max(16px,env(safe-area-inset-top))]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center gap-1 px-1.5 pb-3 pt-[max(12px,env(safe-area-inset-top))]">
         <button
           type="button"
           onClick={onClose}
@@ -250,7 +250,7 @@ export function VibesPanel({ onClose }: { onClose: () => void }) {
           <X className="size-[19px]" strokeWidth={2.2} aria-hidden />
         </button>
         <div className="pointer-events-none min-w-0 flex-1 ps-1">
-          <p className={cn("truncate text-[13px] font-extrabold tracking-[-0.15px]", FLOAT)}>
+          <p className={cn("truncate text-[16px] font-extrabold tracking-[-0.15px]", FLOAT)}>
             Vibes
           </p>
         </div>
@@ -276,9 +276,9 @@ export function VibesPanel({ onClose }: { onClose: () => void }) {
               type="button"
               aria-label="Close the menu"
               onClick={() => setMenuOpen(false)}
-              className="fixed inset-0 z-40 cursor-default"
+              className="pointer-events-auto fixed inset-0 z-40 cursor-default"
             />
-            <div className="pointer-events-auto absolute left-1/2 top-full z-50 w-[212px] -translate-x-1/2 overflow-hidden rounded-[14px] border border-line bg-card p-1 text-ink shadow-[0_14px_36px_rgba(8,8,12,0.4)]">
+            <div className="pointer-events-auto absolute left-1/2 top-full z-50 w-[212px] -translate-x-1/2 overflow-hidden rounded-[10px] border border-line bg-card p-1 text-ink shadow-[0_14px_36px_rgba(8,8,12,0.4)]">
               <MenuRow
                 icon={<EyeOff className="size-[17px]" />}
                 label="Not interested"
@@ -370,7 +370,7 @@ function MenuRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left text-[13.5px] font-semibold text-ink transition hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)]"
+      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13.5px] font-semibold text-ink transition hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)]"
     >
       <span className="shrink-0 text-dim">{icon}</span>
       <span className="min-w-0 flex-1 truncate">{label}</span>

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { mediaSize } from "./format";
+import {
+  DELETED_ACCOUNT,
+  isDeletedPerson,
+  mediaSize,
+  personLabel,
+} from "./format";
 
 /**
  * `formatMediaSize` in `app/lib/screens/chat_media.dart`, which is what the
@@ -33,5 +38,23 @@ describe("mediaSize", () => {
     expect(mediaSize(undefined)).toBe("Unknown size");
     expect(mediaSize(-5)).toBe("Unknown size");
     expect(mediaSize(Number.NaN)).toBe("Unknown size");
+  });
+});
+
+describe("personLabel", () => {
+  it("says the app's words for an account that has deleted itself", () => {
+    expect(personLabel({ name: "Ada", username: "ada", deleted: true })).toBe(
+      DELETED_ACCOUNT,
+    );
+    expect(isDeletedPerson({ deleted: true })).toBe(true);
+    expect(isDeletedPerson({})).toBe(false);
+    expect(isDeletedPerson(null)).toBe(false);
+  });
+
+  it("takes the name, then the handle, then the word the caller gave", () => {
+    expect(personLabel({ name: "Ada", username: "ada" })).toBe("Ada");
+    expect(personLabel({ name: "  ", username: "ada" })).toBe("ada");
+    expect(personLabel({ name: "", username: "" }, "Someone")).toBe("Someone");
+    expect(personLabel(null, "Someone")).toBe("Someone");
   });
 });

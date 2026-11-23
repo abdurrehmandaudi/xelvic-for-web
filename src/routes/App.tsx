@@ -20,8 +20,10 @@ import {
   DropPage,
   DropsPage,
   InsightsPage,
+  KidsPage,
   LivePage,
   MomentsPage,
+  MutedPage,
   OwnQrPage,
   PlaylistPage,
   ProfilePage,
@@ -34,6 +36,8 @@ import {
   SparksPage,
   TagPage,
   VibeStudioPage,
+  VideosPage,
+  WatchLaterPage,
 } from "@/routes/lazyPages";
 import { NotFoundPage, ProtectedRoute, PublicOnly } from "@/routes/ProtectedRoute";
 import { Spinner } from "@/components/ui/Button";
@@ -85,6 +89,7 @@ export default function App() {
       >
         <Route index element={<Navigate to="/app/drops" replace />} />
         <Route path="drops" element={<LazyPage page={DropsPage} />} />
+        <Route path="drops/muted" element={<LazyPage page={MutedPage} />} />
         <Route path="drops/:dropId" element={<LazyPage page={DropPage} />} />
         {/* The back of the house for my own Vibes, and one clip's whole read.
             Both are mine only — the server answers an empty list or a 404 to
@@ -121,8 +126,11 @@ export default function App() {
           path="audio/:playlistId"
           element={<LazyPage page={PlaylistPage} />}
         />
+        <Route path="videos" element={<LazyPage page={VideosPage} />} />
+        <Route path="videos/watch-later" element={<LazyPage page={WatchLaterPage} />} />
+        <Route path="kids" element={<LazyPage page={KidsPage} />} />
         <Route path="live" element={<LazyPage page={LivePage} />} />
-        <Route path="live/:roomId" element={<LazyPage page={RoomPage} />} />
+        <Route path="live/:id" element={<LazyPage page={RoomPage} />} />
         <Route path="u/:username" element={<LazyPage page={ProfilePage} />} />
         {/* The two lists behind the counts on a profile, and the one place a
             Crew can be edited. The app reaches them by tapping the numbers, so

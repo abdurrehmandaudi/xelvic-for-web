@@ -78,6 +78,25 @@ const soundKinds = [
 /** How many pictures and clips one drop may carry — `kDropGalleryLimit`. */
 const GALLERY = 10;
 
+const CLIP_HOURS = 6;
+
+function clipSeconds(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const probe = document.createElement("video");
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve(probe.duration);
+    };
+    probe.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not read that clip."));
+    };
+    probe.src = url;
+  });
+}
+
 export type ComposerMode = "drop" | "note" | "vibe" | "sound" | "poll";
 
 /** One object URL for one chosen file, revoked when the choice changes. */
@@ -359,7 +378,7 @@ export function DropComposer({
     setPictures((current) => [...current, ...next].slice(0, GALLERY));
   }
 
-  function pickClip(file: File | null) {
+  async function pickClip(file: File | null) {
     if (!file) {
       setClip(null);
       return;
@@ -370,6 +389,11 @@ export function DropComposer({
     }
     if (file.size > 600 * 1024 * 1024) {
       setError("That clip is larger than 600 MB.");
+      return;
+    }
+    const seconds = await clipSeconds(file).catch(() => 0);
+    if (Number.isFinite(seconds) && seconds > CLIP_HOURS * 60 * 60) {
+      setError(`That clip is over ${CLIP_HOURS} hours. Pick a shorter one.`);
       return;
     }
     setError(null);

@@ -1,99 +1,125 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import {
   ArrowLeft,
+  BadgePlus,
+  CheckCircle2,
+  ChevronDown,
   Clock,
   ExternalLink,
+  Flag,
+  Gem,
+  Globe,
   Lock,
   Mail,
   MapPin,
   MessageCircle,
+  Minus,
   MoreHorizontal,
-  MoreVertical,
   Plus,
+  Settings2,
   QrCode,
-  UserMinus,
   UserPlus,
+  UserRound,
   Users,
   VolumeX,
-  Flag,
   X,
+  Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
-import { AuthedImage } from "@/components/media/Media";
 import { Blank } from "@/components/ui/Blank";
-import { ConfirmDialog, Modal } from "@/components/overlays/Modal";
+import { ConfirmDialog, Modal, PromptDialog } from "@/components/overlays/Modal";
 import { PageSkeleton } from "@/components/ui/States";
 import { VerifiedTick } from "@/components/icons/Tick";
+import { ConvoSheet } from "@/features/convo/ConvoSheet";
+import { aliasOf, rememberName, useNames } from "@/features/convo/names";
 import { MomentViewer } from "@/features/moments/MomentViewer";
+import { PosedBio } from "@/features/profile/PosedBio";
+import { SparkSheet } from "@/features/sparks/SparkSheet";
 import { BirthdayFall } from "@/features/profile/BirthdayFall";
 import { isBirthdayTodayIn } from "@/features/profile/birthday";
 import { MemoriesShelf } from "@/features/profile/MemoriesShelf";
 import {
+  Chip,
+  COVER_CONTROL,
   FaceButton,
   FaceDialog,
   Floating,
-  MutualStrip,
   MutualsModal,
+  MutualStrip,
+  PROFILE_CARD,
+  PROFILE_FACE,
+  PROFILE_GUTTER,
+  PROFILE_HEAD,
+  PROFILE_HEAD_TEXT,
+  PROFILE_MAX,
+  PROFILE_PHOTO,
+  ProfileCover,
+  QUIET_PILL,
+  SOLID_PILL,
   SheetRow,
-  Stat,
+  Sparkline,
+  StatCard,
+  TILE_CONTROL,
+  askPulse,
 } from "@/features/profile/parts";
-import { PosedBio } from "@/features/profile/PosedBio";
-import { ProfileShelf } from "@/features/profile/ProfileShelf";
-import { ProfessionalLead, ProfessionalPill, linkPillIcon } from "@/features/professional/parts";
+import { PinnedStrip, ProfileShelf } from "@/features/profile/ProfileShelf";
+import { ProfessionalLead, linkPillIcon } from "@/features/professional/parts";
 import { linkLabel } from "@/features/professional/model";
 import { chatService } from "@/services/chat.service";
+import { sparksService } from "@/services/sparks.service";
 import { dropsService } from "@/services/drops.service";
 import { momentsService } from "@/services/moments.service";
 import { useAuth } from "@/hooks/useAuth";
 import { useLooking } from "@/hooks/useLooking";
 import { usePreferences } from "@/hooks/usePreferences";
+import { useWideScreen } from "@/hooks/useWideScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { useToast } from "@/hooks/useToast";
+import { cn } from "@/utils/cn";
+import { count, firstName } from "@/utils/format";
 import { profileService } from "@/services/profile.service";
 import { socialService } from "@/services/social.service";
-import type { ChatGate, Moment, Profile, Relation, UserCard } from "@/types/api";
+import type {
+  ChatGate,
+  Moment,
+  Profile,
+  Relation,
+  UserCard,
+} from "@/types/api";
 
-/**
- * Somebody else's profile.
- *
- * Ported from `app/lib/screens/person.dart`, and it is deliberately a different
- * page from the one that reads my own account: no privacy pill, no taps on the
- * numbers, no way in to Insights, no card that makes a Memory, and the controls
- * for what is between us float down the right-hand side instead. The app keeps
- * the two screens apart for exactly that reason, and the two do not describe one
- * person two ways — the trade over the name, the line under it, the numbers and
- * the era are drawn in the same order in the same words on both.
- *
- * **The gate speaks for this page.** What I may do with this person — keep them,
- * ask, withdraw, unblock, send one line or open a convo — is decided by the
- * server and arrives as a mode with its own words on it. Nothing here invents a
- * control the gate did not offer; the one synthesis is the app's own, spelled
- * out in `askControl` below, and it only ever fills a silence.
- *
- * **What is not mine to see is not drawn at all.** A private account that has
- * not let me in sends no Drops count, no Sparks count, no shelf and no
- * Memories, and `can_view` carries that one answer for all four — so the page
- * never flashes counters it then takes away. An absent number is not drawn as a
- * dash here; a dash was a column saying *there is a number and you may not read
- * it*, which is the thing the switches exist to prevent.
- */
-
-/** The band's geometry, from `profile.dart`'s own constants. */
-const COVER_HEIGHT = 210;
-const COVER_RADIUS = 32;
-const PHOTO_SIZE = 92;
-/** Where the head starts: the band less the 74 points the face hangs over it. */
-const BODY_TOP = COVER_HEIGHT - 74;
-
-/** What a write to this person answers with. See `social.views.PeopleView.state`. */
 interface PeopleState {
   user?: UserCard;
   relation: Relation;
   gate: ChatGate | null;
   cta: string | null;
+}
+
+interface Metric {
+  key: string;
+  label: string;
+  value?: number | null;
+  icon: LucideIcon;
+  tone: string;
+  sparkline?: boolean;
+  onOpen?: () => void;
+}
+
+interface Detail {
+  icon: LucideIcon;
+  text: string;
+  onClick?: () => void;
 }
 
 /** The mark for a gate's action, from the server's own name for it. */
@@ -111,7 +137,9 @@ function gateIcon(hint: string | null | undefined, className = "size-[19px]") {
 export function PersonProfile() {
   const { username = "" } = useParams();
   const { user } = useAuth();
-  const { design } = useTheme();
+  const { design, palette } = useTheme();
+  useNames();
+  const wide = useWideScreen("(min-width: 1024px)");
   const { t } = usePreferences();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -119,41 +147,71 @@ export function PersonProfile() {
 
   const [state, setState] = useState<PeopleState | null>(null);
   const [busy, setBusy] = useState(false);
+  const [justKept, setJustKept] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState<{
+    top: number;
+    right: number;
+    maxHeight: number;
+  } | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("spam");
   const [muted, setMuted] = useState<boolean | null>(null);
-  const [going, setGoing] = useState<{ url: string; word: string } | null>(null);
+  const [going, setGoing] = useState<{ url: string; word: string } | null>(
+    null,
+  );
   const [qr, setQr] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const [mutuals, setMutuals] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [convoOpen, setConvoOpen] = useState(false);
+  const [sparkOpen, setSparkOpen] = useState(false);
+
+  const openMenuAt = (event: MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setMenuPos({
+      top: rect.bottom + 8,
+      right: Math.max(12, window.innerWidth - rect.right),
+      maxHeight: Math.max(180, window.innerHeight - rect.bottom - 16),
+    });
+    setMenu(true);
+  };
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(false);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+      }
+    };
+    window.addEventListener("scroll", close, { passive: true });
+    window.addEventListener("resize", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("scroll", close);
+      window.removeEventListener("resize", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
 
   const answer = useQuery({
     queryKey: ["profile", username],
     queryFn: () => profileService.byUsername(username),
     enabled: Boolean(username),
-    // A deleted account is answered with a 410 and its own name for the
-    // refusal; asking twice would only get the same answer.
     retry: (count, error) =>
       (error as { status?: number }).status !== 410 && count < 2,
   });
 
   const profile = answer.data;
-  const isMe = Boolean(profile?.relation?.self || (user && profile?.id === user.id));
+  const isMe = Boolean(
+    profile?.relation?.self || (user && profile?.id === user.id),
+  );
   const relation = state?.relation ?? profile?.relation ?? null;
   const gate = state?.gate ?? profile?.gate ?? null;
   const personId = String(profile?.id ?? "");
 
-  /**
-   * Tell the server somebody opened this page.
-   *
-   * The app fires this on the way into a profile — see `Insights.visited` — and
-   * it is the only thing on the web that feeds the *Page views* and *People
-   * reached* numbers on the owner's Insights screen. It is a `POST` because it
-   * writes, and it is deliberately fire-and-forget: a visit that fails to record
-   * is a missing number on somebody's dashboard, which is not a reason for the
-   * page behind it to fail to open. Opening my own page is not a visit, which
-   * the server refuses on its own side too.
-   */
   const visited = useRef<string | null>(null);
   useEffect(() => {
     if (!personId || isMe || visited.current === personId) return;
@@ -165,28 +223,6 @@ export function PersonProfile() {
 
   const deleted = (answer.error as { status?: number } | null)?.status === 410;
 
-  /**
-   * This page is on somebody's screen, and they are the one person entitled to
-   * know it.
-   *
-   * Ported from `person.dart`, which says it on the way in and takes it back on
-   * the way out — *"This page is on somebody's screen, and they are the one
-   * person entitled to know it. It keeps being said on a timer from here — a
-   * fact like this expires, and sitting still is the case most worth telling."*
-   * It is the second of the two places this says anything, and it is what makes
-   * **my** figure stand over **their** composer with the `wait` pose while I
-   * read their page and write nothing.
-   *
-   * My own page says nothing, which is the phone's arrangement rather than a
-   * shortcut: one's own profile is a different screen there (`profile.dart`) and
-   * it never speaks. The server refuses a gaze at somebody I do not talk to in
-   * any case — see `services.focus_of` — so a stranger's page is a frame that
-   * changes nothing.
-   *
-   * The goodbye is *named*, which matters for the same reason the convo's is: a
-   * page is disposed after the one replacing it has been built, and an unnamed
-   * goodbye would take the next screen's word off the server with it.
-   */
   const { say: sayLooking, leave: leaveLooking } = useLooking();
   useEffect(() => {
     if (!personId || isMe) return;
@@ -194,19 +230,6 @@ export function PersonProfile() {
     return () => leaveLooking(personId);
   }, [personId, isMe, sayLooking, leaveLooking]);
 
-  /**
-   * Whether their day is up right now, and whether I have watched it.
-   *
-   * The app asks its `Moments` store — the rail that is already in memory — and
-   * the web has no such store, so this asks the same question of the same
-   * endpoint the rail is built from. The key is the moments page's own, so a
-   * reader who has just come from there pays nothing for it, and the row for
-   * this person is found by id rather than fetched one profile at a time.
-   *
-   * It is asked only where a ring could be drawn: their page, not mine (the
-   * app gives my own page no ring either), and not behind a wall I cannot see
-   * over. A failed ask is a page without a ring, never a page without a face.
-   */
   const tray = useQuery({
     queryKey: ["moments-tray"],
     queryFn: () => momentsService.tray(),
@@ -230,47 +253,83 @@ export function PersonProfile() {
   const links = useMemo(() => profile?.links ?? [], [profile?.links]);
   const open = profile?.is_private ? t("private") : t("public");
   const handle = profile?.username ?? username;
-  const name = profile?.name || handle;
-  const trading = profile?.is_company ? String(profile?.category ?? "").trim() : "";
+  const mine = isMe ? null : aliasOf(profile?.id, profile?.username ?? username);
+  const name = mine || profile?.name || handle;
+  const trading = profile?.is_company
+    ? String(profile?.category ?? "").trim()
+    : "";
+
+  const threadsAside = useQuery({
+    queryKey: ["threads", "for-person", personId],
+    queryFn: () => chatService.threads(),
+    enabled: menu && !isMe && Boolean(personId),
+    staleTime: 20_000,
+  });
+
+  const convo = useMemo(() => {
+    const rows = threadsAside.data?.threads ?? [];
+    return (
+      rows.find((row) => {
+        const ids = [
+          row.member?.id,
+          row.other?.id,
+          ...(row.members ?? []).map((member) => member.user?.id),
+        ];
+        return ids.some((id) => String(id ?? "") === personId);
+      }) ?? null
+    );
+  }, [threadsAside.data, personId]);
+
+  const spark = useQuery({
+    queryKey: ["spark", convo?.id],
+    queryFn: () => sparksService.one(String(convo?.id)),
+    enabled: sparkOpen && Boolean(convo?.id),
+    staleTime: 10_000,
+  });
+
+  function keepName(next: string) {
+    if (!profile) return;
+    rememberName(profile.id, profile.username, next);
+    setRenameOpen(false);
+    toast({
+      title: next.trim() ? t("Saved on this device.") : t("Back to their own name."),
+      tone: "success",
+    });
+  }
 
   const birthdayToday = isBirthdayTodayIn(profile);
 
   const following = relation?.following === true;
-  const blocked = relation?.blocked_by_me === true || relation?.blocked_me === true;
+  const blocked =
+    relation?.blocked_by_me === true || relation?.blocked_me === true;
   const isPublic = profile?.is_private !== true;
   const canKeep = isPublic && !blocked && !isMe;
   const canSend = gate?.can_send === true;
   const cta = gate?.cta ?? state?.cta ?? null;
   const action = gate?.action ?? null;
 
-  /**
-   * The ask the gate is not naming, read off the relation instead.
-   *
-   * A private account's follow lives on the gate — it draws the request, the
-   * wait and the refusal, and this page draws whatever the gate offers. But the
-   * gate only speaks while the chat mode follows it, and a real convo turns the
-   * mode `OPEN` and pins it there, while an `OPEN` gate carries no cta at all.
-   * Unfriending a private account I have talked to is exactly that state: the
-   * relation goes back to `none`, the convo stays open, the gate goes silent —
-   * and without this the page would offer no way to ask again, on the one
-   * account where asking again is the only way back in.
-   *
-   * Null wherever the gate itself has something to say, so the two can never
-   * draw two controls for one ask.
-   */
   const ask = useMemo(() => {
     if (isPublic || blocked || isMe || following) return null;
     const followState = String(relation?.follow_state ?? "");
     if (followState === "requested") {
-      return { label: t("Withdraw"), icon: gateIcon("clock"), action: "withdraw" };
+      return {
+        label: t("Withdraw"),
+        icon: gateIcon("clock"),
+        action: "withdraw",
+      };
     }
     if (followState === "none") {
-      return { label: t("Send request"), icon: gateIcon("user"), action: "request" };
+      return {
+        label: t("Send request"),
+        icon: gateIcon("user"),
+        action: "request",
+      };
     }
     // `declined`, and anything the server adds later: a closed door, and one
     // this page should not be the one to lean on.
     return null;
   }, [isPublic, blocked, isMe, following, relation?.follow_state, t]);
+  
   function apply(next: PeopleState) {
     setState(next);
     queryClient.setQueryData<Profile>(["profile", username], (current) =>
@@ -300,6 +359,8 @@ export function PersonProfile() {
               ? await socialService.unblock<PeopleState>(profile.id)
               : await socialService.follow<PeopleState>(profile.id);
       apply(next);
+      if (what === "follow") setJustKept(true);
+      else if (what === "unfollow") setJustKept(false);
       await queryClient.invalidateQueries({ queryKey: ["profile", username] });
       await queryClient.invalidateQueries({ queryKey: ["feed"] });
       await queryClient.invalidateQueries({ queryKey: ["profile-shelf"] });
@@ -319,15 +380,17 @@ export function PersonProfile() {
     if (!profile || busy) return;
     setBusy(true);
     try {
-      const result = await chatService.start<{ thread?: { id: string } | null; gate?: ChatGate }>(
-        profile.id,
-      );
+      const result = await chatService.start<{
+        thread?: { id: string } | null;
+        gate?: ChatGate;
+      }>(profile.id);
       if (result.thread?.id) {
         navigate(`/app/convo/${result.thread.id}`);
       } else if (result.gate) {
         toast({
           title: result.gate.title || t("This convo is closed"),
-          description: result.gate.text || t("You cannot message this account right now."),
+          description:
+            result.gate.text || t("You cannot message this account right now."),
           tone: "info",
         });
       }
@@ -342,16 +405,6 @@ export function PersonProfile() {
     }
   }
 
-  /**
-   * Open their day, over the page.
-   *
-   * The app hands the viewer a walk it already holds; the web holds only the
-   * rail's covers, so the day itself is one read when it is wanted and not
-   * before — the same `/moments/users/<handle>/` the moments page opens a rail
-   * card with. The tray is asked again on the way out, because watching is what
-   * turns the bright ring quiet, and a ring that stayed bright over a day I had
-   * just watched would be the page telling me I had not.
-   */
   async function openDay() {
     if (!handle || dayBusy) return;
     setDayBusy(true);
@@ -384,7 +437,10 @@ export function PersonProfile() {
       await dropsService.muteAuthor(profile.id, next);
       setMuted(next);
       setMenu(false);
-      toast({ title: next ? t("Posts muted") : t("Posts unmuted"), tone: "success" });
+      toast({
+        title: next ? t("Posts muted") : t("Posts unmuted"),
+        tone: "success",
+      });
     } catch (error) {
       toast({
         title: t("Could not change that"),
@@ -397,10 +453,17 @@ export function PersonProfile() {
   async function report() {
     if (!profile) return;
     try {
-      await socialService.report({ target_user: profile.id, reason: reportReason });
+      await socialService.report({
+        target_user: profile.id,
+        reason: reportReason,
+      });
       setReportOpen(false);
       setMenu(false);
-      toast({ title: t("Report sent"), description: t("Thank you. We will look at it."), tone: "success" });
+      toast({
+        title: t("Report sent"),
+        description: t("Thank you. We will look at it."),
+        tone: "success",
+      });
     } catch (error) {
       toast({
         title: t("Could not send the report"),
@@ -418,12 +481,6 @@ export function PersonProfile() {
     );
   }
 
-  /**
-   * A deleted account shows nothing of itself — not a cached face, not a count,
-   * not a shelf. The one line the backend hands back is drawn over the app's own
-   * empty state, with the way out kept where it always is so the back gesture
-   * and the disc agree.
-   */
   if (deleted) {
     return (
       <div className="relative isolate mx-auto w-full max-w-[760px] pb-24">
@@ -437,7 +494,9 @@ export function PersonProfile() {
           <Floating
             icon={<ArrowLeft className="size-[19px]" />}
             label={t("Back")}
-            onTap={() => (window.history.length > 1 ? navigate(-1) : navigate("/app/drops"))}
+            onTap={() =>
+              window.history.length > 1 ? navigate(-1) : navigate("/app/drops")
+            }
           />
         </div>
       </div>
@@ -453,7 +512,11 @@ export function PersonProfile() {
           title={t("No such account")}
           line={t("That username is not here.")}
           action={
-            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4" onClick={() => navigate("/app/search")}>
+            <button
+              type="button"
+              className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4"
+              onClick={() => navigate("/app/search")}
+            >
               {t("Search people")}
             </button>
           }
@@ -463,330 +526,491 @@ export function PersonProfile() {
   }
 
   const canView = profile.can_view !== false;
-  const restFilled = Boolean(
-    String(profile.address ?? "").trim() ||
-      String(profile.contact_email ?? "").trim() ||
-      links.some((row) => String(row.url ?? "").trim()),
+  const mutualCount = Number(profile.mutuals_count ?? 0);
+  const mutualShown = !isMe && mutualCount > 0;
+  const keepDoor =
+    isPublic && !isMe && ((canKeep && !following) || (justKept && following));
+  const first = firstName(name);
+  const followerCount = profile.followers_count;
+  const keepCount =
+    followerCount === null || followerCount === undefined
+      ? null
+      : followerCount <= 0
+        ? t("Be the first in their Crew")
+        : t(`${count(followerCount)} in their Crew`);
+
+  const metrics: Metric[] = [];
+  if (canView) {
+    metrics.push({
+      key: "drops",
+      label: t("Drops"),
+      value: profile.posts_count,
+      icon: Gem,
+      tone: "var(--tone-pink)",
+      sparkline: true,
+    });
+  }
+  if (
+    canView &&
+    profile.sparks_count !== null &&
+    profile.sparks_count !== undefined
+  ) {
+    metrics.push({
+      key: "sparks",
+      label: t("Sparks"),
+      value: profile.sparks_count,
+      icon: Zap,
+      tone: "var(--tone-violet)",
+      sparkline: true,
+    });
+  }
+  if (
+    profile.followers_count !== null &&
+    profile.followers_count !== undefined
+  ) {
+    metrics.push({
+      key: "crew",
+      label: t("Crew"),
+      value: profile.followers_count,
+      icon: Users,
+      tone: "var(--tone-blue)",
+      sparkline: true,
+    });
+  }
+
+  const details: Detail[] = [];
+  const address = String(profile.address ?? "").trim();
+  const email = String(profile.contact_email ?? "").trim();
+  if (address) details.push({ icon: MapPin, text: address });
+  if (email) {
+    details.push({
+      icon: Mail,
+      text: email,
+      onClick: () => {
+        window.location.href = `mailto:${email}`;
+      },
+    });
+  }
+
+  const bio = String(profile.bio ?? "").trim();
+  const linkRows = links.filter((row) => String(row.url ?? "").trim());
+
+  const chips: { text: string; mark: ReactNode; onOpen?: () => void }[] = [];
+
+  for (const row of linkRows) {
+    const url = String(row.url ?? "").trim();
+    const word = linkLabel(row, t("Link"));
+    chips.push({
+      text: word,
+      mark: linkPillIcon(row.label, url),
+      onOpen: () => setGoing({ url, word }),
+    });
+  }
+
+
+  const actionRow = (
+    <div className="flex flex-wrap items-center gap-2">
+      {canSend ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void message()}
+          style={following && !busy ? askPulse(palette.isDark) : undefined}
+          className={SOLID_PILL}
+        >
+          <MessageCircle className="size-[17px]" aria-hidden />
+          {gate?.text_only === true ? t("Start one convo") : t("Message")}
+        </button>
+      ) : null}
+      {following || canKeep ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void act(following ? "unfollow" : "follow")}
+          aria-label={following ? t("Let go") : t("Keep")}
+          title={following ? t("Let go") : t("Keep")}
+          style={!following && !canSend && !busy ? askPulse(palette.isDark) : undefined}
+          className={cn(
+            "relative inline-flex size-[52px] shrink-0 items-center justify-center rounded-full border transition-[transform,background-color,border-color,color,opacity] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55",
+            following || canSend
+              ? "border-line bg-card text-ink hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]"
+              : "border-transparent bg-[linear-gradient(135deg,var(--accent),var(--accent-pill))] text-on-accent shadow-[0_12px_26px_-14px_color-mix(in_srgb,var(--accent)_90%,transparent)] hover:brightness-105",
+          )}
+        >
+          <span className="relative flex size-[19px] items-center justify-center">
+            <Plus
+              className={cn(
+                "size-[19px] transition-[opacity,transform] duration-200 ease-out",
+                following ? "scale-75 opacity-0" : "scale-100 opacity-100",
+              )}
+              aria-hidden
+            />
+            <Minus
+              className={cn(
+                "absolute inset-0 m-auto size-[19px] transition-[opacity,transform] duration-200 ease-out",
+                following ? "scale-100 opacity-100" : "scale-75 opacity-0",
+              )}
+              aria-hidden
+            />
+          </span>
+        </button>
+      ) : cta && action ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void act(action)}
+          style={
+            !busy && (action === "follow" || action === "request")
+              ? askPulse(palette.isDark)
+              : undefined
+          }
+          className={canSend ? QUIET_PILL : SOLID_PILL}
+        >
+          {gateIcon(gate?.icon, "size-[17px]")}
+          {t(cta)}
+        </button>
+      ) : ask ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void act(ask.action)}
+          style={!busy && ask.action === "request" ? askPulse(palette.isDark) : undefined}
+          className={canSend ? QUIET_PILL : SOLID_PILL}
+        >
+          {ask.icon}
+          {ask.label}
+        </button>
+      ) : null}
+      <button
+        type="button"
+        aria-label={t("Their QR code")}
+        title={t("Their QR code")}
+        onClick={() => setQr(true)}
+        className={TILE_CONTROL}
+      >
+        <QrCode className="size-[19px]" aria-hidden />
+      </button>
+    </div>
   );
 
-  /**
-   * Their numbers, and only the ones that are mine to read.
-   *
-   * Drops comes and goes with the gate: over a wall, the number of things behind
-   * it is a description of what I may not see. Crew and Sparks each come and go
-   * with the account's own switch, which the server honours by sending nothing
-   * rather than a nought — a dash was still a column, still a stat saying *there
-   * is a number here and you may not read it*, which is the thing the switch
-   * exists to prevent. A locked private account that also hid both has no
-   * numbers at all, and an empty row would still hold a line of blank page where
-   * the counts were.
-   */
-  const counts: { label: string; value?: number | null }[] = [];
-  if (canView) counts.push({ label: t("Drops"), value: profile.posts_count });
-  if (profile.followers_count !== null && profile.followers_count !== undefined) {
-    counts.push({ label: t("Crew"), value: profile.followers_count });
-  }
-  if (canView && profile.sparks_count !== null && profile.sparks_count !== undefined) {
-    counts.push({ label: t("Sparks"), value: profile.sparks_count });
-  }
-
   return (
-    <div className="relative isolate mx-auto w-full max-w-[760px] pb-[calc(100px+env(safe-area-inset-bottom,0px))] md:pb-16">
-      {/* The band leads the page rather than standing behind it, so the whole
-          page scrolls as one. Their own cover leads, and where they never put
-          one up the theme's art fills the band rather than a bare tint — the
-          same ground my own page stands on. */}
-      <div
-        className="absolute inset-x-0 top-0 overflow-hidden bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]"
-        style={{
-          height: COVER_HEIGHT,
-          borderBottomLeftRadius: COVER_RADIUS,
-          borderBottomRightRadius: COVER_RADIUS,
-        }}
-      >
-        {profile.cover ? (
-          <>
-            <AuthedImage
-              src={profile.cover}
-              alt=""
-              className="h-full w-full"
-              imgClassName="h-full w-full"
-            />
-            {/* A single-tone scrim rather than a gradient: a busy photograph and
-                the discs floating over it have to stay readable. */}
-            <span className="absolute inset-0 bg-[color-mix(in_srgb,#13131A_18%,transparent)]" />
-          </>
-        ) : design.coverArt ? (
-          <img src={design.coverArt} alt="" className="h-full w-full object-cover" />
-        ) : null}
-      </div>
+    <div className="relative isolate min-h-dvh bg-card pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-24">
+      <article className="overflow-hidden bg-card">
+        <ProfileCover url={profile.cover} art={design.coverArt}>
+          <button
+            type="button"
+            aria-label={t("Back")}
+            title={t("Back")}
+            onClick={() =>
+              window.history.length > 1 ? navigate(-1) : navigate("/app/drops")
+            }
+            className={COVER_CONTROL}
+          >
+            <ArrowLeft className="size-5" aria-hidden />
+          </button>
+          <button
+            type="button"
+            aria-label={t("More")}
+            title={t("More")}
+            aria-haspopup="menu"
+            aria-expanded={menu}
+            onClick={openMenuAt}
+            className={COVER_CONTROL}
+          >
+            <MoreHorizontal className="size-5" aria-hidden />
+          </button>
+        </ProfileCover>
 
-      <div className="relative" style={{ paddingTop: BODY_TOP }}>
-        <div className="flex flex-col items-center px-[18px]">
-          {/* Their face, and the ring that says there is something of theirs to
-              watch. The tap is the app's: a ringed face opens their day, a plain
-              one has no day to open — and the hold is the app's too, on both,
-              because somebody with nothing live is exactly the case where the
-              picture is the only thing on the page to look at. The press through
-              a keyboard gets the photo, since a hold has no keyboard. */}
-          <FaceButton
-            user={profile}
-            size={PHOTO_SIZE}
-            tone={liveRow ? (liveRow.seen ? "faded" : "accent") : "page"}
-            label={liveRow ? t("Open their day") : t("Their photo")}
-            title={t("Hold to see their photo")}
-            onTap={() => {
-              if (liveRow) void openDay();
-              else setFaceOpen(true);
-            }}
-            onHold={() => setFaceOpen(true)}
-          />
-          <span className="h-3" />
-          {/* The trade, on the line above the name: one centred stack — what
-              they do, what they are called, then the handle. */}
-          {trading ? (
-            <>
-              <ProfessionalLead trade={trading} t={t} />
-              <span className="h-1" />
-            </>
-          ) : null}
-          <span className="flex max-w-full items-center justify-center">
-            <span className="truncate text-center text-[22px] font-extrabold tracking-[-0.5px]">
-              {name}
-            </span>
-            {profile.verified ? (
-              <span className="ml-1.5 flex shrink-0">
-                <VerifiedTick size={18} />
-              </span>
-            ) : null}
-          </span>
-          <p className="mt-[3px] text-center text-[12.5px] text-dim">
-            {t(`@${handle} · ${open}`)}
-          </p>
-          {/* The day that belongs to them, said under the name it belongs to —
-              only on the day, because a page that mentioned a birthday the rest
-              of the year would not be about a birthday. */}
-          {birthdayToday ? (
-            <>
-              <span className="h-2.5" />
-              <span className="flex max-w-full items-center gap-[7px] rounded-full border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-3 py-[7px]">
-                <BirthdayCake />
-                <span className="min-w-0 truncate text-[12.5px] font-bold text-accent">
-                  {t(`${name}'s birthday is today`)}
-                </span>
-              </span>
-            </>
-          ) : null}
-        </div>
-
-        {/* Every place they can be reached, directly under the handle. Nothing
-            is drawn for an account that has filled none of it in: the block is
-            what a professional put up on purpose, and an empty one is not a
-            section of the page. */}
-        {profile.is_company && restFilled ? (
-          <div className="px-[18px]">
-            <div className="mt-2.5 flex flex-wrap justify-center gap-2">
-              {String(profile.address ?? "").trim() ? (
-                // The place is a mark with no door: there is nowhere to send
-                // somebody that is the same on every phone.
-                <ProfessionalPill
-                  bare
-                  icon={<MapPin className="size-4 text-accent" aria-hidden />}
-                  label={String(profile.address).trim()}
-                />
-              ) : null}
-              {String(profile.contact_email ?? "").trim() ? (
-                <ProfessionalPill
-                  bare
-                  icon={<Mail className="size-4 text-accent" aria-hidden />}
-                  label={String(profile.contact_email).trim()}
-                  onClick={() => {
-                    window.location.href = `mailto:${String(profile.contact_email).trim()}`;
-                  }}
-                />
-              ) : null}
-              {links.map((row, index) => {
-                const url = String(row.url ?? "").trim();
-                if (!url) return null;
-                const word = linkLabel(row, t("Link"));
-                return (
-                  <ProfessionalPill
-                    key={`${url}-${index}`}
-                    bare
-                    icon={linkPillIcon(row.label, url)}
-                    label={word}
-                    onClick={() => setGoing({ url, word })}
+        <div className={cn(PROFILE_MAX, PROFILE_GUTTER, "relative pb-4 sm:pb-5")}>
+          <div className={PROFILE_HEAD}>
+            <div className={PROFILE_FACE}>
+              <div className="relative rounded-full bg-[color-mix(in_srgb,var(--accent)_84%,transparent)] p-[4px] shadow-[0_20px_38px_-22px_color-mix(in_srgb,var(--ink)_72%,transparent)]">
+                <div className="relative rounded-full border-[3px] border-card bg-card p-[3px]">
+                  <FaceButton
+                    user={profile}
+                    size={wide ? PROFILE_PHOTO.wide : PROFILE_PHOTO.narrow}
+                    tone={liveRow ? (liveRow.seen ? "faded" : "accent") : "page"}
+                    label={liveRow ? t("Open their day") : t("Their photo")}
+                    title={t("Hold to see their photo")}
+                    onTap={() => {
+                      if (liveRow) void openDay();
+                      else setFaceOpen(true);
+                    }}
+                    onHold={() => setFaceOpen(true)}
                   />
-                );
-              })}
+                  {profile.online ? (
+                    <span className="absolute bottom-[6px] right-[6px] size-5 rounded-full border-[3px] border-card bg-[var(--good)]" />
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className={PROFILE_HEAD_TEXT}>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-3 sm:justify-between">
+                <div className="min-w-0">
+                  {trading ? (
+                    <ProfessionalLead trade={trading} t={t} className="mb-1 justify-start" />
+                  ) : null}
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h1 className="truncate text-[28px] font-extrabold leading-[1.05] tracking-[-0.045em] sm:text-[34px]">
+                      {name}
+                    </h1>
+                    {profile.verified ? (
+                      <span className="flex shrink-0">
+                        <VerifiedTick size={22} />
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                {actionRow}
+              </div>
+
+              <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 text-[13.5px] font-semibold text-dim">
+                <span className="truncate">@{handle}</span>
+                <span aria-hidden>&middot;</span>
+                <span className="shrink-0">{t("Privacy:")}</span>
+                <button
+                  type="button"
+                  onClick={() => setPrivacyOpen(true)}
+                  aria-expanded={privacyOpen}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--accent)_22%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--card))] px-3 py-1 text-[12.5px] font-bold capitalize text-accent transition hover:bg-[color-mix(in_srgb,var(--accent)_13%,var(--card))]"
+                >
+                  {profile.is_private ? (
+                    <Lock className="size-3" aria-hidden />
+                  ) : (
+                    <Globe className="size-3" aria-hidden />
+                  )}
+                  {open}
+                  <ChevronDown className="size-3" aria-hidden />
+                </button>
+              </div>
+
+              {bio ? (
+                <p className="mt-2.5 line-clamp-2 max-w-[62ch] text-[14.5px] font-semibold leading-[1.45] text-[color-mix(in_srgb,var(--ink)_76%,transparent)]">
+                  {bio}
+                </p>
+              ) : null}
+
+              {chips.length ? (
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  {chips.map((chip, index) => (
+                    <Chip
+                      key={`${chip.text}-${index}`}
+                      icon={chip.mark}
+                      label={chip.text}
+                      onClick={chip.onOpen}
+                    />
+                  ))}
+                </div>
+              ) : null}
+
+              {birthdayToday ? (
+                <span className="mt-2.5 flex max-w-full items-center gap-[7px] rounded-full border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-3 py-[7px]">
+                  <BirthdayCake />
+                  <span className="min-w-0 truncate text-[12px] font-bold text-accent">
+                    {t(`${name}'s birthday is today`)}
+                  </span>
+                </span>
+              ) : null}
             </div>
           </div>
-        ) : null}
 
-        {/* Their numbers, as bare columns rather than a card around them: these
-            are facts about the person the page is about, sitting in the head of
-            it the same as on my own page. And nothing here is a tap — their
-            Crew is the one list of theirs this page may not open. */}
-        {counts.length > 0 ? (
-          <div className="flex items-center justify-around px-[18px] pt-4">
-            {counts.map((one) => (
-              <Stat key={one.label} label={one.label} value={one.value} />
-            ))}
-          </div>
-        ) : null}
+          {metrics.length > 0 ? (
+            <div
+              className={cn(
+                "mt-5 grid gap-2 sm:gap-3",
+                metrics.length === 1
+                  ? "grid-cols-1"
+                  : metrics.length === 2
+                    ? "grid-cols-2"
+                    : "grid-cols-3",
+              )}
+            >
+              {metrics.map(({ key, ...metric }) => (
+                <StatCard
+                  key={key}
+                  label={metric.label}
+                  value={metric.value}
+                  icon={metric.icon}
+                  tone={metric.tone}
+                  onTap={metric.onOpen}
+                  trailing={metric.sparkline ? <Sparkline tone={metric.tone} /> : null}
+                />
+              ))}
+            </div>
+          ) : null}
 
-        {/* The friends we share, right under the numbers they belong beside — the
-            whole line a tap onto the list. Draws nothing for a stranger with
-            none in common: the count comes back null or zero there. */}
-        {!isMe ? (
-          <div className="pt-2">
+          {keepDoor ? (
+            justKept ? (
+              <div className="mt-3.5 flex items-center rounded-[18px] border border-[color-mix(in_srgb,var(--good)_38%,transparent)] bg-[color-mix(in_srgb,var(--good)_12%,var(--card))] px-3.5 py-3">
+                <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--good)_16%,transparent)] text-[var(--good)]">
+                  <CheckCircle2 className="size-[18px]" aria-hidden />
+                </span>
+                <span className="ml-[11px] min-w-0 flex-1">
+                  <span className="block text-[14px] font-bold">{t(`${first} is in your Kept.`)}</span>
+                  {keepCount ? (
+                    <span className="mt-0.5 block text-[12px] font-semibold text-dim">
+                      {keepCount}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-3.5 rounded-[18px] border border-[color-mix(in_srgb,var(--accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--accent)_9%,var(--card))] px-3.5 pb-3 pt-3.5">
+                <div className="flex items-start">
+                  <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent">
+                    <UserPlus className="size-[18px]" aria-hidden />
+                  </span>
+                  <span className="ml-3 min-w-0 flex-1">
+                    <span className="block text-[15.5px] font-extrabold tracking-[-0.2px]">
+                      {t(`Keep ${first}`)}
+                    </span>
+                    <span className="mt-[3px] block text-[12.5px] leading-[1.35] text-dim">
+                      {t("They join your Kept, and can message you, call you and send you a moment.")}
+                    </span>
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void act("follow")}
+                    className="inline-flex select-none items-center justify-center rounded-full bg-accent px-[18px] py-2.5 text-[13px] font-extrabold text-on-accent transition-[transform,background-color,color,opacity] duration-200 ease-out active:scale-[0.97] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    {t("Keep")}
+                  </button>
+                  {keepCount ? (
+                    <span className="inline-flex items-center gap-[5px] rounded-full bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] px-2.5 py-[7px] text-[11.5px] font-semibold text-dim">
+                      <Users className="size-[13px]" aria-hidden />
+                      {keepCount}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            )
+          ) : null}
+
+          {mutualShown ? (
             <MutualStrip
-              count={typeof profile.mutuals_count === "number" ? profile.mutuals_count : 0}
+              count={mutualCount}
               faces={profile.mutuals}
               onOpen={() => setMutuals(true)}
             />
-          </div>
-        ) : null}
-
-        {/* Their era, said by *their* character, under the numbers it has always
-            followed. Whether a figure introduces them is their setting and not
-            mine, so it comes off their profile rather than off my own shelf. */}
-        {String(profile.bio ?? "").trim() ? (
-          <div className="pt-3">
-            <PosedBio
-              text={String(profile.bio)}
-              character={profile.character ?? null}
-              show={profile.show_character !== false}
-            />
-          </div>
-        ) : null}
-
-        {/* The gate's card: the sentence explaining the hold on this account, in
-            the server's own words. **Not** the "One line only" card — that is the
-            notice telling somebody what they were about to discover anyway, and
-            the owner asked for it off on 2026-10-24. The hold itself is
-            unchanged; what goes is the announcement. */}
-        {gate?.title && gate.text_only !== true ? (
-          <div className="px-[18px] pt-4">
-            <div className="rounded-[16px] border border-[color-mix(in_srgb,var(--accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] p-4">
-              <p className="text-[15px] font-bold">{gate.title}</p>
-              {gate.text ? (
-                <p className="mt-1 text-[13px] leading-[1.4] text-dim">{gate.text}</p>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        {/* Their Memories, kept where they have always been: their own strip
-            above the row of tabs, not folded into it. The shelf draws nothing at
-            all when there are none to show, so it costs a quiet account no room.
-            No card that makes one: a Memory is theirs to put up. */}
-        <div className="pt-4">
-          <MemoriesShelf username={handle} mine={false} author={profile ?? null} />
+          ) : null}
         </div>
+      </article>
 
-        {/* Their posts, under the business between us, and drawn only when the
-            gate says their things are mine to read. The shelf walls itself for a
-            private account I have not been let into, and the owner asked on
-            2026-10-02 for that to be *gone* rather than walled — the gate card
-            above already says why in the server's own sentence, and the tabs were
-            only an invitation to a door that is not going to open. */}
+      <div className={cn(PROFILE_MAX, PROFILE_GUTTER)}>
+        <section className={cn(PROFILE_CARD, "mt-3 p-4 sm:p-5")}>
+          <div
+            className={cn(
+              "grid gap-5",
+              details.length > 0 &&
+                "md:grid-cols-[minmax(0,1fr)_240px] md:gap-6",
+            )}
+          >
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-[15px] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent">
+                  <UserRound className="size-[21px]" aria-hidden />
+                </span>
+                <h2 className="text-[22px] font-extrabold tracking-[-0.03em]">
+                  {t("About Me")}
+                </h2>
+              </div>
+              {bio ? (
+                <PosedBio
+                  text={bio}
+                  character={profile.character ?? null}
+                  show={profile.show_character ?? null}
+                  className="mt-2 px-0 pt-0"
+                />
+              ) : (
+                <p className="mt-3 text-[14.5px] leading-7 text-ink/75">{t("No bio yet.")}</p>
+              )}
+            </div>
+            {details.length > 0 ? (
+              <div className="space-y-4 md:border-l md:border-line md:pl-6">
+                {details.map((detail, index) => (
+                  <DetailRow key={`${detail.text}-${index}`} {...detail} />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        {gate?.title && gate.text_only !== true ? (
+          <div className="mt-3 flex items-start gap-3 rounded-[22px] border border-[color-mix(in_srgb,var(--accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,var(--card))] px-4 py-3.5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent">
+              <Lock className="size-[17px]" aria-hidden />
+            </span>
+            <span className="min-w-0 pt-0.5">
+              <span className="block text-[14.5px] font-bold">
+                {gate.title}
+              </span>
+              {gate.text ? (
+                <span className="mt-1 block text-[12.5px] leading-[1.45] text-dim">
+                  {gate.text}
+                </span>
+              ) : null}
+            </span>
+          </div>
+        ) : null}
+
+        <MemoriesShelf
+          username={handle}
+          mine={false}
+          author={profile ?? null}
+          variant="showcase"
+          className={cn(PROFILE_CARD, "mt-3 overflow-hidden p-3.5 sm:p-4")}
+        />
+
         {canView ? (
-          <div className="pt-2">
-            <ProfileShelf username={handle} mine={false} />
+          <div className={cn(PROFILE_CARD, "mt-3 overflow-hidden p-3.5 sm:p-4")}>
+            <PinnedStrip username={handle} className="pb-3" />
+            <ProfileShelf
+              username={handle}
+              mine={false}
+              hasShowcase={Boolean(profile.is_company)}
+              variant="showcase"
+            />
           </div>
         ) : null}
       </div>
 
-      {/* The bar that was, as discs floating over the page: the way out on the
-          left, and on the right a column — the ⋮ that holds what this page can
-          do, and under it the convo, the keep control and their code. The code is
-          always on the stack whatever the gate says, because handing somebody's
-          handle to a phone in the room is not an action taken against them; the
-          other two come and go with what the gate allows. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between p-3">
-        <span className="pointer-events-auto">
-          <Floating
-            icon={<ArrowLeft className="size-[19px]" />}
-            label={t("Back")}
-            onTap={() => (window.history.length > 1 ? navigate(-1) : navigate("/app/drops"))}
-          />
-        </span>
-        <span className="pointer-events-auto flex flex-col items-end gap-2.5">
-          <Floating
-            icon={<MoreVertical className="size-[19px]" />}
-            label={t("More")}
-            onTap={() => setMenu(true)}
-          />
-          {canSend ? (
-            <Floating
-              icon={<MessageCircle className="size-[19px]" />}
-              // The gate's own sentence, kept whole: 'Start one convo' rather
-              // than 'Send one message', because what this gate allows is one
-              // line of text and nothing after it until they answer.
-              label={gate?.text_only === true ? t("Start one convo") : t("Open convo")}
-              onTap={busy ? null : () => void message()}
-              // Once somebody is kept, the way into the convo is the control
-              // worth pointing at; before that, the Keep below is, and only one
-              // disc beats at a time so the page never asks two things at once.
-              pulse={following}
-            />
-          ) : null}
-          {following ? (
-            <Floating
-              icon={<UserMinus className="size-[19px]" />}
-              label={t("Let go")}
-              onTap={busy ? null : () => void act("unfollow")}
-            />
-          ) : canKeep ? (
-            <Floating
-              icon={<Plus className="size-[19px]" />}
-              label={t("Keep")}
-              onTap={busy ? null : () => void act("follow")}
-              // Nothing has been added yet, so this is the one thing the page is
-              // asking for.
-              pulse
-            />
-          ) : cta && action ? (
-            <Floating
-              icon={gateIcon(gate?.icon)}
-              label={t(cta)}
-              onTap={busy ? null : () => void act(action)}
-              // The gate's own follow and request are the same ask as the plus:
-              // this account is not added yet.
-              pulse={action === "follow" || action === "request"}
-            />
-          ) : ask ? (
-            <Floating
-              icon={ask.icon}
-              label={ask.label}
-              onTap={busy ? null : () => void act(ask.action)}
-              // Asking again after a Let go is the add. A withdrawal is a wait,
-              // not an ask, so the hand in the air does not beat.
-              pulse={ask.action === "request"}
-            />
-          ) : null}
-          <Floating
-            icon={<QrCode className="size-[19px]" />}
-            label={t("Their QR code")}
-            onTap={busy ? null : () => setQr(true)}
-          />
-        </span>
-      </div>
-
-      {/* And the day itself, falling down the page — balloons let go over the
-          profile on the one day they belong to. Drawn over everything, and it
-          takes nothing back: the layer ignores the pointer, so the discs under
-          it are still buttons and the list under it still scrolls.
-          Deliberately *not* over the deleted-account placeholder, which returns
-          long before this — there is nobody left to wish it to. */}
       {birthdayToday ? <BirthdayFall /> : null}
 
-      {/* The ⋮ opposite the back arrow. The app's sheet leads with a private name
-          for this person and then folds a convo's own settings in behind it; the
-          web has neither, so what is left is what this page can actually do. */}
-      <Modal open={menu} onClose={() => setMenu(false)} size="sm" hideClose>
+      {menu && menuPos
+        ? createPortal(
+            <div className="fixed inset-0 z-[70]">
+              <button
+                type="button"
+                className="absolute inset-0 bg-transparent"
+                onClick={() => setMenu(false)}
+                aria-label={t("Close")}
+                tabIndex={-1}
+              />
+              <div
+                role="menu"
+                style={{
+                  top: menuPos.top,
+                  right: menuPos.right,
+                  maxHeight: menuPos.maxHeight,
+                }}
+                className="absolute w-[min(19rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-[20px] border border-line bg-card p-1.5 shadow-[0_18px_50px_-18px_color-mix(in_srgb,var(--ink)_40%,transparent)]"
+              >
         <div className="py-1.5">
+          {!isMe ? (
+            <SheetRow
+              icon={<BadgePlus className="size-[21px]" />}
+              label={mine ? t("Change the name") : t("Rename")}
+              line={t("A name only you see")}
+              onClick={() => {
+                setMenu(false);
+                setRenameOpen(true);
+              }}
+            />
+          ) : null}
           <SheetRow
             icon={<VolumeX className="size-[21px]" />}
             label={muted ? t("Unmute their posts") : t("Mute their posts")}
@@ -802,8 +1026,74 @@ export function PersonProfile() {
               }}
             />
           ) : null}
+          {convo ? (
+            <>
+              <div className="my-1.5 border-t border-line" />
+              <SheetRow
+                icon={<Zap className="size-[21px]" />}
+                label={t("Spark")}
+                line={t("The run the two of you are on.")}
+                onClick={() => {
+                  setMenu(false);
+                  setSparkOpen(true);
+                }}
+              />
+              <SheetRow
+                icon={<Settings2 className="size-[21px]" />}
+                label={t("Convo settings")}
+                line={t("Wallpaper, theme, disappearing and the rest.")}
+                onClick={() => {
+                  setMenu(false);
+                  setConvoOpen(true);
+                }}
+              />
+            </>
+          ) : null}
         </div>
-      </Modal>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+
+      <PromptDialog
+        open={renameOpen}
+        onClose={() => setRenameOpen(false)}
+        title={t("Rename")}
+        label={t("A name only you see")}
+        placeholder={profile.name || handle}
+        initial={mine ?? ""}
+        submitLabel={t("Save")}
+        note={t("It stays on this device.")}
+        maxLength={24}
+        onSubmit={(next) => keepName(next)}
+      />
+
+      {convo ? (
+        <ConvoSheet
+          open={convoOpen}
+          onClose={() => setConvoOpen(false)}
+          thread={convo}
+          kind="convo"
+          onChanged={() => void queryClient.invalidateQueries({ queryKey: ["threads"] })}
+          onGone={() => {
+            setConvoOpen(false);
+            void queryClient.invalidateQueries({ queryKey: ["threads"] });
+          }}
+        />
+      ) : null}
+
+      {convo ? (
+        <SparkSheet
+          open={sparkOpen}
+          threadId={String(convo.id)}
+          title={name}
+          spark={spark.data ?? null}
+          face={profile}
+          onClose={() => setSparkOpen(false)}
+          onChanged={() => void spark.refetch()}
+        />
+      ) : null}
 
       <Modal
         open={reportOpen}
@@ -812,7 +1102,10 @@ export function PersonProfile() {
         description={t("Tell us what is wrong. They will not be told.")}
       >
         <div className="px-5 py-4">
-          <label className="text-[12px] font-bold text-dim" htmlFor="report-reason">
+          <label
+            className="text-[12px] font-bold text-dim"
+            htmlFor="report-reason"
+          >
             {t("Reason")}
           </label>
           <select
@@ -827,10 +1120,18 @@ export function PersonProfile() {
             <option value="other">{t("Something else")}</option>
           </select>
           <div className="mt-4 flex justify-end gap-2">
-            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5" onClick={() => setReportOpen(false)}>
+            <button
+              type="button"
+              className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5"
+              onClick={() => setReportOpen(false)}
+            >
               {t("Cancel")}
             </button>
-            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105" onClick={() => void report()}>
+            <button
+              type="button"
+              className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105"
+              onClick={() => void report()}
+            >
               {t("Send report")}
             </button>
           </div>
@@ -848,7 +1149,13 @@ export function PersonProfile() {
           if (url) window.open(url, "_blank", "noopener,noreferrer");
         }}
         title={going?.word ? t(`Open ${going.word}?`) : t("Open this link?")}
-        body={going ? (going.url.length <= 60 ? going.url : `${going.url.slice(0, 60)}...`) : ""}
+        body={
+          going
+            ? going.url.length <= 60
+              ? going.url
+              : `${going.url.slice(0, 60)}...`
+            : ""
+        }
         note={t("It opens away from Xelvic.")}
         confirmLabel={t("Open now")}
         icon={<ExternalLink className="size-5" />}
@@ -865,11 +1172,28 @@ export function PersonProfile() {
         }}
       />
 
-      {/* Their code, on the screen of the person who just met them. Nothing is
-          asked of the server that this page has not already asked: the profile
-          was read to draw the page, and the code is a drawing of one field of
-          it — the same `xelvic://u/@handle` string the app writes and its own
-          scanner reads back. */}
+      <Modal
+        open={privacyOpen}
+        onClose={() => setPrivacyOpen(false)}
+        title={t("Privacy")}
+        size="sm"
+      >
+        <div className="flex items-start gap-3 px-5 py-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent">
+            {profile.is_private ? (
+              <Lock className="size-[19px]" aria-hidden />
+            ) : (
+              <Globe className="size-[19px]" aria-hidden />
+            )}
+          </span>
+          <p className="pt-0.5 text-[13px] leading-6 text-dim">
+            {profile.is_private
+              ? t("Only the people this account keeps can see what it puts up.")
+              : t("Anyone can see this profile and what this account puts up.")}
+          </p>
+        </div>
+      </Modal>
+
       <Modal open={qr} onClose={() => setQr(false)} size="sm" hideClose>
         <div className="relative flex flex-col items-center px-5 pb-6 pt-6">
           <button
@@ -883,8 +1207,12 @@ export function PersonProfile() {
           <span className="flex items-center gap-2.5">
             <Avatar user={profile} size={40} />
             <span className="min-w-0 text-left">
-              <span className="block truncate text-[15px] font-bold">{name}</span>
-              <span className="block truncate text-[12px] text-dim">@{handle}</span>
+              <span className="block truncate text-[15px] font-bold">
+                {name}
+              </span>
+              <span className="block truncate text-[12px] text-dim">
+                @{handle}
+              </span>
             </span>
           </span>
           <div className="mt-4 rounded-[20px] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-card p-3.5">
@@ -910,8 +1238,12 @@ export function PersonProfile() {
             onClick={() => {
               void navigator.clipboard
                 .writeText(`@${handle}`)
-                .then(() => toast({ title: t("Handle copied"), tone: "success" }))
-                .catch(() => toast({ title: t("Copy it from the page"), tone: "info" }));
+                .then(() =>
+                  toast({ title: t("Handle copied"), tone: "success" }),
+                )
+                .catch(() =>
+                  toast({ title: t("Copy it from the page"), tone: "info" }),
+                );
             }}
           >
             {t("Copy the handle")}
@@ -938,15 +1270,50 @@ export function PersonProfile() {
 
       {/* As large as their picture goes, on a hold or — for a face with nothing
           live behind it — a tap. */}
-      <FaceDialog open={faceOpen} onClose={() => setFaceOpen(false)} user={profile} />
+      <FaceDialog
+        open={faceOpen}
+        onClose={() => setFaceOpen(false)}
+        user={profile}
+      />
     </div>
+  );
+}
+
+function DetailRow({ icon: Icon, text, onClick }: Detail) {
+  const body = (
+    <>
+      <span className="flex size-5 shrink-0 items-center justify-center text-[color-mix(in_srgb,var(--ink)_45%,transparent)]">
+        <Icon className="size-[19px]" aria-hidden />
+      </span>
+      <span className="min-w-0 truncate text-[13.5px] font-semibold text-ink/80">
+        {text}
+      </span>
+    </>
+  );
+  if (!onClick) {
+    return <div className="flex min-w-0 items-center gap-2.5">{body}</div>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full min-w-0 items-center gap-2.5 text-left transition hover:text-accent"
+    >
+      {body}
+    </button>
   );
 }
 
 /** The cake on a birthday line, drawn rather than taken from a font. */
 function BirthdayCake() {
   return (
-    <svg width={14} height={14} viewBox="0 0 14 14" aria-hidden className="shrink-0 text-accent">
+    <svg
+      width={14}
+      height={14}
+      viewBox="0 0 14 14"
+      aria-hidden
+      className="shrink-0 text-accent"
+    >
       <path
         d="M7 1.1c.7.9 1.1 1.5 1.1 2a1.1 1.1 0 1 1-2.2 0c0-.5.4-1.1 1.1-2Z"
         fill="currentColor"
@@ -956,7 +1323,14 @@ function BirthdayCake() {
         fill="currentColor"
         opacity="0.45"
       />
-      <rect x="2.4" y="9.2" width="9.2" height="3.4" rx="1" fill="currentColor" />
+      <rect
+        x="2.4"
+        y="9.2"
+        width="9.2"
+        height="3.4"
+        rx="1"
+        fill="currentColor"
+      />
     </svg>
   );
 }

@@ -76,7 +76,7 @@ export function OwnQrPage() {
             <p className="mt-2 text-[11px] font-bold text-[var(--bad)]">Could not load QR code</p>
             <p className="mt-1 text-[10px] text-dim">{error instanceof Error ? error.message : "Unknown error"}</p>
             <Button onClick={() => refetch()} className="mt-3" size="sm">
-              <RefreshCw className="size-3.5 mr-1.5" /> Try again
+              <RefreshCw className="size-3.5" /> Try again
             </Button>
           </div>
         ) : qr ? (

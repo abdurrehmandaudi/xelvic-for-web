@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +17,7 @@ import {
   Camera,
   Check,
   CheckCheck,
+  Eraser,
   Lock,
   LogOut,
   MessageCircle,
@@ -27,22 +29,31 @@ import {
   Search,
   Settings,
   Sparkles,
+  Trash2,
   UserPlus,
   Users,
   Video,
   X,
 } from "lucide-react";
+import { MdKeyboardArrowRight } from "react-icons/md";
 import { FaUserPlus } from "react-icons/fa6";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button, Spinner } from "@/components/ui/Button";
 import { ConfirmDialog, Modal } from "@/components/overlays/Modal";
 import { EmptyState, ErrorState } from "@/components/ui/States";
+import { personLabel } from "@/utils/format";
 import { AlertsManageModal } from "@/features/alerts/AlertsManageModal";
 import { AlertsRow } from "@/features/alerts/AlertsRow";
 import { alertWhen } from "@/features/alerts/model";
 import { useAlerts } from "@/hooks/useAlerts";
 import { ConvoRow } from "@/features/convo/ConvoRow";
 import { ConvoSheet } from "@/features/convo/ConvoSheet";
+import {
+  PICK_LIMIT,
+  pickNext,
+  pileHolds,
+  pileTake,
+} from "@/features/convo/pile";
 import { VaultModal } from "@/features/convo/VaultModal";
 import { inUnreadLane, stamp, threadTitle, threadUnread } from "@/features/convo/model";
 import { cn } from "@/utils/cn";
@@ -139,7 +150,7 @@ function callLength(seconds: number) {
 
 function callWho(log: CallLog) {
   const names = (log.others ?? [])
-    .map((one) => one.name || one.username || "")
+    .map((one) => personLabel(one))
     .filter(Boolean);
   return names.length ? names.join(", ") : "Call";
 }
@@ -445,7 +456,7 @@ function RequestsPanel() {
     withMessage: boolean,
   ) {
     const person = request.user;
-    const name = person.name || person.username;
+    const name = personLabel(person);
     const message = withMessage ? requestLine(request) : "";
     return (
       <div
@@ -594,9 +605,9 @@ export function NewConvoPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-transparent">
-      <header className="flex shrink-0 items-center gap-3 border-b border-line px-3.5 py-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-[12px] bg-[var(--accent-soft)] text-accent">
-          <UserPlus className="size-4" />
+      <header className="flex shrink-0 items-center gap-3 border-b border-line px-3.5 py-2">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent">
+          <UserPlus className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-[14px] font-extrabold tracking-[-0.02em]">
@@ -609,15 +620,16 @@ export function NewConvoPanel({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={onClose}
-          className="flex size-8 shrink-0 items-center justify-center rounded-full text-dim transition hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] hover:text-ink active:scale-95"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full text-dim transition hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] hover:text-ink active:scale-95"
           aria-label="Close new convo"
         >
-          <X className="size-4" />
+          <X className="size-5" />
         </button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2.5 p-3">
-        <label className="flex min-h-11 items-center gap-2.5 rounded-[12px] border border-line bg-paper px-3 shadow-[inset_0_1px_2px_rgba(17,17,26,0.03)] transition focus-within:border-accent focus-within:bg-card focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_10%,transparent)]">
+      <div className="flex min-h-0 flex-1 flex-col gap-2.5">
+        <div className="px-1.5 pt-1.5 flex shrink-0 flex-col gap-2.5">
+        <label className="flex min-h-10 items-center gap-2.5 rounded-lg border border-line bg-paper px-3 shadow-[inset_0_1px_2px_rgba(17,17,26,0.03)] transition focus-within:border-accent focus-within:bg-card focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_10%,transparent)]">
           <Search className="size-4 shrink-0 text-dim" />
           <input
             value={query}
@@ -631,18 +643,18 @@ export function NewConvoPanel({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={() => setGroupOpen(true)}
-          className="flex w-full shrink-0 items-center gap-3 rounded-[14px] border px-3 py-2.5 text-left transition hover:-translate-y-px hover:brightness-[1.01]"
+          className="flex w-full shrink-0 items-center gap-3 rounded-lg border px-2 py-1.5 text-left transition hover:brightness-[1.01]"
           style={{
             background:
               "linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--card)), var(--card) 75%)",
             borderColor: "color-mix(in srgb, var(--accent) 18%, var(--line))",
           }}
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-accent text-on-accent shadow-[0_5px_14px_color-mix(in_srgb,var(--accent)_26%,transparent)]">
-            <Users className="size-4" />
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-on-accent">
+            <Users className="size-[18px]" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[12px] font-extrabold">
+            <span className="block text-[13px] font-extrabold">
               Start a group
             </span>
             <span className="block truncate text-[10px] text-dim">
@@ -650,11 +662,12 @@ export function NewConvoPanel({ onClose }: { onClose: () => void }) {
             </span>
           </span>
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-card text-accent shadow-sm">
-            <ArrowRight className="size-3.5" />
+            <ArrowRight className="size-4" />
           </span>
         </button>
+        </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+        <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
           {people.isLoading ? (
             <div className="flex h-full min-h-40 items-center justify-center">
               <Spinner />
@@ -681,22 +694,22 @@ export function NewConvoPanel({ onClose }: { onClose: () => void }) {
             </div>
           ) : (
             <>
-              <p className="px-1 pb-1.5 pt-1 text-[9.5px] font-extrabold uppercase tracking-[0.13em] text-dim">
+              <p className="px-3 pb-1.5 pt-1 text-[10.5px] font-extrabold uppercase tracking-[0.13em] text-dim">
                 {deferred ? "Results" : "People you may know"}
               </p>
-              <div className="space-y-1">
+              <div className="px-1">
                 {people.data.results.map((person) => (
                   <button
                     key={person.id}
                     type="button"
                     onClick={() => void start(person)}
                     disabled={Boolean(busy)}
-                    className="group flex w-full items-center gap-3 rounded-[14px] border border-transparent px-2.5 py-2.5 text-left transition hover:border-line hover:bg-[color-mix(in_srgb,var(--accent)_4%,var(--card))] disabled:opacity-55"
+                    className="group flex w-full items-center gap-3 rounded-lg border border-transparent px-1 py-1.5 text-left transition hover:border-line hover:bg-[color-mix(in_srgb,var(--accent)_4%,var(--card))] disabled:opacity-55"
                   >
                     <Avatar user={person} size={40} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12.5px] font-extrabold">
-                        {person.name || person.username}
+                        {personLabel(person)}
                       </span>
                       <span className="block truncate text-[10.5px] text-dim">
                         @{person.username}
@@ -706,8 +719,8 @@ export function NewConvoPanel({ onClose }: { onClose: () => void }) {
                     {busy === person.id ? (
                       <Spinner className="size-4" />
                     ) : (
-                      <span className="flex size-8 items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent opacity-80 transition group-hover:opacity-100">
-                        <MessageCircle className="size-4" />
+                      <span className="flex size-8 items-center justify-center text-dim">
+                        <MdKeyboardArrowRight className="size-5" />
                       </span>
                     )}
                   </button>
@@ -943,6 +956,39 @@ function NewGroupModal({
   );
 }
 
+function PickAction({
+  icon,
+  label,
+  enabled,
+  onClick,
+  bad,
+}: {
+  icon: ReactNode;
+  label: string;
+  enabled: boolean;
+  onClick: () => void;
+  bad?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={enabled ? onClick : undefined}
+      disabled={!enabled}
+      className={cn(
+        "flex flex-1 flex-col items-center gap-1 py-3 transition",
+        !enabled
+          ? "cursor-default text-[color-mix(in_srgb,var(--ink)_32%,transparent)]"
+          : bad
+            ? "text-[var(--bad)] hover:bg-[color-mix(in_srgb,var(--bad)_8%,transparent)]"
+            : "text-ink hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]",
+      )}
+    >
+      {icon}
+      <span className="text-[11px] font-semibold">{label}</span>
+    </button>
+  );
+}
+
 function MenuRow({
   icon,
   title,
@@ -1043,6 +1089,11 @@ export function ConvoPage({
   const [selected, setSelected] = useState<ThreadCard | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [listSearch, setListSearch] = useState("");
+  const [picking, setPicking] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [leaving, setLeaving] = useState<string[]>([]);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -1298,6 +1349,123 @@ export function ConvoPage({
     }
   }
 
+  function startPick(id: string) {
+    setSheetOpen(false);
+    setSelected(null);
+    setPicking(true);
+    setPicked([id]);
+  }
+
+  function endPick() {
+    setPicking(false);
+    setPicked([]);
+  }
+
+  function togglePick(id: string) {
+    const step = pickNext(picked, id);
+    if (step.full) {
+      toast({ title: `You can pick up to ${PICK_LIMIT}.`, tone: "info" });
+      return;
+    }
+    setPicked(step.picked);
+    if (step.empty) setPicking(false);
+  }
+
+  function pickAll() {
+    const rows = displayRows.map((row) => row.id);
+    if (pileHolds(rows, picked)) {
+      setPicked([]);
+      setPicking(false);
+      return;
+    }
+    setPicked(pileTake(rows));
+  }
+
+  function settlePicked(rows: string[], failed: string[], said: string) {
+    setPicked(failed);
+    if (!failed.length) setPicking(false);
+    void queryClient.invalidateQueries({ queryKey: ["threads"] });
+    const done = rows.length - failed.length;
+    if (!failed.length) {
+      toast({ title: `${said} ${rows.length} of them.`, tone: "success" });
+    } else if (done === 0) {
+      toast({ title: "Nothing took. Try again.", tone: "error" });
+    } else {
+      toast({
+        title: `${said} ${done} of ${rows.length}. The rest are still picked.`,
+        tone: "error",
+      });
+    }
+  }
+
+  async function lockPicked() {
+    const rows = picked;
+    if (!rows.length) return;
+    setBulkBusy(true);
+    const failed: string[] = [];
+    for (const id of rows) {
+      try {
+        await chatService.flags(id, { vaulted: true });
+      } catch {
+        failed.push(id);
+      }
+    }
+    setBulkBusy(false);
+    settlePicked(rows, failed, "Moved to the vault.");
+  }
+
+  async function clearPicked() {
+    const rows = picked;
+    if (!rows.length) return;
+    setBulkBusy(true);
+    const failed: string[] = [];
+    for (const id of rows) {
+      try {
+        await chatService.clear(id);
+        queryClient.removeQueries({ queryKey: ["messages", id] });
+      } catch {
+        failed.push(id);
+      }
+    }
+    setBulkBusy(false);
+    settlePicked(rows, failed, "Cleared from your side.");
+  }
+
+  async function trashPicked() {
+    const ids = picked;
+    if (!ids.length) return;
+    setTrashOpen(false);
+    setLeaving(ids);
+    setPicked([]);
+    setPicking(false);
+    setBulkBusy(true);
+    try {
+      await chatService.removeThreads(ids);
+      for (const id of ids) {
+        queryClient.removeQueries({ queryKey: ["messages", id] });
+      }
+      toast({
+        title:
+          ids.length === 1
+            ? "Convo trashed."
+            : `${ids.length} convos trashed.`,
+        tone: "success",
+      });
+    } catch (error) {
+      setPicked(ids);
+      setPicking(true);
+      toast({
+        title: "Nothing took. Try again.",
+        description: errorMessage(error),
+        tone: "error",
+      });
+    } finally {
+      await queryClient.invalidateQueries({ queryKey: ["threads"] });
+      setLeaving([]);
+      setBulkBusy(false);
+    }
+  }
+
   async function readAll() {
     if (!unreadRows.length) {
       toast({ title: "Nothing is waiting to be read.", tone: "info" });
@@ -1338,12 +1506,13 @@ export function ConvoPage({
     },
   ];
 
-  const tabLanes = lanes.filter((item) => item.key !== "requested");
+  const tabLanes = lanes.filter(
+    (item) => item.key !== "requested" || user?.is_company === true,
+  );
   const activeTabIndex = tabLanes.findIndex((item) => item.key === lane);
   const tabPercent = 100 / tabLanes.length;
-  const underlineWidth = tabPercent * 0.75;
-  const underlineLeft =
-    activeTabIndex * tabPercent + (tabPercent - underlineWidth) / 2;
+  const underlineWidth = tabPercent;
+  const underlineLeft = activeTabIndex * tabPercent;
 
   const displayRows =
     lane === "unread"
@@ -1385,93 +1554,129 @@ export function ConvoPage({
         )}
       >
         <div className="relative mx-auto flex h-[56px] w-full max-w-[760px] items-center justify-between px-3">
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setMenuOpen(true)}
-              className="group flex size-11 shrink-0 items-center justify-center rounded-full transition duration-200 active:scale-95"
-              aria-label="Convo list menu"
-              aria-haspopup="dialog"
-              aria-expanded={menuOpen}
-              title="Convo list menu"
-            >
-              <span className="flex size-10 items-center justify-center rounded-full border border-line/80 transition-colors duration-200 group-hover:border-accent/40 group-active:border-accent/60">
-                <Avatar user={user} name={user?.name} size={36} />
-              </span>
-            </button>
+          {picking ? (
+            <>
+              <button
+                type="button"
+                onClick={endPick}
+                className="flex size-10 shrink-0 items-center justify-center rounded-full text-ink transition duration-200 hover:bg-surface-2 active:scale-95"
+                aria-label="Stop picking"
+                title="Done"
+              >
+                <X className="size-[22px]" strokeWidth={2.4} />
+              </button>
+              <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <h1 className="select-none text-[16px] font-extrabold leading-none tracking-[-0.02em] text-ink tabular-nums">
+                  {picked.length}/{PICK_LIMIT} picked
+                </h1>
+              </div>
+              <button
+                type="button"
+                onClick={pickAll}
+                disabled={bulkBusy}
+                className="rounded-full px-2.5 py-1.5 text-[14px] font-bold text-accent transition hover:bg-[var(--accent-soft)] disabled:opacity-50"
+              >
+                {pileHolds(
+                  displayRows.map((row) => row.id),
+                  picked,
+                )
+                  ? "None"
+                  : "All"}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen(true)}
+                  className="group flex size-11 shrink-0 items-center justify-center rounded-full transition duration-200 active:scale-95"
+                  aria-label="Convo list menu"
+                  aria-haspopup="dialog"
+                  aria-expanded={menuOpen}
+                  title="Convo list menu"
+                >
+                  <span className="flex size-10 items-center justify-center rounded-full border border-line/80 transition-colors duration-200 group-hover:border-accent/40 group-active:border-accent/60">
+                    <Avatar user={user} name={user?.name} size={36} />
+                  </span>
+                </button>
 
-            <button
-              type="button"
-              onClick={toggleSearch}
-              className={cn(
-                "flex size-10 shrink-0 items-center justify-center rounded-full text-ink transition duration-200",
-                searchOpen
-                  ? "bg-[var(--accent-soft)] text-accent hover:bg-[var(--accent-soft)] hover:text-accent"
-                  : "hover:bg-surface-2 hover:text-accent",
-              )}
-              aria-label={
-                searchOpen ? "Hide conversation search" : "Search conversations"
-              }
-              aria-expanded={searchOpen}
-              title={searchOpen ? "Hide search" : "Search conversations"}
-            >
-              <Search className="size-[23px]" strokeWidth={2.1} />
-            </button>
-          </div>
+                <button
+                  type="button"
+                  onClick={toggleSearch}
+                  className={cn(
+                    "flex size-10 shrink-0 items-center justify-center rounded-full text-ink transition duration-200",
+                    searchOpen
+                      ? "bg-[var(--accent-soft)] text-accent hover:bg-[var(--accent-soft)] hover:text-accent"
+                      : "hover:bg-surface-2 hover:text-accent",
+                  )}
+                  aria-label={
+                    searchOpen
+                      ? "Hide conversation search"
+                      : "Search conversations"
+                  }
+                  aria-expanded={searchOpen}
+                  title={searchOpen ? "Hide search" : "Search conversations"}
+                >
+                  <Search className="size-[23px]" strokeWidth={2.1} />
+                </button>
+              </div>
 
-          <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2">
-            <h1 className="select-none text-[22px] font-extrabold leading-none tracking-[-0.04em] text-ink">
-              Convo
-            </h1>
-            <span
-              className={cn(
-                "size-2 shrink-0 rounded-full transition-all duration-300",
-                socketStatus === "live" &&
-                  "shadow-[0_0_0_3px_color-mix(in_srgb,var(--good)_12%,transparent)]",
-              )}
-              style={{
-                backgroundColor:
-                  socketStatus === "live"
-                    ? "var(--good)"
-                    : "color-mix(in srgb, var(--ink) 22%, transparent)",
-              }}
-              aria-label={socketStatus === "live" ? "Live" : "Offline"}
-              title={socketStatus === "live" ? "Live" : "Offline"}
-            />
-          </div>
+              <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2">
+                <h1 className="select-none text-[22px] font-extrabold leading-none tracking-[-0.04em] text-ink">
+                  Convo
+                </h1>
+                <span
+                  className={cn(
+                    "size-2 shrink-0 rounded-full transition-all duration-300",
+                    socketStatus === "live" &&
+                      "shadow-[0_0_0_3px_color-mix(in_srgb,var(--good)_12%,transparent)]",
+                  )}
+                  style={{
+                    backgroundColor:
+                      socketStatus === "live"
+                        ? "var(--good)"
+                        : "color-mix(in srgb, var(--ink) 22%, transparent)",
+                  }}
+                  aria-label={socketStatus === "live" ? "Live" : "Offline"}
+                  title={socketStatus === "live" ? "Live" : "Offline"}
+                />
+              </div>
 
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={onToggleCompose}
-              className={cn(
-                "flex size-10 shrink-0 items-center justify-center rounded-full text-ink transition duration-200 active:scale-95",
-                composeOpen
-                  ? "bg-[var(--accent-soft)] text-accent hover:bg-[var(--accent-soft)] hover:text-accent"
-                  : "hover:bg-surface-2 hover:text-accent",
-              )}
-              aria-label={composeOpen ? "Close new convo" : "New convo"}
-              aria-pressed={composeOpen}
-              title={composeOpen ? "Close new convo" : "New convo"}
-            >
-              <FaUserPlus className="ml-0.5 size-[23px]" />
-            </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={onToggleCompose}
+                  className={cn(
+                    "flex size-10 shrink-0 items-center justify-center rounded-full text-ink transition duration-200 active:scale-95",
+                    composeOpen
+                      ? "bg-[var(--accent-soft)] text-accent hover:bg-[var(--accent-soft)] hover:text-accent"
+                      : "hover:bg-surface-2 hover:text-accent",
+                  )}
+                  aria-label={composeOpen ? "Close new convo" : "New convo"}
+                  aria-pressed={composeOpen}
+                  title={composeOpen ? "Close new convo" : "New convo"}
+                >
+                  <FaUserPlus className="ml-0.5 size-[23px]" />
+                </button>
 
-            <button
-              type="button"
-              onClick={() => setCameraOpen(true)}
-              // A hover or a finger on the button is the beat before the tap,
-              // and that beat is enough to fetch the camera's chunk.
-              onMouseEnter={warmCamera}
-              onFocus={warmCamera}
-              onTouchStart={warmCamera}
-              className="flex size-10 shrink-0 items-center justify-center rounded-full text-ink transition duration-200 hover:bg-surface-2 hover:text-accent active:scale-95"
-              aria-label="Camera"
-              title="Camera"
-            >
-              <Camera className="size-[24px]" />
-            </button>
-          </div>
+                <button
+                  type="button"
+                  onClick={() => setCameraOpen(true)}
+                  // A hover or a finger on the button is the beat before the tap,
+                  // and that beat is enough to fetch the camera's chunk.
+                  onMouseEnter={warmCamera}
+                  onFocus={warmCamera}
+                  onTouchStart={warmCamera}
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full text-ink transition duration-200 hover:bg-surface-2 hover:text-accent active:scale-95"
+                  aria-label="Camera"
+                  title="Camera"
+                >
+                  <Camera className="size-[24px]" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
@@ -1567,9 +1772,10 @@ export function ConvoPage({
                                 <span className="min-w-0 flex-1 truncate text-[11.5px] font-bold">
                                   {seat
                                     ? threadTitle(seat)
-                                    : message.sender?.name ||
-                                      message.sender?.username ||
-                                      "Conversation"}
+                                    : personLabel(
+                                        message.sender,
+                                        "Conversation",
+                                      )}
                                 </span>
                                 <span className="shrink-0 text-[9px] tabular-nums text-dim">
                                   {stamp(message.created_at)}
@@ -1596,45 +1802,73 @@ export function ConvoPage({
           </div>
         </div>
 
-        <div
-          className="relative mx-auto flex w-full max-w-[760px] shrink-0 items-stretch border-b-2"
-          role="tablist"
-          aria-label="Convo lanes"
-        >
-          {tabLanes.map((item) => {
-            const on = lane === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                onClick={() => setLane(item.key)}
-                className={cn(
-                  "relative flex h-[32px] min-w-0 flex-1 items-center justify-center gap-1 text-[14px] transition-colors",
-                  on
-                    ? "font-extrabold text-accent"
-                    : "font-semibold text-dim hover:text-ink",
-                )}
-              >
-                <span className="truncate">{item.label}</span>
-                {item.count ? (
-                  <span className="tabular-nums">{item.count}</span>
-                ) : null}
-              </button>
-            );
-          })}
-          {activeTabIndex >= 0 ? (
-            <span
-              className="pointer-events-none absolute bottom-0 h-[2.5px] bg-accent transition-[left,width] duration-300 ease-out motion-reduce:transition-none"
-              style={{
-                left: `${underlineLeft}%`,
-                width: `${underlineWidth}%`,
-              }}
-              aria-hidden
+        {picking ? (
+          <div
+            className="mx-auto flex w-full max-w-[760px] shrink-0 items-stretch border-b border-line"
+            role="group"
+            aria-label="What to do with the pile"
+          >
+            <PickAction
+              icon={<Lock className="size-[22px]" />}
+              label="Lock"
+              enabled={picked.length > 0 && !bulkBusy}
+              onClick={() => void lockPicked()}
             />
-          ) : null}
-        </div>
+            <PickAction
+              icon={<Eraser className="size-[22px]" />}
+              label="Clear"
+              enabled={picked.length > 0 && !bulkBusy}
+              onClick={clearPicked}
+            />
+            <PickAction
+              icon={<Trash2 className="size-[22px]" />}
+              label="Trash"
+              bad
+              enabled={picked.length > 0 && !bulkBusy}
+              onClick={() => setTrashOpen(true)}
+            />
+          </div>
+        ) : (
+          <div
+            className="relative mx-auto flex w-full max-w-[760px] shrink-0 items-stretch border-b-2"
+            role="tablist"
+            aria-label="Convo lanes"
+          >
+            {tabLanes.map((item) => {
+              const on = lane === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => setLane(item.key)}
+                  className={cn(
+                    "relative flex h-[32px] min-w-0 flex-1 basis-0 items-center justify-center gap-1 text-[14px] transition-colors",
+                    on
+                      ? "font-extrabold text-accent"
+                      : "font-semibold text-dim hover:text-ink",
+                  )}
+                >
+                  <span className="truncate">{item.label}</span>
+                  <span className="w-[20px] shrink-0 text-center tabular-nums">
+                    {item.count ?? ""}
+                  </span>
+                </button>
+              );
+            })}
+            {activeTabIndex >= 0 ? (
+              <span
+                className="pointer-events-none absolute bottom-0 h-[2.5px] bg-accent transition-[left,width] duration-300 ease-out motion-reduce:transition-none"
+                style={{
+                  left: `${underlineLeft}%`,
+                  width: `${underlineWidth}%`,
+                }}
+                aria-hidden
+              />
+            ) : null}
+          </div>
+        )}
 
         <main
           className={cn(
@@ -1711,49 +1945,54 @@ export function ConvoPage({
             </div>
           ) : (
             <div className="pb-3">
-              {displayRows.map((thread, index) => {
-                const face =
-                  thread.other ?? thread.member ?? thread.members?.[0]?.user;
-                const moment =
-                  thread.kind === "group" || !face?.id
-                    ? undefined
-                    : momentByAuthor.get(face.id);
-                return (
-                  <Fragment key={thread.id}>
-                    {alertRowSeat === index ? alertRow : null}
-                    <ConvoRow
-                      thread={thread}
-                      active={activeThreadId === thread.id}
-                      spark={sparkByThread.get(thread.id)}
-                      moment={
-                        moment
-                          ? {
-                              seen: moment.seen,
-                              author: moment.author?.username,
-                            }
-                          : null
-                      }
-                      onOpen={() => navigate(`/app/convo/${thread.id}`)}
-                      onActions={() => {
-                        setSelected(thread);
-                        setSheetOpen(true);
-                      }}
-                      onOpenMoment={(username) =>
-                        navigate(
-                          `/app/moments?user=${encodeURIComponent(username)}`,
-                        )
-                      }
-                      onOpenSpark={() =>
-                        onOpenSpark?.(
-                          thread,
-                          sparkByThread.get(thread.id) ?? null,
-                          sparks.data?.wallet.balance,
-                        )
-                      }
-                    />
-                  </Fragment>
-                );
-              })}
+              {displayRows
+                .filter((row) => !leaving.includes(row.id))
+                .map((thread, index) => {
+                  const face =
+                    thread.other ?? thread.member ?? thread.members?.[0]?.user;
+                  const moment =
+                    thread.kind === "group" || !face?.id
+                      ? undefined
+                      : momentByAuthor.get(face.id);
+                  return (
+                    <Fragment key={thread.id}>
+                      {alertRowSeat === index ? alertRow : null}
+                      <ConvoRow
+                        thread={thread}
+                        active={activeThreadId === thread.id}
+                        spark={sparkByThread.get(thread.id)}
+                        moment={
+                          moment
+                            ? {
+                                seen: moment.seen,
+                                author: moment.author?.username,
+                              }
+                            : null
+                        }
+                        picking={picking}
+                        picked={picked.includes(thread.id)}
+                        onOpen={() => navigate(`/app/convo/${thread.id}`)}
+                        onToggle={() => togglePick(thread.id)}
+                        onActions={() => {
+                          setSelected(thread);
+                          setSheetOpen(true);
+                        }}
+                        onOpenMoment={(username) =>
+                          navigate(
+                            `/app/moments?user=${encodeURIComponent(username)}`,
+                          )
+                        }
+                        onOpenSpark={() =>
+                          onOpenSpark?.(
+                            thread,
+                            sparkByThread.get(thread.id) ?? null,
+                            sparks.data?.wallet.balance,
+                          )
+                        }
+                      />
+                    </Fragment>
+                  );
+                })}
               {alertRowSeat === displayRows.length ? alertRow : null}
               {!displayRows.length ? (
                 <div className="rounded-[22px] border border-line bg-card shadow-[0_1px_2px_rgba(17,17,26,0.04)]">
@@ -1790,6 +2029,25 @@ export function ConvoPage({
             navigate("/app/convo");
         }}
         onGroupSettings={(thread) => navigate(`/app/convo/${thread.id}?info=1`)}
+        onSelectMore={() => {
+          if (selected) startPick(selected.id);
+        }}
+      />
+
+      <ConfirmDialog
+        open={trashOpen}
+        onClose={() => setTrashOpen(false)}
+        onConfirm={() => void trashPicked()}
+        title={
+          picked.length === 1
+            ? "Trash this convo?"
+            : `Trash these ${picked.length} convos?`
+        }
+        body="They leave your list with everything in them. Anything new from them brings them back."
+        note="Nothing goes from their side."
+        confirmLabel="Trash"
+        destructive
+        loading={bulkBusy}
       />
 
       <AlertsManageModal

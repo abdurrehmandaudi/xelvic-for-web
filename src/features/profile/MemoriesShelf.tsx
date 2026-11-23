@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  ArrowRight,
   BookmarkPlus,
   ImagePlus,
+  Images,
   Lock,
   Pencil,
   Plus,
@@ -21,7 +23,8 @@ import { uploadAsset } from "@/utils/upload";
 import { useAuth } from "@/hooks/useAuth";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useToast } from "@/hooks/useToast";
-import { momentsService } from "@/services/moments.service";
+import { momentsService, type MemoryWithUpload } from "@/services/moments.service";
+import { ago } from "@/utils/format";
 import type { Memory, MomentItem, UserCard } from "@/types/api";
 
 /**
@@ -79,6 +82,8 @@ export function MemoriesShelf({
   mine,
   onAdd,
   author,
+  className,
+  variant = "default",
 }: {
   username: string;
   /** Whose shelf this is. Only my own gets the card that makes one, and the long press. */
@@ -87,13 +92,17 @@ export function MemoriesShelf({
   onAdd?: (() => void) | null;
   /** The person whose page this is, so the viewer can head the walk with their face. */
   author?: UserCard | null;
+  className?: string;
+  variant?: "default" | "showcase";
 }) {
   const { t } = usePreferences();
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const showcase = variant === "showcase";
   const [viewing, setViewing] = useState<Memory | null>(null);
+  const [allOpen, setAllOpen] = useState(false);
   const [lifted, setLifted] = useState(false);
   const [pressed, setPressed] = useState<string | null>(null);
   /** The shelf whose long-press sheet is up. */
@@ -239,81 +248,171 @@ export function MemoriesShelf({
   const current = viewing;
   const walk = current ? [memoryAsMoment(current, who, mine, username)] : [];
 
-  return (
-    <section>
-      <h2 className="px-[18px] pb-2 text-[13px] font-bold tracking-[0.2px]">{t("Memories")}</h2>
-      <div className="no-scrollbar flex overflow-x-auto px-[18px]" style={{ height: CARD_H + 34 }}>
-        {memories.map((memory) => {
-          const still = coverStill(memory);
-          const covered = Boolean(memory.sensitive) && !lifted && pressed !== String(memory.id);
-          return (
-            <button
-              key={String(memory.id)}
-              type="button"
-              onClick={() => {
-                if (consumed.current) {
-                  consumed.current = false;
-                  return;
-                }
-                // A marked cover is a flat panel until somebody presses it, and
-                // the picture is not built while the panel is on — the cover is
-                // the bytes being kept back. My own card says why rather than
-                // reading as one that failed to draw.
-                if (memory.sensitive && !lifted) {
-                  setPressed(String(memory.id));
-                  return;
-                }
-                visit(memory);
-              }}
-              onPointerDown={() => holdDown(memory)}
-              onPointerUp={holdUp}
-              onPointerCancel={holdUp}
-              onContextMenu={(event) => {
-                if (!mine) return;
-                event.preventDefault();
-                setManaging(memory);
-              }}
-              aria-label={mine ? `${memory.title || t("A Memory")} — hold to change it` : undefined}
-              className="mr-3 w-[86px] shrink-0 text-center"
-            >
-              <span
-                className="relative block overflow-hidden rounded-[14px] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
-                style={{ width: CARD_W, height: CARD_H }}
-              >
-                {covered ? (
-                  <span className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 p-2">
-                    <Lock className="size-[22px] text-dim" aria-hidden />
-                    <span className="text-[9.5px] font-semibold leading-tight text-dim">
-                      {mine ? t("Yours. Everybody else sees it covered.") : t("Sensitive content")}
-                    </span>
-                  </span>
-                ) : still ? (
-                  <AuthedImage
-                    src={still}
-                    alt=""
-                    className="absolute inset-0 h-full w-full"
-                    imgClassName="h-full w-full"
-                  />
-                ) : null}
+  function memoryButton(memory: MemoryWithUpload, layout: "rail" | "all") {
+    const still = coverStill(memory);
+    const covered = Boolean(memory.sensitive) && !lifted && pressed !== String(memory.id);
+    const wide = showcase && layout === "rail";
+    return (
+      <button
+        key={String(memory.id)}
+        type="button"
+        onClick={() => {
+          if (consumed.current) {
+            consumed.current = false;
+            return;
+          }
+          // A marked cover is a flat panel until somebody presses it, and the
+          // picture is not built while the panel is on �?" the cover is the
+          // bytes being kept back. My own card says why rather than reading as
+          // one that failed to draw.
+          if (memory.sensitive && !lifted) {
+            setPressed(String(memory.id));
+            return;
+          }
+          if (layout === "all") setAllOpen(false);
+          visit(memory);
+        }}
+        onPointerDown={() => holdDown(memory)}
+        onPointerUp={holdUp}
+        onPointerCancel={holdUp}
+        onContextMenu={(event) => {
+          if (!mine) return;
+          event.preventDefault();
+          setManaging(memory);
+        }}
+        aria-label={
+          mine
+            ? `${memory.title || t("A Memory")} �?" hold to change it`
+            : memory.title || t("A Memory")
+        }
+        className={cn(
+          "shrink-0 text-center",
+          layout === "all"
+            ? "w-full"
+            : wide
+              ? "mr-3 w-[132px] sm:w-[166px]"
+              : "mr-3 w-[86px]",
+        )}
+      >
+        <span
+          className={cn(
+            "relative block overflow-hidden bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]",
+            layout === "all"
+              ? "h-[132px] w-full rounded-[16px]"
+              : wide
+                ? "h-[92px] w-full rounded-[16px] sm:h-[108px]"
+                : "rounded-[14px]",
+          )}
+          style={
+            layout === "all" || wide ? undefined : { width: CARD_W, height: CARD_H }
+          }
+        >
+          {covered ? (
+            <span className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 p-2">
+              <Lock className="size-[22px] text-dim" aria-hidden />
+              <span className="text-[9.5px] font-semibold leading-tight text-dim">
+                {mine ? t("Yours. Everybody else sees it covered.") : t("Sensitive content")}
               </span>
-              <span className="mt-1.5 block truncate text-[11.5px]">
-                {memory.title || t("A Memory")}
-              </span>
-            </button>
-          );
-        })}
-        {onAdd ? (
-          <button type="button" onClick={onAdd} className="mr-3 w-[86px] shrink-0 text-center">
-            <span
-              className="flex items-center justify-center rounded-[14px] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
-              style={{ width: CARD_W, height: CARD_H }}
-            >
-              <Plus className="size-[34px]" aria-hidden />
             </span>
-            <span className="mt-1.5 block truncate text-[11.5px]">{t("New")}</span>
+          ) : still ? (
+            <AuthedImage
+              src={still}
+              alt=""
+              className="absolute inset-0 h-full w-full"
+              imgClassName="h-full w-full"
+            />
+          ) : null}
+        </span>
+        {layout === "all" || !wide ? (
+          <>
+            <span className="mt-1.5 block truncate text-[11.5px]">
+              {memory.title || t("A Memory")}
+            </span>
+            {memory.moment_at ? (
+              <span className="mt-px block truncate text-[10.5px] text-dim">
+                {ago(memory.moment_at)}
+              </span>
+            ) : null}
+          </>
+        ) : memory.moment_at ? (
+          <span className="mt-1.5 block truncate text-[10.5px] text-dim">
+            {ago(memory.moment_at)}
+          </span>
+        ) : null}
+      </button>
+    );
+  }
+
+  return (
+    <section className={cn(className)}>
+      {showcase ? (
+        <div className="flex items-center justify-between gap-3 px-1 pb-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-[13px] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent">
+              <Images className="size-5" aria-hidden />
+            </span>
+            <h2 className="truncate text-[21px] font-extrabold tracking-[-0.02em]">
+              {t("Memories")}
+            </h2>
+          </div>
+          {memories.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setAllOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 text-[14px] font-bold text-accent transition hover:opacity-80"
+            >
+              {t("See All")}
+              <ArrowRight className="size-3.5" aria-hidden />
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <h2 className="px-[18px] pb-2 text-[13px] font-bold tracking-[0.2px]">
+          {t("Memories")}
+        </h2>
+      )}
+      <div
+        className={cn(
+          "no-scrollbar flex overflow-x-auto",
+          showcase ? "pb-1" : "px-[18px]",
+        )}
+        style={showcase ? undefined : { height: CARD_H + 46 }}
+      >
+        {memories.map((memory) => memoryButton(memory, "rail"))}
+        {onAdd ? (
+          <button
+            type="button"
+            onClick={onAdd}
+            className={cn("mr-3 shrink-0 text-center", showcase ? "w-[132px] sm:w-[166px]" : "w-[86px]")}
+          >
+            <span
+              className={cn(
+                "flex items-center justify-center bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]",
+                showcase ? "h-[92px] w-full rounded-[16px] sm:h-[108px]" : "rounded-[14px]",
+              )}
+              style={showcase ? undefined : { width: CARD_W, height: CARD_H }}
+            >
+              <Plus className={showcase ? "size-[30px] text-accent" : "size-[34px]"} aria-hidden />
+            </span>
+            {showcase ? null : (
+              <span className="mt-1.5 block truncate text-[11.5px]">{t("New")}</span>
+            )}
           </button>
         ) : null}
       </div>
+
+      <Modal
+        open={allOpen}
+        onClose={() => setAllOpen(false)}
+        title={t("Memories")}
+        description={t("Every shelf this person has kept.")}
+        size="md"
+      >
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">
+          {memories.map((memory) => memoryButton(memory, "all"))}
+        </div>
+      </Modal>
+
 
       {/* The walk itself, which is the same viewer a moment opens in. */}
       {current ? (

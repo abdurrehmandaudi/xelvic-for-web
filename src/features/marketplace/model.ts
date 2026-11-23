@@ -451,8 +451,7 @@ export function plateCanOpen(design: LogoPlate, opened: string[], balance: numbe
 // Pages
 // ---------------------------------------------------------------------------
 
-/** The five tabs the shell holds, which are the pages a theme paints for it. */
-export const SHELL_PAGES = ["drops", "moments", "convo", "audio", "live"] as const;
+export const SHELL_PAGES = ["drops", "moments", "convo", "videos", "audio", "live"] as const;
 
 /** A picture behind a screen: which one, how hard it is washed, and its framing. */
 export interface Backdrop {

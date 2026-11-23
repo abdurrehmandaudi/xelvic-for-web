@@ -1,7 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Users } from "lucide-react";
+import { ChevronRight, Users, type LucideIcon } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { AuthedImage } from "@/components/media/Media";
 import { Modal } from "@/components/overlays/Modal";
@@ -29,45 +29,195 @@ import type { UserCard } from "@/types/api";
  * profile payload and whose faces come off `/mutuals/` only when it is opened.
  */
 
-/** One of a profile's numbers, and — where there is something behind it — the way in. */
-export function Stat({
+export const PROFILE_MAX = "mx-auto w-full max-w-[1240px]";
+
+export const PROFILE_GUTTER = "px-4 sm:px-6 lg:px-7";
+
+export const PROFILE_CARD =
+  "rounded-[28px] border border-[color-mix(in_srgb,var(--accent)_14%,transparent)] bg-card shadow-[0_14px_34px_-20px_color-mix(in_srgb,var(--ink)_18%,transparent)]";
+
+export const PROFILE_HEAD =
+  "lg:grid lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start lg:gap-6";
+
+export const PROFILE_FACE = "relative z-10 -mt-[84px] w-fit lg:-mt-[124px]";
+
+export const PROFILE_HEAD_TEXT = "mt-3.5 min-w-0 max-w-[760px] lg:mt-2";
+
+export const PROFILE_PHOTO = { narrow: 148, wide: 196 };
+
+export function ProfileCover({
+  url,
+  art,
+  children,
+}: {
+  url?: string | null;
+  art?: string | null;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="relative h-[210px] overflow-hidden sm:h-[264px]">
+      {url ? (
+        <>
+          <AuthedImage
+            src={url}
+            alt=""
+            className="h-full w-full"
+            imgClassName="h-full w-full"
+          />
+          <span className="absolute inset-0 bg-[color-mix(in_srgb,#13131A_18%,transparent)]" />
+        </>
+      ) : art ? (
+        <img src={art} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_24%,var(--page)),color-mix(in_srgb,var(--tone-violet)_18%,var(--page)))]">
+          <span className="absolute -right-6 -top-10 size-44 rounded-full bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] blur-2xl" />
+          <span className="absolute -bottom-16 left-24 size-52 rounded-full bg-[color-mix(in_srgb,var(--tone-violet)_14%,transparent)] blur-2xl" />
+        </span>
+      )}
+      <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[color-mix(in_srgb,var(--ink)_28%,transparent)] via-transparent to-transparent" />
+      {children ? (
+        <div
+          className={cn(
+            PROFILE_MAX,
+            PROFILE_GUTTER,
+            "absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 py-3",
+          )}
+        >
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function StatCard({
   label,
   value,
+  icon: Icon,
+  tone,
+  trailing,
   onTap,
   faded,
 }: {
   label: string;
   value?: number | null;
+  icon: LucideIcon;
+  tone: string;
+  trailing?: ReactNode;
   onTap?: () => void;
-  /**
-   * How a number the account has switched off is still shown to the account
-   * itself: the same figure in the dim colour the labels wear. It is not a dash
-   * — the number is real, I am the one who may always read it — and it is not
-   * the bright text either, which would be this page quietly disagreeing with
-   * the switch two taps away.
-   */
   faded?: boolean;
 }) {
   const body = (
-    <span className="flex flex-col items-center px-1 py-1.5">
+    <span
+      className="relative flex min-h-[88px] items-center gap-2.5 overflow-hidden rounded-[22px] border px-3 py-3 text-left sm:min-h-[104px] sm:gap-3.5 sm:rounded-[24px] sm:px-4 sm:py-3.5"
+      style={{
+        backgroundColor: `color-mix(in srgb, ${tone} 7%, var(--card))`,
+        borderColor: `color-mix(in srgb, ${tone} 17%, var(--line))`,
+      }}
+    >
       <span
-        className={cn(
-          "text-[17px] font-extrabold tracking-[-0.3px] tabular-nums",
-          faded && "text-dim",
-        )}
+        className="flex size-10 shrink-0 items-center justify-center rounded-[13px] sm:size-[52px] sm:rounded-[17px]"
+        style={{
+          backgroundColor: `color-mix(in srgb, ${tone} 16%, transparent)`,
+          color: tone,
+        }}
       >
-        {/* A count that is not mine to read is a dash rather than a nought: a
-            nought would be claiming to have counted. */}
-        {typeof value === "number" ? count(value) : "—"}
+        <Icon className="size-[18px] sm:size-6" aria-hidden />
       </span>
-      <span className="mt-0.5 text-[11.5px] font-semibold text-dim">{label}</span>
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block text-[20px] font-extrabold leading-none tracking-[-0.04em] tabular-nums sm:text-[30px]",
+            faded && "text-dim",
+          )}
+        >
+          {typeof value === "number" ? count(value) : "—"}
+        </span>
+        <span className="mt-1.5 block truncate text-[11px] font-bold text-dim sm:text-[14px]">
+          {label}
+        </span>
+      </span>
+      {trailing}
     </span>
   );
   if (!onTap) return body;
   return (
-    <button type="button" onClick={onTap} className="rounded-[12px] transition active:scale-[.97]">
+    <button
+      type="button"
+      onClick={onTap}
+      className="block w-full rounded-[20px] text-left transition active:scale-[.985] sm:rounded-[22px]"
+    >
       {body}
     </button>
+  );
+}
+
+export function Chip({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick?: () => void;
+}) {
+  const shell =
+    "inline-flex max-w-full items-center gap-2 rounded-full border border-line bg-[color-mix(in_srgb,var(--ink)_4%,var(--card))] px-3.5 py-[7px] text-[13px] font-bold text-[color-mix(in_srgb,var(--ink)_78%,transparent)]";
+  const body = (
+    <>
+      <span className="flex shrink-0">{icon}</span>
+      <span className="min-w-0 truncate">{label}</span>
+    </>
+  );
+  if (!onClick) return <span className={shell}>{body}</span>;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        shell,
+        "transition hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--line))] hover:text-ink active:scale-[0.98]",
+      )}
+    >
+      {body}
+    </button>
+  );
+}
+
+export const ASK_PILL =
+  "inline-flex min-h-[52px] select-none items-center justify-center gap-2 rounded-full px-[26px] text-[14px] font-extrabold tracking-[-0.01em] transition-[transform,background-color,border-color,color,opacity] duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55";
+
+export const SOLID_PILL = `${ASK_PILL} border border-transparent bg-[linear-gradient(135deg,var(--accent),var(--accent-pill))] text-on-accent shadow-[0_12px_26px_-14px_color-mix(in_srgb,var(--accent)_90%,transparent)] hover:brightness-105`;
+
+export const QUIET_PILL = `${ASK_PILL} border border-line bg-card text-ink hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]`;
+
+export const ROUND_CONTROL =
+  "inline-flex size-[52px] shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] active:scale-[0.97]";
+
+export const TILE_CONTROL =
+  "inline-flex size-[52px] shrink-0 items-center justify-center rounded-[16px] border border-line bg-card text-ink transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] active:scale-[0.97]";
+
+export const COVER_CONTROL =
+  "inline-flex size-10 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--card)_70%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,transparent)] text-ink shadow-[0_10px_26px_-14px_color-mix(in_srgb,var(--ink)_70%,transparent)] backdrop-blur-md transition hover:bg-card active:scale-[0.96]";
+
+export function Sparkline({ tone }: { tone: string }) {
+  return (
+    <svg
+      width="92"
+      height="34"
+      viewBox="0 0 64 30"
+      fill="none"
+      aria-hidden
+      className="hidden h-[34px] w-[92px] shrink-0 opacity-80 sm:block"
+    >
+      <path
+        d="M1 24C7 24 8 14 14 16S22 25 28 19 36 7 42 10 50 22 56 12 61 5 63 7"
+        stroke={tone}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -97,6 +247,17 @@ function askStops(dark: boolean): [string, string, string] {
   // does have stand in for the missing one rather than the disc going blank.
   const first = picked[0] ?? "#E31B66";
   return [first, picked[1] ?? first, picked[2] ?? first];
+}
+
+export function askPulse(dark: boolean): CSSProperties {
+  const stops = askStops(dark);
+  return {
+    animation:
+      "xelvic-ask-breath 2s ease-in-out infinite, xelvic-ask-hue 6s ease-in-out infinite",
+    "--ask-a": stops[0],
+    "--ask-b": stops[1],
+    "--ask-c": stops[2],
+  } as CSSProperties;
 }
 
 /**
@@ -408,7 +569,7 @@ export function MutualStrip({
             // not the colour its words are written in.
             <span
               key={person.id ?? index}
-              className="absolute top-0 rounded-full bg-[var(--page)] p-[1.5px]"
+              className="absolute top-0 flex rounded-full bg-[var(--page)] p-[1.5px]"
               style={{ insetInlineStart: index * 14 }}
             >
               <Avatar user={person} size={19} />

@@ -61,6 +61,11 @@ export interface DropAudience {
   next: string | null;
 }
 
+export interface DropReaderFlags {
+  muted?: boolean;
+  hidden?: boolean;
+}
+
 /**
  * A post as the server writes it back.
  *
@@ -179,6 +184,20 @@ export const dropsService = {
   /** Everything filed under one word. The first page is the word's own road. */
   tags: async (word: string, next?: string | null): Promise<TagPage> => {
     const response = await api.get<TagPage>(next || `/tags/${encodeURIComponent(word)}/`);
+    return response.data;
+  },
+
+  pin: async (base: string, id: ID, on: boolean): Promise<DropWrite> => {
+    const response = await api.post<DropWrite>(`/${base}/${encodeURIComponent(id)}/pin/`, {
+      on,
+    });
+    return response.data;
+  },
+
+  pinned: async (username: string): Promise<{ pinned: Drop[] }> => {
+    const response = await api.get<{ pinned: Drop[] }>(
+      `/drops/users/${encodeURIComponent(username)}/pinned/`,
+    );
     return response.data;
   },
 
@@ -378,6 +397,11 @@ export const dropsService = {
       `/drops/mute/${encodeURIComponent(userId)}/`,
       on === undefined ? {} : { on },
     );
+    return response.data;
+  },
+
+  mutedAuthors: async (): Promise<UserCard[]> => {
+    const response = await api.get<UserCard[]>("/drops/muted/");
     return response.data;
   },
 

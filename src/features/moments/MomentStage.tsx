@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/utils/cn";
 import { useMediaUrl } from "@/hooks/useMediaUrl";
 import { MomentDropCard } from "./MomentDropCard";
+import { MomentPlaceLine, placeOf } from "./MomentPlace";
 import { MomentPollCard } from "./MomentPollCard";
 import type { Asset, DropPreview, MomentItem, MomentPoll } from "@/types/api";
 
@@ -118,6 +119,11 @@ export function MomentStage({
               {item.body}
             </p>
           ) : null}
+          {placeOf(item) ? (
+            <span className="mt-2">
+              <MomentPlaceLine place={placeOf(item)} />
+            </span>
+          ) : null}
           <SoundTrack url={soundUrl} item={item} playing={playing} />
         </div>
       </div>
@@ -135,6 +141,11 @@ export function MomentStage({
               </p>
             ) : null}
             <WhoIsIn item={item} />
+            {placeOf(item) ? (
+              <span className="mt-3">
+                <MomentPlaceLine place={placeOf(item)} />
+              </span>
+            ) : null}
           </div>
         </div>
       ) : isPollItem(item) && shownPoll ? (

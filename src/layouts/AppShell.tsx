@@ -4,13 +4,13 @@ import {
   Bell,
   Bookmark,
   ChevronDown,
+  Clapperboard,
   GalleryVerticalEnd,
   Headphones,
   LogOut,
   MessageCircle,
   Plus,
   QrCode,
-  Radio,
   Search,
   Settings,
   Sparkles,
@@ -56,8 +56,8 @@ const primary = [
   { to: "/app/drops", label: "Drops", icon: GalleryVerticalEnd, page: "drops" as ShellPage },
   { to: "/app/moments", label: "Moments", icon: CirclePlay, page: "moments" as ShellPage },
   { to: "/app/convo", label: "Convo", icon: MessageCircle, page: "convo" as ShellPage },
+  { to: "/app/videos", label: "Videos", icon: Clapperboard, page: "videos" as ShellPage },
   { to: "/app/audio", label: "Audio", icon: Headphones, page: "audio" as ShellPage },
-  { to: "/app/live", label: "Live", icon: Radio, page: "live" as ShellPage },
 ];
 
 const secondary = [
@@ -74,6 +74,7 @@ function pageForPath(pathname: string): ShellPage | null {
   if (pathname === "/app" || pathname.startsWith("/app/drops")) return "drops";
   if (pathname.startsWith("/app/moments")) return "moments";
   if (pathname.startsWith("/app/convo")) return "convo";
+  if (pathname.startsWith("/app/videos")) return "videos";
   if (pathname.startsWith("/app/audio")) return "audio";
   if (pathname.startsWith("/app/live")) return "live";
   return null;

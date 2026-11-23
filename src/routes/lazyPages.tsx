@@ -19,10 +19,15 @@ type PageLoader = () => Promise<{ default: ComponentType }>;
 const load = {
   drops: () => import("@/pages/DropsPage").then((m) => ({ default: m.DropsPage })),
   drop: () => import("@/pages/DropPage").then((m) => ({ default: m.DropPage })),
+  muted: () => import("@/pages/MutedPage").then((m) => ({ default: m.MutedPage })),
   moments: () => import("@/pages/MomentsPage").then((m) => ({ default: m.MomentsPage })),
   chat: () => import("@/pages/ChatPage").then((m) => ({ default: m.ChatPage })),
   convo: () =>
     import("@/features/convo/ConvoLayout").then((m) => ({ default: m.ConvoLayout })),
+  videos: () => import("@/pages/VideosPage").then((m) => ({ default: m.VideosPage })),
+  videosWatchLater: () =>
+    import("@/pages/WatchLaterPage").then((m) => ({ default: m.WatchLaterPage })),
+  kids: () => import("@/pages/KidsPage").then((m) => ({ default: m.KidsPage })),
   audio: () => import("@/pages/AudioPage").then((m) => ({ default: m.AudioPage })),
   audioCategory: () =>
     import("@/pages/AudioCategoryPage").then((m) => ({ default: m.AudioCategoryPage })),
@@ -80,9 +85,13 @@ const load = {
 
 export const DropsPage = lazy(load.drops);
 export const DropPage = lazy(load.drop);
+export const MutedPage = lazy(load.muted);
 export const MomentsPage = lazy(load.moments);
 export const ChatPage = lazy(load.chat);
 export const ConvoLayout = lazy(load.convo);
+export const VideosPage = lazy(load.videos);
+export const WatchLaterPage = lazy(load.videosWatchLater);
+export const KidsPage = lazy(load.kids);
 export const AudioPage = lazy(load.audio);
 export const AudioCategoryPage = lazy(load.audioCategory);
 export const AudioBoardPage = lazy(load.audioBoard);
@@ -122,8 +131,8 @@ export const SHELL_ROUTES = [
   "/app/drops",
   "/app/moments",
   "/app/convo",
+  "/app/videos",
   "/app/audio",
-  "/app/live",
 ] as const;
 
 /**
@@ -154,6 +163,7 @@ function loaderFor(pathname: string): PageLoader | null {
   switch (head) {
     case "drops":
       if (second === "vibes" && third === "studio") return load.vibeStudio;
+      if (second === "muted") return load.muted;
       return second ? load.drop : load.drops;
     case "moments":
       return load.moments;
@@ -166,6 +176,10 @@ function loaderFor(pathname: string): PageLoader | null {
       return second
         ? () => Promise.all([load.convo(), load.chat()]).then(() => load.convo())
         : load.convo;
+    case "videos":
+      return second === "watch-later" ? load.videosWatchLater : load.videos;
+    case "kids":
+      return load.kids;
     case "audio":
       if (second === "board") return load.audioBoard;
       if (second === "c") return load.audioCategory;

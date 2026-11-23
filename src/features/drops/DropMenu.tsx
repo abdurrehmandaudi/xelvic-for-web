@@ -6,11 +6,13 @@ import {
   BellOff,
   Bookmark,
   ChartColumn,
+  Eye,
   EyeOff,
   Flag,
   ImageDown,
   ListPlus,
   Pencil,
+  Pin,
   ThumbsDown,
   Trash,
   UserRound,
@@ -20,12 +22,12 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Modal, ConfirmDialog } from "@/components/overlays/Modal";
 import { SheetRow } from "@/features/profile/parts";
 import { ReportSheet } from "@/features/report/ReportSheet";
-import { errorMessage } from "@/utils/errors";
+import { ApiError, errorMessage } from "@/utils/errors";
 import { mediaBlob } from "@/utils/mediaCache";
 import { useSaved } from "@/hooks/useSaved";
 import { savedKindOf } from "@/store/saved";
 import { useToast } from "@/hooks/useToast";
-import { dropsService } from "@/services/drops.service";
+import { dropsService, type DropReaderFlags } from "@/services/drops.service";
 import type { Drop } from "@/types/api";
 import { dropBase, dropIsSound, dropIsVibe } from "./model";
 
@@ -46,10 +48,6 @@ import { dropBase, dropIsSound, dropIsVibe } from "./model";
  * - *Add to a playlist* opens the app's folder picker for a sound. The web's
  *   shelf lives at the sound's own page, so the row hands the drop to whoever
  *   draws the page and that page opens the shelf list — see `onPlaylist`.
- *
- * A row the app has that this does not is named in the gap report rather than
- * drawn dead: the app's *Not interested* also carries a "show me fewer of these
- * for a while" that the endpoint here does not take.
  */
 export function DropMenu({
   drop,
@@ -82,10 +80,16 @@ export function DropMenu({
   const [report, setReport] = useState(false);
   const [confirmTrash, setConfirmTrash] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [mutedChoice, setMutedChoice] = useState<boolean | null>(null);
+  const [hiddenChoice, setHiddenChoice] = useState<boolean | null>(null);
 
+  const flags = drop as Drop & DropReaderFlags;
+  const muted = mutedChoice ?? flags.muted === true;
+  const hidden = hiddenChoice ?? flags.hidden === true;
   const saved = has(savedKindOf(drop), drop.id);
   const base = dropBase(drop);
   const name = drop.author.name || drop.author.username;
+  const pinned = (drop as Drop & { pinned?: boolean }).pinned === true;
 
   /** Shut the sheet, say what happened, and let the card ask again. */
   function done(message: string) {
@@ -99,19 +103,61 @@ export function DropMenu({
   }
 
   const hide = useMutation({
-    mutationFn: () => dropsService.hide(base, drop.id, true),
-    onSuccess: () => {
-      onRemoved?.();
-      done("You will not be shown that again.");
+    mutationFn: (on: boolean) => dropsService.hide(base, drop.id, on),
+    onSuccess: (_data, on) => {
+      onClose();
+      setHiddenChoice(on);
+      onChanged?.();
+      if (on) {
+        onRemoved?.();
+        toast({
+          title: "You will not be shown that again.",
+          tone: "success",
+          action: { label: "Undo", onAction: () => void undoHide() },
+        });
+      } else {
+        toast({ title: "You will be shown that again.", tone: "success" });
+      }
     },
     onError: failed,
   });
 
   const mute = useMutation({
     mutationFn: () => dropsService.muteAuthor(drop.author.id),
-    onSuccess: () => done(`Nothing more from ${name}.`),
+    onSuccess: () => {
+      onClose();
+      setMutedChoice(true);
+      onChanged?.();
+      toast({
+        title: `Nothing more from ${name}.`,
+        tone: "success",
+        action: { label: "Undo", onAction: () => void unmute() },
+      });
+    },
     onError: failed,
   });
+
+  async function undoHide() {
+    try {
+      await dropsService.hide(base, drop.id, false);
+      setHiddenChoice(false);
+      onChanged?.();
+      toast({ title: "You will be shown that again.", tone: "success" });
+    } catch (error) {
+      failed(error);
+    }
+  }
+
+  async function unmute() {
+    try {
+      await dropsService.muteAuthor(drop.author.id, false);
+      setMutedChoice(false);
+      onChanged?.();
+      toast({ title: `You will see ${name} again.`, tone: "success" });
+    } catch (error) {
+      failed(error);
+    }
+  }
 
   const less = useMutation({
     mutationFn: () => dropsService.muteFormat(drop.format ?? ""),
@@ -160,6 +206,33 @@ export function DropMenu({
       });
     } catch (error) {
       failed(error);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function togglePin() {
+    if (busy) return;
+    const next = !pinned;
+    setBusy("pin");
+    try {
+      await dropsService.pin(base, drop.id, next);
+      void queryClient.invalidateQueries({ queryKey: ["drops"] });
+      void queryClient.invalidateQueries({ queryKey: ["drop", drop.id] });
+      void queryClient.invalidateQueries({ queryKey: ["pinned", drop.author.username] });
+      onChanged?.();
+      onClose();
+      toast({
+        title: next ? "Pinned to your profile." : "Removed from your profile.",
+        tone: "success",
+      });
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "too_many_pins") {
+        const cap = Number(error.fields?.max ?? 3) || 3;
+        toast({ title: `You can pin ${cap} per shelf. Unpin one first.`, tone: "error" });
+      } else {
+        failed(error);
+      }
     } finally {
       setBusy(null);
     }
@@ -278,6 +351,11 @@ export function DropMenu({
                 line={drop.likes_off ? undefined : "Only you will see it."}
                 onClick={() => void toggleDoor("likes_off")}
               />
+              <SheetRow
+                icon={<Pin className={pinned ? "size-[18px] fill-current" : "size-[18px]"} />}
+                label={pinned ? "Unpin from profile" : "Pin to profile"}
+                onClick={() => void togglePin()}
+              />
               {onEdit ? (
                 <SheetRow
                   icon={<Pencil className="size-[18px]" />}
@@ -308,10 +386,10 @@ export function DropMenu({
                 }}
               />
               <SheetRow
-                icon={<EyeOff className="size-[18px]" />}
-                label="Not interested"
-                line="You will not be shown that again."
-                onClick={() => hide.mutate()}
+                icon={hidden ? <Eye className="size-[18px]" /> : <EyeOff className="size-[18px]" />}
+                label={hidden ? "Interested" : "Not interested"}
+                line={hidden ? undefined : "You will not be shown that again."}
+                onClick={() => hide.mutate(!hidden)}
               />
               {/* Only on a post the content read filed under a kind, because
                   there is nothing to say no to on an unfiled one — and the row
@@ -325,7 +403,11 @@ export function DropMenu({
                   onClick={() => less.mutate()}
                 />
               ) : null}
-              <SheetRow icon={<BellOff className="size-[18px]" />} label="Mute" onClick={() => mute.mutate()} />
+              <SheetRow
+                icon={muted ? <Bell className="size-[18px]" /> : <BellOff className="size-[18px]" />}
+                label={muted ? "Unmute" : "Mute"}
+                onClick={() => (muted ? void unmute() : mute.mutate())}
+              />
               <SheetRow
                 icon={<Flag className="size-[18px]" />}
                 label="Report"

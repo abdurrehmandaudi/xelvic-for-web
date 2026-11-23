@@ -1,8 +1,15 @@
 import type { ThreadCard, UserCard } from "@/types/api";
+import { DELETED_ACCOUNT, isDeletedPerson } from "@/utils/format";
 import { aliasOf } from "./names";
+
+export function threadGone(thread: ThreadCard): boolean {
+  if (thread.kind === "group") return false;
+  return thread.deleted === true || isDeletedPerson(thread.other);
+}
 
 export function threadTitle(thread: ThreadCard) {
   const person = thread.other ?? thread.member ?? thread.members?.[0]?.user;
+  if (threadGone(thread)) return DELETED_ACCOUNT;
   if (thread.kind !== "group" && person) {
     const mine = aliasOf(person.id, person.username);
     if (mine) return mine;
@@ -44,14 +51,10 @@ export function threadUnreadOther(thread: ThreadCard): number | null {
   return typeof value === "number" ? value : null;
 }
 
-/**
- * Whether a convo belongs on the Unread lane.
- *
- * The lane follows the same count as the row's badge and tint: every convo with
- * at least one waiting line belongs here.
- */
 export function inUnreadLane(thread: ThreadCard): boolean {
-  return threadUnread(thread) > 0;
+  if (threadUnread(thread) <= 0) return false;
+  const other = threadUnreadOther(thread);
+  return other === null || other > 0;
 }
 
 /**

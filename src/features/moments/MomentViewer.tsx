@@ -43,6 +43,7 @@ import { chatService } from "@/services/chat.service";
 import { momentsService } from "@/services/moments.service";
 import { AddToMemories } from "./AddToMemories";
 import { MomentStage, isVideoItem } from "./MomentStage";
+import { MomentPlaceLine, placeOf } from "./MomentPlace";
 import type {
   DropPreview,
   Moment,
@@ -987,13 +988,20 @@ export function MomentViewer({
       {/* The foot of the picture: whatever was written on this piece, where the
           hold would lead, and then the two things there are to say. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 mx-auto max-w-[640px] px-3.5 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        {item.body?.trim() && !isTextItem(item) && !isSongCoverItem(item) ? (
+        {(item.body?.trim() || placeOf(item)) && !isTextItem(item) && !isSongCoverItem(item) ? (
           <div className="pointer-events-auto mb-2 rounded-[14px] bg-black/55 px-5 py-3">
-            <p className="whitespace-pre-wrap text-[13.5px] leading-[1.45]">{item.body}</p>
+            {item.body?.trim() ? (
+              <p className="whitespace-pre-wrap text-[13.5px] leading-[1.45]">{item.body}</p>
+            ) : null}
             {item.mentions?.length ? (
               <p dir="ltr" className="mt-1.5 text-[13px] font-semibold">
                 {item.mentions.map((person) => `@${person.username}`).join("  ")}
               </p>
+            ) : null}
+            {placeOf(item) ? (
+              <span className="mt-2 inline-flex">
+                <MomentPlaceLine place={placeOf(item)} />
+              </span>
             ) : null}
           </div>
         ) : null}

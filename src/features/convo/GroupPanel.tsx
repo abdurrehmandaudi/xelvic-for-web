@@ -38,7 +38,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { authService } from "@/services/auth.service";
 import { chatService } from "@/services/chat.service";
 import { errorMessage } from "@/utils/errors";
-import { count } from "@/utils/format";
+import { count, DELETED_ACCOUNT } from "@/utils/format";
 import { cn } from "@/utils/cn";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
@@ -104,6 +104,7 @@ function usedBy(joined: number | undefined): string {
 
 function memberName(member: ThreadMember): string {
   const user = member.user;
+  if (user?.deleted === true) return DELETED_ACCOUNT;
   return user?.name || user?.username || "They";
 }
 
@@ -695,21 +696,30 @@ export function GroupPanel({
           </p>
         ) : null}
         {members.map((row) => {
+          const gone = row.user?.deleted === true;
           const opens =
             Boolean(row.user) &&
+            !gone &&
             row.user?.id !== user?.id &&
             row.user?.can_open !== false;
           const face = (
             <>
-              <Avatar user={row.user} name={memberName(row)} size={40} />
+              <Avatar
+                user={row.user}
+                name={memberName(row)}
+                size={40}
+                deleted={gone}
+              />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13.5px] font-bold">
                   {memberName(row)}
                 </span>
-                <span className="block truncate text-[11px] text-dim">
-                  @{row.user?.username ?? ""}
-                  {row.left_at ? " · left" : ""}
-                </span>
+                {gone ? null : (
+                  <span className="block truncate text-[11px] text-dim">
+                    @{row.user?.username ?? ""}
+                    {row.left_at ? " · left" : ""}
+                  </span>
+                )}
               </span>
             </>
           );
