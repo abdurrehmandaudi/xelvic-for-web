@@ -229,7 +229,7 @@ export function noticeRowLine(notice: Notice) {
 
 /** Where a tap on the strip goes. A notice always names a conversation. */
 export function noticeHref(notice: Notice) {
-  return notice.thread ? `/app/convo/${encodeURIComponent(notice.thread)}` : null;
+  return notice.thread ? `/convo/${encodeURIComponent(notice.thread)}` : null;
 }
 
 /**

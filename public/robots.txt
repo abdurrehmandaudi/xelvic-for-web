@@ -2,15 +2,34 @@
 #
 # `/u/:username`, `/d/:dropId` and `/v/:vibeId` are the public doors. The
 # account's own workspace, the sign-in door and the API are not pages to index.
+# The client is served at the site root, so its signed-in routes are listed by
+# prefix; the public one-letter doors (`/u/`, `/d/`, `/v/`, `/s/`) stay open.
 User-agent: *
 Allow: /
 
-Disallow: /app/
 Disallow: /signin
 Disallow: /api/
 Disallow: /media/
+Disallow: /staff/
 Disallow: /__xelvic_cdn/
+Disallow: /drops
+Disallow: /moments
+Disallow: /convo
+Disallow: /audio
+Disallow: /live
+Disallow: /profile/
+Disallow: /insights
+Disallow: /search
+Disallow: /alerts
+Disallow: /activity
+Disallow: /saved
+Disallow: /tags/
+Disallow: /sparks
+Disallow: /settings
+Disallow: /deals
+Disallow: /qr
+Disallow: /circles/
 
 # The static sitemap lists the landing page. Public profiles, drops and vibes
 # need the server-side sitemap described in docs/PUBLIC_CONTENT_AND_SEO.md.
-Sitemap: https://web.xelvic.com/sitemap.xml
+Sitemap: https://xelvic.com/sitemap.xml

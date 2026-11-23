@@ -274,7 +274,7 @@ function AudienceList({ drop, open }: { drop: Drop; open: boolean }) {
               {people.map((entry) => (
                 <Link
                   key={entry.person.id}
-                  to={`/app/u/${entry.person.username}`}
+                  to={`/profile/${entry.person.username}`}
                   className="flex items-center gap-3 rounded-[10px] py-1.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]"
                 >
                   <Avatar user={entry.person} size={34} />

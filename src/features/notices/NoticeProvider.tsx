@@ -247,7 +247,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
   // same three things `Notices.opened` does, asked of the address bar because
   // that is where the web's "what is on screen" lives.
   useEffect(() => {
-    const match = /^\/app\/convo\/([^/]+)/.exec(location.pathname);
+    const match = /^\/convo\/([^/]+)/.exec(location.pathname);
     const thread = match ? decodeURIComponent(match[1]) : null;
     watching.current = thread;
     if (!thread) return;

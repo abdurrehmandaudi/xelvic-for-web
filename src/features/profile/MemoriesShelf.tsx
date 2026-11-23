@@ -144,7 +144,7 @@ export function MemoriesShelf({
     // it kept, where that playlist already lives.
     const held = memory.playlist;
     if (held) {
-      navigate(`/app/audio/${held.id}`);
+      navigate(`/audio/${held.id}`);
       return;
     }
     // A marked Memory this reader may not open is not opened at all. There is no

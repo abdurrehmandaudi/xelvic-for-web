@@ -189,7 +189,7 @@ export function SparksLeaderboardPage() {
       <div className="flex items-center px-1 pb-2.5 pt-0.5">
         <button
           type="button"
-          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/app/sparks"))}
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/sparks"))}
           className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]"
           aria-label={t("Back")}
         >
@@ -438,7 +438,7 @@ function Place({ entry, size, inset = 0 }: { entry: Entry; size: number; inset?:
 /** One person under the podium: the place in a circle, the face, the name, the bolt and the number. */
 function RankRow({ entry }: { entry: Entry }) {
   const navigate = useNavigate();
-  const open = entry.username ? () => navigate(`/app/u/${entry.username}`) : undefined;
+  const open = entry.username ? () => navigate(`/profile/${entry.username}`) : undefined;
 
   return (
     <button

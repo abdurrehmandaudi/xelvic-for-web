@@ -36,7 +36,7 @@ export function DropPage() {
         title="Drop"
         back
         actions={
-          <Link to="/app/drops" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Back to the feed">
+          <Link to="/drops" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Back to the feed">
             <Home className="size-4" />
           </Link>
         }
@@ -65,7 +65,7 @@ export function DropPage() {
               icon={<GalleryVerticalEnd className="size-6" />}
               title="This drop is not here"
               body="It may have been removed, hidden, or the link may be wrong."
-              action={<Button onClick={() => navigate("/app/drops")} icon={<ArrowLeft className="size-4" />}>Back to Drops</Button>}
+              action={<Button onClick={() => navigate("/drops")} icon={<ArrowLeft className="size-4" />}>Back to Drops</Button>}
             />
           </div>
         ) : (
@@ -76,7 +76,7 @@ export function DropPage() {
               onRemoved={() => {
                 void queryClient.invalidateQueries({ queryKey: ["drops"] });
                 queryClient.removeQueries({ queryKey: ["drop", dropId] });
-                navigate("/app/drops", { replace: true });
+                navigate("/drops", { replace: true });
               }}
             />
             <p className="mt-4 text-center text-[10.5px] leading-5 text-dim">

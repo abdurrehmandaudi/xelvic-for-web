@@ -280,7 +280,7 @@ function CallHistory() {
                       type="button"
                       disabled={!log.thread}
                       onClick={() =>
-                        log.thread && navigate(`/app/convo/${log.thread}`)
+                        log.thread && navigate(`/convo/${log.thread}`)
                       }
                       className="flex min-w-0 flex-1 items-center justify-center gap-3 rounded-[14px] text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 disabled:cursor-default"
                     >
@@ -575,12 +575,12 @@ export function NewConvoPanel({ onClose }: { onClose: () => void }) {
             "They have not accepted a conversation with you.",
           tone: "info",
         });
-        navigate(`/app/u/${person.username}`);
+        navigate(`/profile/${person.username}`);
         onClose();
         return;
       }
       onClose();
-      navigate(`/app/convo/${response.thread.id}`);
+      navigate(`/convo/${response.thread.id}`);
     } catch (error) {
       toast({
         title: "Could not start that convo",
@@ -733,7 +733,7 @@ export function NewConvoPanel({ onClose }: { onClose: () => void }) {
         onOpenThread={(thread) => {
           setVaultOpen(false);
           onClose();
-          navigate(`/app/convo/${thread.id}`);
+          navigate(`/convo/${thread.id}`);
         }}
       />
     </div>
@@ -798,7 +798,7 @@ function NewGroupModal({
       toast({ title: "Group made", tone: "success" });
       onClose();
       onCreated?.();
-      navigate(`/app/convo/${response.thread.id}`);
+      navigate(`/convo/${response.thread.id}`);
     } catch (error) {
       toast({
         title: "The group was not made",
@@ -1264,7 +1264,7 @@ export function ConvoPage({
   function openSearchResult(message: Message) {
     setSearchOpen(false);
     setListSearch("");
-    navigate(`/app/convo/${message.thread}`);
+    navigate(`/convo/${message.thread}`);
   }
 
   function refresh() {
@@ -1364,7 +1364,7 @@ export function ConvoPage({
   const alertRow = showAlerts ? (
     <AlertsRow
       data={alerts.data}
-      onOpen={() => navigate("/app/alerts")}
+      onOpen={() => navigate("/alerts")}
       onManage={() => setAlertsOpen(true)}
     />
   ) : null;
@@ -1700,7 +1700,7 @@ export function ConvoPage({
                     title="No convos yet"
                     body="Find someone, Keep them, and start the first convo."
                     action={
-                      <Button onClick={() => navigate("/app/search")}>
+                      <Button onClick={() => navigate("/search")}>
                         Find people
                       </Button>
                     }
@@ -1733,14 +1733,14 @@ export function ConvoPage({
                             }
                           : null
                       }
-                      onOpen={() => navigate(`/app/convo/${thread.id}`)}
+                      onOpen={() => navigate(`/convo/${thread.id}`)}
                       onActions={() => {
                         setSelected(thread);
                         setSheetOpen(true);
                       }}
                       onOpenMoment={(username) =>
                         navigate(
-                          `/app/moments?user=${encodeURIComponent(username)}`,
+                          `/moments?user=${encodeURIComponent(username)}`,
                         )
                       }
                       onOpenSpark={() =>
@@ -1762,7 +1762,7 @@ export function ConvoPage({
                     title="No convos yet"
                     body="Find people, and start the first convo."
                     action={
-                      <Button onClick={() => navigate("/app/search")}>
+                      <Button onClick={() => navigate("/search")}>
                         Find people
                       </Button>
                     }
@@ -1787,9 +1787,9 @@ export function ConvoPage({
         onGone={() => {
           refresh();
           if (selected?.id && activeThreadId === selected.id)
-            navigate("/app/convo");
+            navigate("/convo");
         }}
-        onGroupSettings={(thread) => navigate(`/app/convo/${thread.id}?info=1`)}
+        onGroupSettings={(thread) => navigate(`/convo/${thread.id}?info=1`)}
       />
 
       <AlertsManageModal
@@ -1803,7 +1803,7 @@ export function ConvoPage({
         open={vaultOpen}
         onClose={() => setVaultOpen(false)}
         onChanged={refresh}
-        onOpenThread={(thread) => navigate(`/app/convo/${thread.id}`)}
+        onOpenThread={(thread) => navigate(`/convo/${thread.id}`)}
       />
 
       {cameraOpen ? (
@@ -1898,7 +1898,7 @@ export function ConvoPage({
             right={design.name}
             onClick={() => {
               setMenuOpen(false);
-              navigate("/app/sparks");
+              navigate("/sparks");
             }}
           />
           <MenuRow
@@ -1907,7 +1907,7 @@ export function ConvoPage({
             body="Account, privacy, and appearance."
             onClick={() => {
               setMenuOpen(false);
-              navigate("/app/settings");
+              navigate("/settings");
             }}
           />
           <div className="mx-3 my-1.5 h-px bg-line" />

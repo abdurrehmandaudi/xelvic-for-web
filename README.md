@@ -79,25 +79,30 @@ Do not commit `.env` or real credentials.
 - `/` - direct QR sign-in and optional dev login
 - `/signin` - compatibility route for direct sign-in
 - `/s/:token` - shared playlist landing
+- `/u/:username` - public profile
+- `/d/:dropId` - public post
+- `/v/:vibeId` - public Vibe
 - `*` - not found
 
 ### Signed in
 
-- `/app/drops` - feed
-- `/app/drops/:dropId` - drop detail
-- `/app/moments` - moments
-- `/app/convo` - conversations
-- `/app/convo/:threadId` - chat
-- `/app/audio` - audio home
-- `/app/audio/:playlistId` - playlist
-- `/app/live` - live rooms
-- `/app/live/:roomId` - room
-- `/app/u/:username` - profile
-- `/app/search` - people/audio search
-- `/app/alerts` - requests
-- `/app/saved` - saved drops
-- `/app/sparks` - theme shop, wallet, sparks, medals
-- `/app/settings` - account and appearance
+The client is served at the site root, so these are the site's own addresses:
+
+- `/drops` - feed
+- `/drops/:dropId` - drop detail
+- `/moments` - moments
+- `/convo` - conversations
+- `/convo/:threadId` - chat
+- `/audio` - audio home
+- `/audio/:playlistId` - playlist
+- `/live` - live rooms
+- `/live/:roomId` - room
+- `/profile/:username` - profile
+- `/search` - people/audio search
+- `/alerts` - requests
+- `/saved` - saved drops
+- `/sparks` - theme shop, wallet, sparks, medals
+- `/settings` - account and appearance
 
 ## Architecture
 
@@ -470,7 +475,7 @@ feels the post, and a card given no `onOpen` behaves exactly as before (the mute
 button stops propagation, so muting does not also open). `EditDrop.tsx` reads the
 drop route first and the Vibe route when that says there is nothing there,
 because a URL carries an id and not the table it lives in. `MomentDropCard.tsx`'s
-exported `previewPath`, which named `/app/drops/vibes/<id>` — a route that does
+exported `previewPath`, which named `/drops/vibes/<id>` — a route that does
 not exist — is deleted; it had no callers. This is complete as code for the weave
 and the rail and **not verified** against a live server.
 
@@ -997,7 +1002,7 @@ the key is left out rather than invented. The receiving half already existed and
 `locationOf()` reads the payload, the bubble draws it, and the tap opens
 `https://www.google.com/maps?q=<lat>,<lng>`.
 
-**What the browser was actually asked.** Two probes drove the real app at `/app/convo/<threadId>`
+**What the browser was actually asked.** Two probes drove the real app at `/convo/<threadId>`
 in headless Chrome against a local stub of the API — the real providers, the real route, the real
 guard, the real `ChatPage`, because the menu is inline JSX inside a 5,400-line page and cannot be
 mounted on its own. `plus-menu.mjs` read the panel back as
@@ -1127,7 +1132,7 @@ posted, what the reader can see), not a filter this client applies.
 **The probe, and what it proves.** `stub-vibes.mjs` answers the shelf with **three clips from
 three authors the reader does not follow** — Meera, Dev, Noor, none of them the reader — and
 records every body the app posts before it answers. `convo-vibes.mjs` drives the real app at
-`/app/convo/<threadId>` in headless Chrome: the real providers, the real route, the real
+`/convo/<threadId>` in headless Chrome: the real providers, the real route, the real
 `ChatPage` (the panel's door and its aside are inline in a 5,400-line page and cannot be mounted
 apart). It read back:
 
@@ -1251,7 +1256,7 @@ nothing. Three properties it had to keep, and does:
 Nothing is cropped — a wide sticker keeps its wings — and nothing is stretched, because only the
 transparent margin is taken up.
 
-**What the probe read back.** `panels.mjs` drove the real app at `/app/convo/<threadId>` in
+**What the probe read back.** `panels.mjs` drove the real app at `/convo/<threadId>` in
 headless Chrome against a loopback stub, opening the plus and both rows. After the change both
 panels measure **340 × 363 with identical rows 41 · 29 · 258 · 33**, and every sampled sticker
 reports a longest ink edge of **63**:
@@ -1524,7 +1529,7 @@ the count taken again after the page settled, the page said **2 more frames 8 se
 `ask` and one word about where it was. The log cannot be left to accumulate across runs, which is
 exactly how a leftover gets counted as a repeat; the stub grew a `POST /__clear` for it.
 
-**The other direction, which is a different page.** Navigating to `/app/u/jaya` and reading the frames
+**The other direction, which is a different page.** Navigating to `/profile/jaya` and reading the frames
 the *profile* said gives `{"kind":"profile","user":"2222…","phase":"idle"}`, so the profile half is
 not just code that exists — it says the right place about the right person. The convo's own log for
 one clean open reads `ask, say chat` — with one `left` in the middle under React's StrictMode, which

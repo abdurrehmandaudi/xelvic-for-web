@@ -39,7 +39,7 @@ These are measured limitations, not completion percentages. See `MASTER_GOALS.md
 | `npm run lint` | **Pass** | ESLint, no errors or warnings |
 | `npm run build` | **Pass** | 2039 modules; JS 681.66 kB, CSS 59.39 kB before gzip; one chunk-size warning |
 | Local dev server | **Pass** | HTTP 200; browser rendered sign-in on `/signin` |
-| Production preview | **Pass** | Production bundle served `/`, `/signin` and `/app/drops`; both `/` and `/signin` render the sign-in flow |
+| Production preview | **Pass** | Production bundle served `/`, `/signin` and `/drops`; both `/` and `/signin` render the sign-in flow |
 | Browser interaction smoke | **Partial** | Root opened sign-in; QR request reached the production endpoint but failed CORS. Successful authentication remains unverified |
 | Django theme purchase tests | **Blocked** | `manage.py test apps.sparks.tests` could not create the test DB: PostgreSQL rejected password authentication for `xellom` |
 | Backend/API integration | **Blocked** | No backend, database or Redis |

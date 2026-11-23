@@ -184,7 +184,7 @@ export function CrewPage() {
                     key={String(person.id)}
                     className="flex items-center rounded-[16px] border border-line bg-card px-3 py-2.5"
                   >
-                    <Link to={`/app/u/${person.username}`} className="flex min-w-0 flex-1 items-center">
+                    <Link to={`/profile/${person.username}`} className="flex min-w-0 flex-1 items-center">
                       <Avatar name={name} src={person.avatar} size={44} />
                       <span className="ml-3 min-w-0 flex-1">
                         <span className="flex items-center">

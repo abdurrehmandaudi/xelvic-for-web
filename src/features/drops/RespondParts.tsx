@@ -42,7 +42,7 @@ export function RespondBody({ body, mentions }: { body: string; mentions?: UserC
         part.person ? (
           <Link
             key={`${index}-${part.text}`}
-            to={`/app/u/${part.person.username}`}
+            to={`/profile/${part.person.username}`}
             className="font-bold text-accent hover:underline"
           >
             {part.text}

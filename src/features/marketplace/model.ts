@@ -15,6 +15,7 @@
 import type { CSSProperties } from "react";
 import { designedThemes, type ShellPage, type ThemeDesign } from "@/theme/catalog";
 import { bundledByKey, paletteWithTokens } from "@/theme/shelf";
+import { asset } from "@/utils/asset";
 import type { CatalogueLogo, CataloguePageRow, CatalogueTheme, Crop, FigurePlacement, FigurePick } from "./types";
 
 /** The app's own theme — what a Studio row is built from. See `XThemes.own`. */
@@ -32,9 +33,9 @@ export type FigurePose = (typeof FIGURE_POSES)[number];
 
 /** The bundled poses, drawn when a row has nothing of its own. */
 export const BUNDLED_POSES: Record<FigurePose, string> = {
-  wait: "/char/wait.png",
-  typing: "/char/typing.png",
-  bio: "/char/bio.png",
+  wait: asset("/char/wait.png"),
+  typing: asset("/char/typing.png"),
+  bio: asset("/char/bio.png"),
 };
 
 /** A figure's three pictures, at most. Null where a pose has none. */

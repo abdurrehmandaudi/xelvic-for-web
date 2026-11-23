@@ -6,11 +6,12 @@ import { hideCallNotice, onCallNoticeAction, showCallNotice } from "@/features/c
 import { Ringer } from "@/features/calls/ring";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
+import { asset } from "@/utils/asset";
 
 /** The call screen's row on the browser's notification surface. */
 const notices: CallNotices = {
   show: (input) => {
-    void showCallNotice({ ...input, icon: "/favicon.png" });
+    void showCallNotice({ ...input, icon: asset("/favicon.png") });
   },
   hide: hideCallNotice,
 };

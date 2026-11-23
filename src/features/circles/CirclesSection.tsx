@@ -150,7 +150,7 @@ export function CirclesSection() {
             <div key={String(day.id)} className="px-[18px] pb-3">
               <CircleCard
                 day={day}
-                onOpen={() => navigate(`/app/circles/${encodeURIComponent(String(day.id))}`)}
+                onOpen={() => navigate(`/circles/${encodeURIComponent(String(day.id))}`)}
                 onPost={() => setPosting(day)}
               />
             </div>
@@ -183,7 +183,7 @@ export function CirclesSection() {
         onPicked={(day) => {
           setPickerOpen(false);
           refresh();
-          navigate(`/app/circles/${encodeURIComponent(String(day.id))}`);
+          navigate(`/circles/${encodeURIComponent(String(day.id))}`);
         }}
       />
 

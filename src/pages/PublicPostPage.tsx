@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { dropsService } from "@/services/drops.service";
+import publicService from "@/services/public.service";
 import { ApiError } from "@/utils/errors";
 import { usePageMeta } from "@/seo";
 import { metaForDrop, metaForGate, PUBLIC_ROUTES } from "@/seo";
@@ -32,21 +32,15 @@ function PublicPostRoute({ kind }: { kind: "drop" | "vibe" }) {
   const path = kind === "vibe" ? PUBLIC_ROUTES.vibe(id) : PUBLIC_ROUTES.drop(id);
   const next = location.pathname + location.search;
   const authed = status === "authenticated";
-  const base = kind === "vibe" ? "drops/vibes" : "drops";
 
   const query = useQuery<Drop>({
     queryKey: ["public-post", kind, id],
-    queryFn: async () => {
-      const answer = await dropsService.detail<{ drop?: Drop; vibe?: Drop }>(base, id, {
-        // Behind the gate there is no session to renew; a 401 is the answer.
-        skipAuth: !authed,
-      });
-      const drop = answer.drop ?? answer.vibe;
-      if (!drop) throw new Error("That post is not here.");
-      return drop;
-    },
-    // A drop sends a signed-in reader into the app; a vibe has no single app
-    // route yet, so its public view is drawn for everybody.
+    // The open web's own door: it answers without a session and carries no
+    // reader answers, so a signed-in reader and a stranger read the same post.
+    // A drop for a signed-in reader is sent into the app below; a Vibe has no
+    // single app route yet, so it is drawn here for everybody.
+    queryFn: async () =>
+      kind === "vibe" ? publicService.vibe(id) : publicService.drop(id),
     enabled: Boolean(id) && (!authed || kind === "vibe"),
     retry: false,
   });
@@ -59,7 +53,7 @@ function PublicPostRoute({ kind }: { kind: "drop" | "vibe" }) {
 
   if (status === "loading") return <PublicLoading next={next} />;
   if (authed && kind === "drop") {
-    return <Navigate to={`/app/drops/${encodeURIComponent(id)}`} replace />;
+    return <Navigate to={`/drops/${encodeURIComponent(id)}`} replace />;
   }
   if (query.isLoading) return <PublicLoading next={next} />;
 

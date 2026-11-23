@@ -304,7 +304,7 @@ export function DropMenu({
                 label="About this account"
                 onClick={() => {
                   onClose();
-                  navigate(`/app/u/${drop.author.username}`);
+                  navigate(`/profile/${drop.author.username}`);
                 }}
               />
               <SheetRow

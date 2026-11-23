@@ -1,3 +1,4 @@
+import { asset, optionalAsset } from "@/utils/asset";
 import type { ThemeMark } from "@/theme/ThemeMarkArt";
 
 export type ShellPage = "drops" | "moments" | "convo" | "audio" | "live";
@@ -206,7 +207,31 @@ export interface ThemeTokens {
   list?: string;
 }
 
-export const designedThemes: ThemeDesign[] = [
+/**
+ * The pictures a design names are files this build ships, so they move with
+ * the build. Palettes and tokens are words and stay as they are; only the
+ * fields that hold a path are touched.
+ */
+export function withBaseThemePaths(design: ThemeDesign): ThemeDesign {
+  const art = design.art
+    ? (Object.fromEntries(
+        Object.entries(design.art).map(([page, src]) => [page, src ? asset(src) : src]),
+      ) as ThemeDesign["art"])
+    : undefined;
+  return {
+    ...design,
+    cover: asset(design.cover),
+    coverLight: optionalAsset(design.coverLight),
+    profile: optionalAsset(design.profile),
+    profileCover: optionalAsset(design.profileCover),
+    profileWall: optionalAsset(design.profileWall),
+    coverArt: optionalAsset(design.coverArt),
+    chatWall: optionalAsset(design.chatWall),
+    art,
+  };
+}
+
+const designed: ThemeDesign[] = [
   {
     key: "pink",
     name: "Pink",
@@ -827,4 +852,7 @@ export const designedThemes: ThemeDesign[] = [
     },
   },
 ];
+
+/** The designs the web already carried, moved to the build's own base. */
+export const designedThemes: ThemeDesign[] = designed.map(withBaseThemePaths);
 

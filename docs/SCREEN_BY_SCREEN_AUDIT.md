@@ -6,7 +6,7 @@ The audit is organised by web route. Each entry names the Android reference, wha
 
 | Route | Android reference | State | Audit |
 | --- | --- | --- | --- |
-| `APK-SCREEN-001` `/` | auth entry | Implemented, browser-rendered; successful auth unverified | Root now opens `SignInPage` directly. Authenticated sessions restore and redirect to `/app/drops`; the separate marketing landing page and component were removed. |
+| `APK-SCREEN-001` `/` | auth entry | Implemented, browser-rendered; successful auth unverified | Root now opens `SignInPage` directly. Authenticated sessions restore and redirect to `/drops`; the separate marketing landing page and component were removed. |
 | `APK-SCREEN-002` `/signin` | `auth.dart`, `qr.dart` | Partial, browser error state verified | Compatibility route renders the same `SignInPage`; QR start/poll/rotate/collect and dev password form. Browser rendered the CORS/server-error state; successful authentication is blocked by missing local QR routes/backend and production CORS. |
 | `APK-SCREEN-003` `/s/:token` | shared playlist link | Implemented, unverified | `PublicPlaylistPage`; public playlist fetch, track list and local audio player. No account shell; no live API test. |
 | `APK-SCREEN-004` `*` | none | Implemented, unverified | `NotFoundPage`; route back is present by source inspection. |
@@ -16,21 +16,21 @@ The audit is organised by web route. Each entry names the Android reference, wha
 | Route | Android reference | State | Audit |
 | --- | --- | --- | --- |
 | `APK-SCREEN-005` `/app` | `home.dart` | Redirect, not a screen | Protected shell redirects to Drops. Android starts at Convo; this remains a documented navigation discrepancy. |
-| `APK-SCREEN-006` `/app/drops` | `drops.dart`, `drop_grid.dart` | Implemented, API-unverified | `DropsPage`; cursor feed, composer, refresh, saved/like actions, comments. Vibes are played, not authored. |
-| `APK-SCREEN-007` `/app/drops/:dropId` | `drop_post.dart` | Partial | `DropPage`; detail, comments, poll, share, hide/delete. No audience/stats panels. |
-| `APK-SCREEN-008` `/app/moments` | `moments.dart`, `moment_view.dart` | Partial | `MomentsPage`; tray, viewer, seen, reactions, replies, composer, memories. No together-mode, stickers or drawings. |
-| `APK-SCREEN-009` `/app/convo` | `convo.dart` | Implemented, API-unverified | `ConvoPage`; thread list, search, unread, requests, new DM/group. Rewards are accessible from the global mobile header, not as a thread-list entry. |
-| `APK-SCREEN-010` `/app/convo/:threadId` | `chat.dart` | Partial | `ChatPage`; history, socket, send, upload, voice, polls, reactions, edit/delete, info, flags. Vault and calls absent; some chat sheets absent. |
-| `APK-SCREEN-011` `/app/audio` | `audio.dart` | Partial | `AudioPage`; hero, recent, playlists, podcasts, artists, search, create playlist. No artist route. |
-| `APK-SCREEN-012` `/app/audio/:playlistId` | playlist screens | Implemented, API-unverified | `PlaylistPage`; detail, edit, add/remove/reorder, share/revoke, delete. |
-| `APK-SCREEN-013` `/app/live` | `live.dart` | Implemented, API-unverified | `LivePage`; shelf, socket refresh, create room. |
-| `APK-SCREEN-014` `/app/live/:roomId` | `room.dart`, `room_talk.dart`, `room_game.dart` | Partial | `RoomPage`; join/leave, stage, hands, host controls, chat, throws, line game, share/end. Game action subroutes unverified; codepad absent. |
-| `APK-SCREEN-015` `/app/u/:username` | `profile.dart`, `person.dart` | Partial | `ProfilePage`; own/other profile, follow/withdraw, block, mute posts, report, message, share, infinite drop grid, private wall. Crew list and refine profile absent. |
-| `APK-SCREEN-016` `/app/search` | `search.dart` | Partial | `SearchPage`; people and audio tabs, recent searches, suggestions. Drops/places scopes absent. |
-| `APK-SCREEN-017` `/app/alerts` | `requests.dart` | Partial, API-unverified | `AlertsPage`; follow/chat requests and count. General notification feed is absent. |
-| `APK-SCREEN-018` `/app/saved` | saved shelf | Implemented, API-unverified | `SavedPage`; saved drops, remove on unsave/delete, server truncation note. |
-| `APK-SCREEN-019` `/app/sparks` | `reward.dart`, `wallet_view.dart`, `theme_shop_view.dart`, `theme_preview.dart`, `spark.dart` | Partial, purchase runtime-unverified | `SparksPage`; theme preview/purchase, wallet, streaks, ladder and medals. Backend tier/slot enforcement exists in the external backend source, but this task left it read-only and did not run Django tests. |
-| `APK-SCREEN-020` `/app/settings` | `settings.dart` | Partial | `SettingsPage`; profile, privacy, appearance, account/password/devices/contacts view/deny/sign-out. Allowing contact upload is Android-only. Deactivation, notification settings and own QR absent. |
+| `APK-SCREEN-006` `/drops` | `drops.dart`, `drop_grid.dart` | Implemented, API-unverified | `DropsPage`; cursor feed, composer, refresh, saved/like actions, comments. Vibes are played, not authored. |
+| `APK-SCREEN-007` `/drops/:dropId` | `drop_post.dart` | Partial | `DropPage`; detail, comments, poll, share, hide/delete. No audience/stats panels. |
+| `APK-SCREEN-008` `/moments` | `moments.dart`, `moment_view.dart` | Partial | `MomentsPage`; tray, viewer, seen, reactions, replies, composer, memories. No together-mode, stickers or drawings. |
+| `APK-SCREEN-009` `/convo` | `convo.dart` | Implemented, API-unverified | `ConvoPage`; thread list, search, unread, requests, new DM/group. Rewards are accessible from the global mobile header, not as a thread-list entry. |
+| `APK-SCREEN-010` `/convo/:threadId` | `chat.dart` | Partial | `ChatPage`; history, socket, send, upload, voice, polls, reactions, edit/delete, info, flags. Vault and calls absent; some chat sheets absent. |
+| `APK-SCREEN-011` `/audio` | `audio.dart` | Partial | `AudioPage`; hero, recent, playlists, podcasts, artists, search, create playlist. No artist route. |
+| `APK-SCREEN-012` `/audio/:playlistId` | playlist screens | Implemented, API-unverified | `PlaylistPage`; detail, edit, add/remove/reorder, share/revoke, delete. |
+| `APK-SCREEN-013` `/live` | `live.dart` | Implemented, API-unverified | `LivePage`; shelf, socket refresh, create room. |
+| `APK-SCREEN-014` `/live/:roomId` | `room.dart`, `room_talk.dart`, `room_game.dart` | Partial | `RoomPage`; join/leave, stage, hands, host controls, chat, throws, line game, share/end. Game action subroutes unverified; codepad absent. |
+| `APK-SCREEN-015` `/profile/:username` | `profile.dart`, `person.dart` | Partial | `ProfilePage`; own/other profile, follow/withdraw, block, mute posts, report, message, share, infinite drop grid, private wall. Crew list and refine profile absent. |
+| `APK-SCREEN-016` `/search` | `search.dart` | Partial | `SearchPage`; people and audio tabs, recent searches, suggestions. Drops/places scopes absent. |
+| `APK-SCREEN-017` `/alerts` | `requests.dart` | Partial, API-unverified | `AlertsPage`; follow/chat requests and count. General notification feed is absent. |
+| `APK-SCREEN-018` `/saved` | saved shelf | Implemented, API-unverified | `SavedPage`; saved drops, remove on unsave/delete, server truncation note. |
+| `APK-SCREEN-019` `/sparks` | `reward.dart`, `wallet_view.dart`, `theme_shop_view.dart`, `theme_preview.dart`, `spark.dart` | Partial, purchase runtime-unverified | `SparksPage`; theme preview/purchase, wallet, streaks, ladder and medals. Backend tier/slot enforcement exists in the external backend source, but this task left it read-only and did not run Django tests. |
+| `APK-SCREEN-020` `/settings` | `settings.dart` | Partial | `SettingsPage`; profile, privacy, appearance, account/password/devices/contacts view/deny/sign-out. Allowing contact upload is Android-only. Deactivation, notification settings and own QR absent. |
 
 There are 21 route declarations in `src/App.tsx` including `/app`, its index redirect and the catch-all; this table records 20 route outcomes (19 page destinations plus the `/app` redirect). These are web routes, not a complete count of APK screens. A complete Android navigation/overlay inventory is still outstanding.
 

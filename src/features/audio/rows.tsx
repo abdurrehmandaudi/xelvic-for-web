@@ -316,7 +316,7 @@ export function playlistWhose(playlist: Playlist) {
 export function PlaylistCard({ playlist }: { playlist: Playlist }) {
   const tracks = playlist.count ?? 0;
   return (
-    <Link to={`/app/audio/${playlist.id}`} className="block w-[132px] shrink-0 transition hover:opacity-90">
+    <Link to={`/audio/${playlist.id}`} className="block w-[132px] shrink-0 transition hover:opacity-90">
       <span className="relative block h-[132px] w-[132px]">
         <PlaylistCover playlist={playlist} />
         {tracks > 0 ? (

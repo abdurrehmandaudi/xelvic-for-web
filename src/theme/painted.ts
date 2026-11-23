@@ -7,9 +7,9 @@
 // the web already carried stay in `catalog.ts`; this file is the rest of the
 // app’s shelf.
 
-import type { ThemeDesign } from "@/theme/catalog";
+import { withBaseThemePaths, type ThemeDesign } from "@/theme/catalog";
 
-export const paintedThemes: ThemeDesign[] = [
+const painted: ThemeDesign[] = [
   {
     key: "alone",
     name: "Alone",
@@ -628,3 +628,6 @@ export const paintedThemes: ThemeDesign[] = [
     },
   },
 ];
+
+/** The app's painted shelf, moved to the build's own base. */
+export const paintedThemes: ThemeDesign[] = painted.map(withBaseThemePaths);

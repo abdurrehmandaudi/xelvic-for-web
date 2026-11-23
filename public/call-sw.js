@@ -51,7 +51,7 @@ self.addEventListener("notificationclick", (event) => {
       // becomes "show me Xelvic" and the app asks the server on the way up
       // whether anybody is still ringing it.
       if (self.clients.openWindow) {
-        await self.clients.openWindow("/app");
+        await self.clients.openWindow("/drops");
       }
     })(),
   );

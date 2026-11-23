@@ -323,7 +323,7 @@ export function PersonProfile() {
         profile.id,
       );
       if (result.thread?.id) {
-        navigate(`/app/convo/${result.thread.id}`);
+        navigate(`/convo/${result.thread.id}`);
       } else if (result.gate) {
         toast({
           title: result.gate.title || t("This convo is closed"),
@@ -437,7 +437,7 @@ export function PersonProfile() {
           <Floating
             icon={<ArrowLeft className="size-[19px]" />}
             label={t("Back")}
-            onTap={() => (window.history.length > 1 ? navigate(-1) : navigate("/app/drops"))}
+            onTap={() => (window.history.length > 1 ? navigate(-1) : navigate("/drops"))}
           />
         </div>
       </div>
@@ -453,7 +453,7 @@ export function PersonProfile() {
           title={t("No such account")}
           line={t("That username is not here.")}
           action={
-            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4" onClick={() => navigate("/app/search")}>
+            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4" onClick={() => navigate("/search")}>
               {t("Search people")}
             </button>
           }
@@ -709,7 +709,7 @@ export function PersonProfile() {
           <Floating
             icon={<ArrowLeft className="size-[19px]" />}
             label={t("Back")}
-            onTap={() => (window.history.length > 1 ? navigate(-1) : navigate("/app/drops"))}
+            onTap={() => (window.history.length > 1 ? navigate(-1) : navigate("/drops"))}
           />
         </span>
         <span className="pointer-events-auto flex flex-col items-end gap-2.5">
@@ -861,7 +861,7 @@ export function PersonProfile() {
         personName={name}
         onPick={(person) => {
           setMutuals(false);
-          navigate(`/app/u/${person.username}`);
+          navigate(`/profile/${person.username}`);
         }}
       />
 

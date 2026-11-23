@@ -128,11 +128,11 @@ export const CreatorDirectoryView = lazy(load.creators);
  * reaches them — without delaying the first page the reader actually asked for.
  */
 export const SHELL_ROUTES = [
-  "/app/drops",
-  "/app/moments",
-  "/app/convo",
-  "/app/audio",
-  "/app/live",
+  "/drops",
+  "/moments",
+  "/convo",
+  "/audio",
+  "/live",
 ] as const;
 
 /**
@@ -144,21 +144,20 @@ export const SHELL_ROUTES = [
  * `NavLink` knows its `to`, and that is all this needs.
  */
 function loaderFor(pathname: string): PageLoader | null {
-  // A link may carry a query — `/app/drops?compose=1` — and the question it
+  // A link may carry a query — `/drops?compose=1` — and the question it
   // asks the router is still the Drops page. The search string and the hash
   // are not part of the page's identity here.
   const bare = pathname.split(/[?#]/, 1)[0] ?? "";
   const path = bare.replace(/\/+$/, "") || "/";
 
-  if (!path.startsWith("/app/")) {
-    // A shared playlist is the one page outside the shell that a link on the
-    // web can point at, and it is opened cold — preloading it from a link's
-    // hover is the only chance to warm it.
-    if (path.startsWith("/s/")) return load.publicPlaylist;
-    return null;
-  }
+  // The public doors outside the shell are opened cold, often from a link on
+  // a page somebody else shared; warming the code on hover is the only chance
+  // to have the page in hand before the click.
+  if (path.startsWith("/s/")) return load.publicPlaylist;
+  if (path.startsWith("/d/")) return load.publicDrop;
+  if (path.startsWith("/v/")) return load.publicVibe;
 
-  const [head, second, third] = path.slice("/app/".length).split("/");
+  const [head, second, third] = path.slice("/".length).split("/");
 
   switch (head) {
     case "drops":
@@ -184,6 +183,9 @@ function loaderFor(pathname: string): PageLoader | null {
     case "live":
       return second ? load.room : load.live;
     case "u":
+      // The public door at the root; the signed-in profile is `/profile/…`.
+      return load.publicProfile;
+    case "profile":
       return third === "crew" ? load.crew : load.profile;
     case "insights":
       return load.insights;

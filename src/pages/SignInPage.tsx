@@ -17,10 +17,14 @@ import {
 import { BiSolidUserPlus } from "react-icons/bi";
 import { Wordmark } from "@/components/icons/Brand";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/hooks/useAuth";
 import { useQrSignIn, type QrPhase } from "@/hooks/useQrSignIn";
 import { API_ORIGIN } from "@/config/env";
+import { DEFAULT_DIAL_ISO, DIAL_CODES, dialFor, flagOf } from "@/data/dialCodes";
 import { metaForSignIn, usePageMeta } from "@/seo";
+import { authService } from "@/services/auth.service";
 import { cn } from "@/utils/cn";
+import { errorMessage } from "@/utils/errors";
 
 function browserClaim() {
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
@@ -285,41 +289,92 @@ function QrPanel({
   );
 }
 
-function makePreviewCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from(
-    { length: 6 },
-    () => alphabet[Math.floor(Math.random() * alphabet.length)],
-  ).join("");
-}
-
 function CredentialLogin({ onBack }: { onBack: () => void }) {
+  const { acceptTokens } = useAuth();
   const [target, setTarget] = useState("");
+  const [dialIso, setDialIso] = useState(DEFAULT_DIAL_ISO);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [challenge, setChallenge] = useState<string | null>(null);
+  // The owner, 2026-11-23: *"web pe login click karte hi verification code
+  // app par aaye, jab code match ho tabhi dashboard pe jaye"*. The password
+  // opens the second step, and the second step is the phone: a six-digit code
+  // is pushed to the account's own devices and the browser signs in only when
+  // the digits match. Step `code` is that question, still on this page.
+  const [step, setStep] = useState<"form" | "code">("form");
+  const [challenge, setChallenge] = useState("");
+  const [code, setCode] = useState("");
+  // The owner, 2026-11-23: the permission belongs to the moment of signing
+  // in, not to opening the form — *"direct login ho ja raha, permission ke
+  // liye maine bola tha"*. Sign in asks, and Allow is what posts the password.
+  const [consent, setConsent] = useState(false);
+  // The owner, 2026-11-23: *"app ki tarh number daalne pe country code aa
+  // jaye"*. One field still takes both, and what is being typed decides which
+  // it is: an address keeps its own shape, a number gets the room's code in
+  // front of it — the same list the app picks from, starting on India.
+  const typed = target.trim();
+  const phoneMode = typed.length > 0 && !typed.includes("@") && /^[0-9+\s()-]+$/.test(typed);
+  const asTarget = (): string => {
+    if (!phoneMode) return typed;
+    const digits = typed.replace(/\D/g, "");
+    if (typed.startsWith("+")) return `+${digits}`;
+    return `+${dialFor(dialIso).dial}${digits.replace(/^0+/, "")}`;
+  };
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    setBusy(true);
     setError(null);
-    await new Promise((resolve) => window.setTimeout(resolve, 350));
-    if (!target.trim() || !password) {
+    if (!typed || !password) {
       setError("Enter your email/phone and password.");
-      setBusy(false);
       return;
     }
-    setChallenge(makePreviewCode());
-    setBusy(false);
+    setConsent(true);
   }
 
-  function reset() {
-    setChallenge(null);
+  /// The password is only spent after the person has said yes to this browser,
+  /// and even then it buys a challenge, not a session: the code goes to the
+  /// phones and the next step asks for it.
+  async function allow() {
+    setConsent(false);
+    setBusy(true);
     setError(null);
+    try {
+      const started = await authService.loginCode(asTarget(), password);
+      if (started.devices < 1) {
+        setError(
+          "No phone could be reached. Open Xelvic, check that notifications are on, or use the QR sign-in above.",
+        );
+        setBusy(false);
+        return;
+      }
+      setChallenge(started.challenge);
+      setCode("");
+      setStep("code");
+      setBusy(false);
+    } catch (failure) {
+      setError(errorMessage(failure));
+      setBusy(false);
+    }
   }
 
-  const challengeParts = challenge?.match(/.{1,2}/g) ?? [];
+  /// The code from the app, and only a match signs the browser in.
+  async function verifyCode() {
+    if (!/^\d{6}$/.test(code)) {
+      setError("Enter the six digits from the Xelvic app.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const tokens = await authService.verifyLoginCode(challenge, code);
+      await acceptTokens(tokens);
+      // The page unmounts into the app; leaving `busy` on means the button
+      // cannot be pressed twice while the redirect is in the air.
+    } catch (failure) {
+      setError(errorMessage(failure));
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -335,67 +390,84 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
         <div className="w-full rounded-2xl border border-line bg-[color-mix(in_srgb,var(--page)_55%,var(--card))] p-5 sm:p-6">
           <div className="flex items-center gap-2 text-lg font-extrabold text-ink">
             Login with credentials
-            <span className="ml-auto rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-widest text-accent">
-              Preview
-            </span>
           </div>
-          {challenge ? (
-            <div className="mt-3 space-y-3 text-center" aria-live="polite">
-              <p className="text-[11.5px] leading-4 text-dim">
-                Confirm this code in the Xelvic mobile app:
+          {step === "code" ? (
+            <div className="mt-3 space-y-3">
+              <p className="text-[12.5px] leading-5 text-dim">
+                A six-digit code was sent to your Xelvic app. Open its
+                notifications and type it here — this browser signs in only when
+                the code matches.
               </p>
-              <div
-                className="flex items-center justify-center gap-1.5 sm:gap-2"
-                aria-label={`Verification code ${challenge}`}
+              <input
+                className="w-full border border-line bg-card px-4 text-center font-mono text-[22px] font-extrabold tracking-[0.4em] text-ink placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 rounded-lg"
+                value={code}
+                onChange={(event) =>
+                  setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="••••••"
+                maxLength={6}
+                aria-label="Sign-in code from the app"
+                autoFocus
+              />
+              {error ? (
+                <p className="text-[11.5px] leading-4 text-[var(--bad)]">
+                  {error}
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                full
+                loading={busy}
+                onClick={verifyCode}
+                className="py-1.5 text-lg font-extrabold text-on-accent rounded-lg"
               >
-                {challengeParts.map((part, partIndex) => (
-                  <div
-                    key={`${part}-${partIndex}`}
-                    className="flex items-center gap-1.5 sm:gap-2"
-                  >
-                    {part.split("").map((character, index) => (
-                      <span
-                        key={`${character}-${index}`}
-                        className="flex size-9 items-center justify-center rounded-[9px] border border-line bg-card font-mono text-[20px] font-extrabold text-ink shadow-xs sm:size-11 sm:text-[23px]"
-                      >
-                        {character}
-                      </span>
-                    ))}
-                    {partIndex < challengeParts.length - 1 ? (
-                      <span
-                        className="px-0.5 text-[18px] font-extrabold text-ink sm:px-1 sm:text-[20px]"
-                        aria-hidden
-                      >
-                        -
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-              <p className="text-[11.5px] leading-4 text-dim">
-                Frontend preview only — the mobile approval endpoint is not
-                connected yet.
-              </p>
+                Verify code
+              </Button>
               <Button
                 type="button"
                 variant="secondary"
                 full
-                onClick={reset}
-                className="py-1.5 text-lg font-semibold text-ink rounded-lg"
+                onClick={() => {
+                  setStep("form");
+                  setCode("");
+                  setError(null);
+                }}
               >
                 Use different credentials
               </Button>
             </div>
           ) : (
-            <form onSubmit={submit} className="mt-3 space-y-3">
-              <input
-                className="w-full border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-md rounded-lg"
-                value={target}
-                onChange={(event) => setTarget(event.target.value)}
-                placeholder="Email or phone number"
-                autoComplete="username"
-                required
-              />
+          <form onSubmit={submit} className="mt-3 space-y-3">
+              <div className={phoneMode ? "flex items-stretch gap-2" : ""}>
+                {phoneMode ? (
+                  <select
+                    aria-label="Country code"
+                    title={dialFor(dialIso).name}
+                    value={dialIso}
+                    onChange={(event) => setDialIso(event.target.value)}
+                    className="shrink-0 rounded-lg border border-line bg-card px-2 text-[14px] font-bold text-ink focus:border-accent focus:outline-none"
+                  >
+                    {DIAL_CODES.map((country) => (
+                      <option key={country.iso} value={country.iso}>
+                        {`${flagOf(country.iso)} +${country.dial}`}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                <input
+                  className={cn(
+                    "w-full border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-md rounded-lg",
+                    phoneMode && "min-w-0 flex-1",
+                  )}
+                  value={target}
+                  onChange={(event) => setTarget(event.target.value)}
+                  placeholder="Email or phone number"
+                  autoComplete="username"
+                  required
+                />
+              </div>
               <input
                 className="w-full border border-line bg-card px-4 text-ink transition-[border-color,box-shadow] duration-[160ms] placeholder:text-dim-80 focus:border-accent focus:shadow-field-focus focus:outline-none min-h-10 py-2 text-md rounded-lg"
                 type="password"
@@ -416,12 +488,52 @@ function CredentialLogin({ onBack }: { onBack: () => void }) {
                 loading={busy}
                 className="py-1.5 text-lg font-extrabold text-on-accent rounded-lg"
               >
-                Verify
+                Sign in
               </Button>
-            </form>
+          </form>
           )}
         </div>
       </div>
+      {consent ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="credential-consent-title"
+          onClick={() => setConsent(false)}
+        >
+          <div
+            className="w-full max-w-[360px] rounded-2xl border border-line bg-card p-5 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex size-10 items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent">
+              <ShieldCheck className="size-5" aria-hidden />
+            </div>
+            <h2
+              id="credential-consent-title"
+              className="mt-3 text-[16px] font-extrabold tracking-tight text-ink"
+            >
+              Allow this browser to sign in?
+            </h2>
+            <p className="mt-1.5 text-[12.5px] leading-5 text-dim">
+              {`We will send a six-digit code to your Xelvic app for ${browserClaim()}. This browser signs in only when that code is entered. Only allow it on a computer you trust.`}
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                full
+                onClick={() => setConsent(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="button" full onClick={allow}>
+                Allow
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -35,7 +35,7 @@ import type { SpaceRoom } from "@/types/api";
 function Tile({ room }: { room: SpaceRoom }) {
   const name = room.host?.name || room.host?.username || room.title || "";
   return (
-    <Link to={`/app/live/${room.id}`} className="w-[72px] shrink-0 text-center">
+    <Link to={`/live/${room.id}`} className="w-[72px] shrink-0 text-center">
       <span className="relative inline-block">
         <span className="block rounded-[22px] bg-accent p-0.5">
           <RoomCover room={room} size={60} radius={20} />

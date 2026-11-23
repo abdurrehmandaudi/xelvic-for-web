@@ -33,7 +33,7 @@ export function PageHeader({
         {back ? (
           <button
             type="button"
-            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/app"))}
+            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/drops"))}
             className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] -ml-2"
             aria-label="Back"
           >

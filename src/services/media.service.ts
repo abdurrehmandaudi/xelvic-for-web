@@ -1,6 +1,6 @@
 import axios from "axios";
 import api from "@/config/axios";
-import { mediaUrl } from "@/config/urls";
+import { isSignedMediaUrl, mediaUrl } from "@/config/urls";
 
 /**
  * The bytes behind a media address, through the account's own credentials.
@@ -26,13 +26,21 @@ export const mediaService = {
    * learning this account's bearer token, and no 401 renewal is wanted on a
    * file that was never private in the first place. Everything the app itself
    * serves keeps the default: token when there is one, cookie always.
+   *
+   * A **signed** address takes the bare road too. Its permission is in the
+   * URL, and sending the account's bearer token as well is what a presigned
+   * bucket address refuses: it allows one authentication mechanism, not two.
+   * The request is then the one a bare element makes — no token to conflict
+   * with the URL's signature. Whether a cross-origin redirect can be read back
+   * as a Blob is still the bucket's CORS decision, which is why rendering uses
+   * the element itself rather than this function.
    */
   blob: async (url: string, options: { authenticated?: boolean } = {}): Promise<Blob> => {
     const absolute = mediaUrl(url);
     if (!absolute) throw new Error("No media URL");
     if (/^data:/i.test(absolute)) return blobFromDataUri(absolute);
     if (/^blob:/i.test(absolute)) return blobFromObjectUrl(absolute);
-    if (options.authenticated === false) {
+    if (options.authenticated === false || isSignedMediaUrl(absolute)) {
       const publicResponse = await axios.get<Blob>(absolute, {
         responseType: "blob",
         withCredentials: false,

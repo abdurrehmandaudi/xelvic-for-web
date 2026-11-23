@@ -31,8 +31,10 @@
  *     pretends a ring was heard.
  */
 
+import { asset } from "@/utils/asset";
+
 /** The app's own ringtone, already in this build's `public/`. */
-export const RINGTONE_URL = "/ringtone/call.wav";
+export const RINGTONE_URL = asset("/ringtone/call.wav");
 
 /** One written tone: the frequencies sounded together, and for how long. */
 export interface Tone {

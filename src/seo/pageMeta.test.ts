@@ -134,7 +134,7 @@ describe("page metadata", () => {
 
 describe("schema.org nodes", () => {
   it("builds a Person with the fields the profile actually has", () => {
-    const node = personLd(profile(), "https://web.xelvic.com/u/shariq");
+    const node = personLd(profile(), "https://xelvic.com/u/shariq");
     expect(node["@type"]).toBe("Person");
     expect(node["alternateName"]).toBe("@shariq");
     expect(JSON.stringify(node)).not.toContain("undefined");
@@ -143,8 +143,8 @@ describe("schema.org nodes", () => {
   it("builds a post with counters and a place", () => {
     const node = postLd(
       drop(),
-      "https://web.xelvic.com/d/d1",
-      "https://web.xelvic.com/u/shariq",
+      "https://xelvic.com/d/d1",
+      "https://xelvic.com/u/shariq",
     );
     expect(node["@type"]).toBe("SocialMediaPosting");
     expect(node["keywords"]).toEqual(["morning"]);
@@ -168,8 +168,8 @@ describe("schema.org nodes", () => {
           duration_ms: 15_400,
         },
       }),
-      "https://web.xelvic.com/v/d1",
-      "https://web.xelvic.com/u/shariq",
+      "https://xelvic.com/v/d1",
+      "https://xelvic.com/u/shariq",
     );
     expect(node["@type"]).toBe("VideoObject");
     expect(node["duration"]).toBe("PT15S");

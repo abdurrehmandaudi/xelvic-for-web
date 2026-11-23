@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { asset } from "@/utils/asset";
 import { cn } from "@/utils/cn";
 import { useOptionalPreferences } from "@/hooks/usePreferences";
 
@@ -11,8 +12,8 @@ import { useOptionalPreferences } from "@/hooks/usePreferences";
  * Uses the same branding PNGs (`/xelvic.png` and `/xelvic-white.png`)
  * and lowercase typography ("xelvic").
  */
-const MARK = "/xelvic.png";
-const MARK_WHITE = "/xelvic-white.png";
+const MARK = asset("/xelvic.png");
+const MARK_WHITE = asset("/xelvic-white.png");
 
 export function Wordmark({
   className,
@@ -60,7 +61,7 @@ export function Wordmark({
 export function BrandMark({ className, size = 36 }: { className?: string; size?: number }) {
   const preferences = useOptionalPreferences();
   const logo = preferences?.logo ?? "pink";
-  const src = logo && logo !== "pink" ? `/logos/${logo}.webp` : "/favicon.png";
+  const src = asset(logo && logo !== "pink" ? `/logos/${logo}.webp` : "/favicon.png");
   return (
     <span
       className={cn("inline-flex items-center justify-center overflow-hidden rounded-[12px]", className)}

@@ -585,7 +585,7 @@ export function VibeSlide({
         <div className={cn("ps-2.5 pe-[68px]", FLOAT)}>
           <div className="flex items-center gap-2.5">
             <Link
-              to={`/app/u/${encodeURIComponent(vibe.author.username)}`}
+              to={`/profile/${encodeURIComponent(vibe.author.username)}`}
               aria-label={`Open @${handle}'s profile`}
               className="flex min-w-0 flex-1 items-center gap-2.5"
             >

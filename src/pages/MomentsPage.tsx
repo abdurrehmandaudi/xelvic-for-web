@@ -344,7 +344,7 @@ export function MomentsPage() {
         }
         // A Memory of a playlist is not a walk: it opens where that playlist is.
         if (memory.playlist) {
-          navigate(`/app/audio/${encodeURIComponent(String(memory.playlist.id))}`);
+          navigate(`/audio/${encodeURIComponent(String(memory.playlist.id))}`);
           return;
         }
         if (memory.sensitive && !memory.openable) {
@@ -623,7 +623,7 @@ export function MomentsPage() {
             onClick={() => {
               const username = sheetFor?.author?.username;
               setSheetFor(null);
-              if (username) navigate(`/app/u/${username}`);
+              if (username) navigate(`/profile/${username}`);
             }}
           />
           <SheetRow

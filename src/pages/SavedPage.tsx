@@ -92,8 +92,8 @@ function Row({ thing, onPrune }: { thing: SavedThing; onPrune: () => void }) {
       // The shelf's own kind, not the card's: everything on the Vibes rail is
       // filed as a vibe and everything else as a drop, which is the split the
       // two tables make.
-      if (thing.kind === "vibe") navigate(`/app/drops?vibe=${encodeURIComponent(card.id)}`);
-      else navigate(`/app/drops/${card.id}`);
+      if (thing.kind === "vibe") navigate(`/drops?vibe=${encodeURIComponent(card.id)}`);
+      else navigate(`/drops/${card.id}`);
       return;
     }
     if (track) player.play(track, [track]);

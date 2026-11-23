@@ -54,44 +54,44 @@ function PrefetchLink({
 }
 
 const primary = [
-  { to: "/app/drops", label: "Drops", icon: GalleryVerticalEnd, page: "drops" as ShellPage },
-  { to: "/app/moments", label: "Moments", icon: CirclePlay, page: "moments" as ShellPage },
-  { to: "/app/convo", label: "Convo", icon: MessageCircle, page: "convo" as ShellPage },
-  { to: "/app/audio", label: "Audio", icon: Headphones, page: "audio" as ShellPage },
-  { to: "/app/live", label: "Live", icon: Radio, page: "live" as ShellPage },
+  { to: "/drops", label: "Drops", icon: GalleryVerticalEnd, page: "drops" as ShellPage },
+  { to: "/moments", label: "Moments", icon: CirclePlay, page: "moments" as ShellPage },
+  { to: "/convo", label: "Convo", icon: MessageCircle, page: "convo" as ShellPage },
+  { to: "/audio", label: "Audio", icon: Headphones, page: "audio" as ShellPage },
+  { to: "/live", label: "Live", icon: Radio, page: "live" as ShellPage },
 ];
 
 const secondary = [
-  { to: "/app/search", label: "Search", icon: Search },
-  { to: "/app/alerts", label: "Notifications", icon: Bell },
-  { to: "/app/saved", label: "Saved", icon: Bookmark },
+  { to: "/search", label: "Search", icon: Search },
+  { to: "/alerts", label: "Notifications", icon: Bell },
+  { to: "/saved", label: "Saved", icon: Bookmark },
   // Named for where it goes. The screen behind this row is the app's Wallet —
   // the balance, the two numbers beside it, and the ledger that explains them —
   // so a row called "Sparks" would be promising a different page.
-  { to: "/app/sparks", label: "Wallet", icon: Wallet },
+  { to: "/sparks", label: "Wallet", icon: Wallet },
 ];
 
 /** The name a signed-in screen gives the tab, for the document title. */
 function titleForPath(pathname: string): string {
-  if (pathname.startsWith("/app/convo")) return "Convo";
-  if (pathname.startsWith("/app/moments")) return "Moments";
-  if (pathname.startsWith("/app/audio")) return "Audio";
-  if (pathname.startsWith("/app/live")) return "Live";
-  if (pathname.startsWith("/app/search")) return "Search";
-  if (pathname.startsWith("/app/alerts")) return "Notifications";
-  if (pathname.startsWith("/app/saved")) return "Saved";
-  if (pathname.startsWith("/app/settings")) return "Settings";
-  if (pathname.startsWith("/app/u/")) return "Profile";
-  if (pathname.startsWith("/app/drops")) return "Drops";
+  if (pathname.startsWith("/convo")) return "Convo";
+  if (pathname.startsWith("/moments")) return "Moments";
+  if (pathname.startsWith("/audio")) return "Audio";
+  if (pathname.startsWith("/live")) return "Live";
+  if (pathname.startsWith("/search")) return "Search";
+  if (pathname.startsWith("/alerts")) return "Notifications";
+  if (pathname.startsWith("/saved")) return "Saved";
+  if (pathname.startsWith("/settings")) return "Settings";
+  if (pathname.startsWith("/profile/")) return "Profile";
+  if (pathname.startsWith("/drops")) return "Drops";
   return "Xelvic";
 }
 
 function pageForPath(pathname: string): ShellPage | null {
-  if (pathname === "/app" || pathname.startsWith("/app/drops")) return "drops";
-  if (pathname.startsWith("/app/moments")) return "moments";
-  if (pathname.startsWith("/app/convo")) return "convo";
-  if (pathname.startsWith("/app/audio")) return "audio";
-  if (pathname.startsWith("/app/live")) return "live";
+  if (pathname === "/drops" || pathname.startsWith("/drops/")) return "drops";
+  if (pathname.startsWith("/moments")) return "moments";
+  if (pathname.startsWith("/convo")) return "convo";
+  if (pathname.startsWith("/audio")) return "audio";
+  if (pathname.startsWith("/live")) return "live";
   return null;
 }
 
@@ -150,7 +150,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
             className="flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left text-[13px] font-semibold hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]"
             onClick={() => {
               setOpen(false);
-              navigate(`/app/u/${user.username}`);
+              navigate(`/profile/${user.username}`);
             }}
           >
             <UserRound className="size-4 text-dim" /> Your profile
@@ -161,7 +161,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
             className="flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left text-[13px] font-semibold hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]"
             onClick={() => {
               setOpen(false);
-              navigate("/app/qr");
+              navigate("/qr");
             }}
           >
             <QrCode className="size-4 text-dim" /> My QR code
@@ -172,7 +172,7 @@ function ProfileMenu({ compact = false }: { compact?: boolean }) {
             className="flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left text-[13px] font-semibold hover:bg-[color-mix(in_srgb,var(--ink)_5%,transparent)]"
             onClick={() => {
               setOpen(false);
-              navigate("/app/settings");
+              navigate("/settings");
             }}
           >
             <Settings className="size-4 text-dim" /> Settings
@@ -201,7 +201,7 @@ export function AppShell() {
   const page = pageForPath(location.pathname);
   const backdrop = backdropFor(page);
   const art = backdrop?.art ?? null;
-  const inChat = location.pathname.startsWith("/app/convo");
+  const inChat = location.pathname.startsWith("/convo");
 
   /*
    * Everything behind this shell is the account's own room. It is not a page a
@@ -243,7 +243,7 @@ export function AppShell() {
         )}
       >
         <PrefetchLink
-          to="/app/drops"
+          to="/drops"
           className={cn("mb-7 flex items-center gap-2.5", inChat ? "justify-center px-0" : "px-1.5")}
           aria-label="Xelvic home"
         >
@@ -303,7 +303,7 @@ export function AppShell() {
 
         <div className="mt-auto space-y-2">
           <PrefetchLink
-            to="/app/drops?compose=1"
+            to="/drops?compose=1"
             className="flex min-h-11 items-center justify-center gap-2 rounded-[14px] bg-accent px-3 font-bold text-on-accent transition hover:brightness-105 active:scale-[.98]"
             title="Create a drop"
           >
@@ -311,7 +311,7 @@ export function AppShell() {
             <span className={cn("text-[13px]", inChat ? "hidden" : "hidden lg:block")}>New drop</span>
           </PrefetchLink>
           <PrefetchLink
-            to="/app/settings?section=marketplace"
+            to="/settings?section=marketplace"
             className={cn(
               "flex min-h-10 items-center justify-center gap-2 rounded-[12px] border border-line bg-card px-3 text-dim transition hover:text-ink md:justify-center",
               !inChat && "lg:justify-start",
@@ -332,22 +332,22 @@ export function AppShell() {
         )}
       >
         <header className="flex items-center gap-3 border-b border-line bg-[color-mix(in_srgb,var(--page)_88%,transparent)] px-4 py-3 backdrop-blur-xl md:hidden">
-          <PrefetchLink to="/app/drops" className="flex items-center gap-2" aria-label="Xelvic home">
+          <PrefetchLink to="/drops" className="flex items-center gap-2" aria-label="Xelvic home">
             <BrandMark size={30} />
             <span className="text-[15px] font-extrabold tracking-[-0.04em]">Xelvic</span>
           </PrefetchLink>
           <div className="ml-auto flex items-center gap-0.5">
-            <PrefetchLink to="/app/search" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Search">
+            <PrefetchLink to="/search" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Search">
               <Search className="size-[18px]" />
             </PrefetchLink>
-            <PrefetchLink to="/app/alerts" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Notifications">
+            <PrefetchLink to="/alerts" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Notifications">
               <Bell className="size-[18px]" />
             </PrefetchLink>
-            <PrefetchLink to="/app/sparks" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Rewards and themes">
+            <PrefetchLink to="/sparks" className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94]" aria-label="Rewards and themes">
               <Sparkles className="size-[18px]" />
             </PrefetchLink>
             {user ? (
-              <PrefetchLink to={`/app/u/${user.username}`} aria-label="Your profile" className="ml-1">
+              <PrefetchLink to={`/profile/${user.username}`} aria-label="Your profile" className="ml-1">
                 <Avatar user={user} size={32} />
               </PrefetchLink>
             ) : null}

@@ -745,7 +745,7 @@ export function MomentViewer({
   /** Open a Vibe where it plays, which is the Vibes walk and not a page. */
   function openVibe(id: string) {
     onClose();
-    navigate(`/app/drops?vibe=${encodeURIComponent(id)}`);
+    navigate(`/drops?vibe=${encodeURIComponent(id)}`);
   }
 
   /**
@@ -765,12 +765,12 @@ export function MomentViewer({
     }
     if (carried.kind === "drop") {
       onClose();
-      navigate(`/app/drops/${carried.id}`);
+      navigate(`/drops/${carried.id}`);
       return;
     }
     if (carried.kind === "sound") {
       onClose();
-      navigate("/app/audio");
+      navigate("/audio");
       return;
     }
     setBusy(true);
@@ -853,7 +853,7 @@ export function MomentViewer({
             if (drop.kind === "vibe") openVibe(String(drop.id));
             else {
               onClose();
-              navigate(`/app/drops/${drop.id}`);
+              navigate(`/drops/${drop.id}`);
             }
           }}
           onHoldSound={setSoundHeld}
@@ -927,7 +927,7 @@ export function MomentViewer({
           </span>
         ) : (
           <Link
-            to={author ? `/app/u/${author.username}` : "/app/moments"}
+            to={author ? `/profile/${author.username}` : "/moments"}
             onClick={onClose}
             aria-label={`Open ${author?.name || author?.username || "profile"}`}
             className="pointer-events-auto flex min-w-0 flex-1 items-center gap-2.5"
@@ -1447,7 +1447,7 @@ function RoundButton({
 function PersonRow({ person, trailing }: { person: UserCard; trailing?: string }) {
   return (
     <Link
-      to={`/app/u/${person.username}`}
+      to={`/profile/${person.username}`}
       className="flex items-center gap-3 px-4 py-2 transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]"
     >
       <Avatar user={person} size={38} />

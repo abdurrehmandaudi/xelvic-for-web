@@ -46,7 +46,7 @@ function RoomCard({ room }: { room: SpaceRoom }) {
 
   return (
     <Link
-      to={`/app/live/${room.id}`}
+      to={`/live/${room.id}`}
       className="group overflow-hidden rounded-[20px] border border-line bg-card transition hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--line))]"
     >
       <div

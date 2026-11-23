@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { absoluteImage, PUBLIC_ROUTES } from "@/seo";
 import type { Drop } from "@/types/api";
+import { mountedPath } from "@/utils/asset";
 import { count } from "@/utils/format";
 import { PublicAvatar, signInHref } from "./PublicShell";
 
@@ -124,7 +125,7 @@ function ShareButton({ path }: { path: string }) {
   const [copied, setCopied] = useState(false);
 
   async function share() {
-    const url = `${window.location.origin}${path}`;
+    const url = `${window.location.origin}${mountedPath(path)}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: "Xelvic", url });
@@ -241,14 +242,14 @@ export function PublicPostView({
 
       {authed ? (
         <div className="border-t border-line px-4 py-3 text-center text-xs text-dim sm:px-5">
-          Open Xelvic to like, comment and follow.
+          Open Xelvic to felt, respond and keep.
         </div>
       ) : (
         <div className="border-t border-line bg-[color-mix(in_srgb,var(--accent)_6%,var(--card))] px-4 py-3 text-center text-xs leading-5 text-dim sm:px-5">
           <Link to={signInHref(next)} className="font-bold text-accent hover:underline">
             Sign in to Xelvic
           </Link>{" "}
-          to like, comment and follow.
+          to felt, respond and keep.
         </div>
       )}
     </article>

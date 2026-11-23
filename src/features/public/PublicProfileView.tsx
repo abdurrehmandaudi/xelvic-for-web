@@ -43,7 +43,7 @@ export function PublicProfileView({
             <div className="ml-auto hidden pb-1 sm:block">
               {authed ? (
                 <Link
-                  to={`/app/u/${encodeURIComponent(profile.username)}`}
+                  to={`/profile/${encodeURIComponent(profile.username)}`}
                   className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-[13px] font-bold text-ink transition-colors hover:bg-ink-6"
                 >
                   Open in Xelvic
@@ -53,7 +53,7 @@ export function PublicProfileView({
                   to={signInHref(path)}
                   className="inline-flex min-h-10 items-center rounded-full bg-accent px-5 text-[13px] font-bold text-on-accent transition-[filter,transform] duration-[160ms] active:scale-[0.98] hover:brightness-105"
                 >
-                  Follow on Xelvic
+                  Keep on Xelvic
                 </Link>
               )}
             </div>
@@ -72,7 +72,7 @@ export function PublicProfileView({
             {typeof profile.followers_count === "number" ? (
               <span>
                 <strong className="font-extrabold text-ink">{count(profile.followers_count)}</strong>{" "}
-                followers
+                crew
               </span>
             ) : null}
             {typeof profile.following_count === "number" ? (
@@ -92,7 +92,7 @@ export function PublicProfileView({
           <div className="mt-4 sm:hidden">
             {authed ? (
               <Link
-                to={`/app/u/${encodeURIComponent(profile.username)}`}
+                to={`/profile/${encodeURIComponent(profile.username)}`}
                 className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-[13px] font-bold text-ink"
               >
                 Open in Xelvic
@@ -102,7 +102,7 @@ export function PublicProfileView({
                 to={signInHref(path)}
                 className="inline-flex min-h-10 items-center rounded-full bg-accent px-5 text-[13px] font-bold text-on-accent"
               >
-                Follow on Xelvic
+                Keep on Xelvic
               </Link>
             )}
           </div>
@@ -116,13 +116,13 @@ export function PublicProfileView({
           </span>
           <h2 className="mt-4 text-xl font-extrabold tracking-[-0.02em]">This account is private</h2>
           <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-dim">
-            Follow @{profile.username} on Xelvic to see their drops, vibes and moments.
+            Keep @{profile.username} on Xelvic to see their drops, vibes and moments.
           </p>
           <Link
             to={signInHref(path)}
             className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-[1.1rem] text-sm font-bold text-on-accent"
           >
-            Sign in to follow
+            Sign in to keep
           </Link>
         </section>
       ) : (
@@ -130,7 +130,7 @@ export function PublicProfileView({
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-[15px] font-extrabold tracking-[-0.2px]">Public drops</h2>
             {authed ? (
-              <Link to={`/app/u/${encodeURIComponent(profile.username)}`} className="text-[13px] font-bold text-accent hover:underline">
+              <Link to={`/profile/${encodeURIComponent(profile.username)}`} className="text-[13px] font-bold text-accent hover:underline">
                 See all
               </Link>
             ) : null}

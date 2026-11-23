@@ -196,7 +196,7 @@ function ItemTile({ item }: { item: VibeStudioItem }) {
   const caption = item.caption.trim();
   return (
     <Link
-      to={`/app/drops/vibes/studio/${item.id}`}
+      to={`/drops/vibes/studio/${item.id}`}
       className="flex items-center gap-3 rounded-[14px] px-2 py-2.5 transition hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]"
     >
       <AuthedImage

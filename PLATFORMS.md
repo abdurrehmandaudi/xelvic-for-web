@@ -7,7 +7,7 @@ contracts stay in `src/`; no screen was redesigned or reimplemented for a
 platform.
 
 Every shell wraps the **same built web client**. The reason is the same on each
-one: the live API answers CORS only for `https://web.xelvic.com`, so the page is
+one: the live API answers CORS only for `https://xelvic.com`, so the page is
 served from a local origin and every `/api`, `/media`, `/ws` and CDN request is
 proxied beside it. The page then sees one origin and the server's allow-list is
 never involved.
@@ -16,7 +16,7 @@ never involved.
 
 | Platform | Shell | Artifact | State |
 | --- | --- | --- | --- |
-| Web | Vite build of `src/` | `dist/` | The original app. Typecheck, lint and 483 tests pass |
+| Web | Vite build of `src/` | `dist/` | The original app. Typecheck, lint and 496 tests pass |
 | macOS | Electron 45 + `desktop/electron/*` | `Xelvic-0.1.0-arm64.dmg` (139 MB) | Launched and exercised: login, media, WebSocket path |
 | Windows | Electron 45 + the same main/proxy | `Xelvic-0.1.0-x64.zip` (169 MB) | Built on macOS; not run on Windows yet |
 | Linux | Electron 45 + the same main/proxy | `Xelvic-0.1.0-x64.tar.gz` (137 MB) | Built on macOS; not run on Linux yet |
@@ -148,7 +148,7 @@ Flags for the desktop build: `VITE_API_URL` / `VITE_WS_URL` are set by
 
 ## Verification recorded
 
-- `npm test` — **483/483 tests pass** (43 files)
+- `npm test` — **496/496 tests pass** (44 files)
 - `npm run typecheck` — clean
 - `npm run lint` — 0 errors, 2 pre-existing `exhaustive-deps` warnings in
   `VibeSlide.tsx`

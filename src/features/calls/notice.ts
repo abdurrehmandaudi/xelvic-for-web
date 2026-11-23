@@ -30,12 +30,19 @@
 import type { CallKind, CallPhase } from "./model";
 import { personName } from "./model";
 import type { CallSeat } from "@/services/calls.service";
+import { asset } from "@/utils/asset";
 
 /** The one tag a call's row is kept under, so it can be taken back down. */
 export const CALL_NOTICE_TAG = "xelvic-call";
 
-/** Where the worker that draws the buttons lives. */
-export const CALL_WORKER_URL = "/call-sw.js";
+/**
+ * Where the worker that draws the buttons lives.
+ *
+ * It is at the site root, so its scope is the client's own origin. That is
+ * harmless because the worker has no `fetch` handler and caches nothing; it
+ * draws a call row and passes the press back to the page.
+ */
+export const CALL_WORKER_URL = asset("/call-sw.js");
 
 export function callNoticesSupported(): boolean {
   return typeof window !== "undefined" && typeof Notification !== "undefined";

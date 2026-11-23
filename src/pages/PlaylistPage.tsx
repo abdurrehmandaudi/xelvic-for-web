@@ -25,6 +25,7 @@ import { EmptyState, ErrorState, PageSkeleton } from "@/components/ui/States";
 import { TrackRow } from "@/features/audio/TrackRow";
 import { audioService } from "@/services/audio.service";
 import { chatService } from "@/services/chat.service";
+import { mountedPath } from "@/utils/asset";
 import { count, duration } from "@/utils/format";
 import { uploadAsset } from "@/utils/upload";
 import { usePlayer } from "@/hooks/usePlayer";
@@ -125,7 +126,7 @@ export function PlaylistPage() {
       await audioService.deletePlaylist(playlist.id);
       await queryClient.invalidateQueries({ queryKey: ["audio-home"] });
       toast({ title: "Playlist taken down", tone: "success" });
-      navigate("/app/audio");
+      navigate("/audio");
     } catch (error) {
       toast({
         title: "Could not take it down",
@@ -215,7 +216,7 @@ export function PlaylistPage() {
       const made = await audioService.share(playlist.id, { link: true });
       await queryClient.invalidateQueries({ queryKey: ["playlist-shares", playlistId] });
       if (made.token) {
-        const url = `${window.location.origin}/s/${made.token}`;
+        const url = `${window.location.origin}${mountedPath(`/s/${made.token}`)}`;
         await navigator.clipboard.writeText(url);
         toast({ title: "Link copied", description: "Anyone holding it can listen.", tone: "success" });
       } else {
@@ -282,7 +283,7 @@ export function PlaylistPage() {
         ) : detail.isError ? (
           <div className="rounded-control border border-line bg-card"><ErrorState error={detail.error} onRetry={() => void detail.refetch()} /></div>
         ) : !playlist ? (
-          <div className="rounded-control border border-line bg-card"><EmptyState icon={<ListMusic className="size-6" />} title="This playlist is not here" body="It may have been taken down, or the link may be wrong." action={<Button onClick={() => navigate("/app/audio")}>Back to Audio</Button>} /></div>
+          <div className="rounded-control border border-line bg-card"><EmptyState icon={<ListMusic className="size-6" />} title="This playlist is not here" body="It may have been taken down, or the link may be wrong." action={<Button onClick={() => navigate("/audio")}>Back to Audio</Button>} /></div>
         ) : (
           <>
             <section className="relative overflow-hidden rounded-[24px] border border-line bg-[color-mix(in_srgb,var(--accent)_10%,var(--card))] p-5">
@@ -530,7 +531,7 @@ export function PlaylistPage() {
 
       {playlist && !playlist.mine ? (
         <div className="mx-auto mt-4 max-w-[900px] px-4 pb-8 text-center text-[11px] text-dim md:px-7">
-          Shared with you by <Link to={`/app/u/${playlist.owner_username}`} className="font-bold text-accent hover:underline">{playlist.owner || "the owner"}</Link>.
+          Shared with you by <Link to={`/profile/${playlist.owner_username}`} className="font-bold text-accent hover:underline">{playlist.owner || "the owner"}</Link>.
         </div>
       ) : null}
     </div>

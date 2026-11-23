@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog, Modal } from "@/components/overlays/Modal";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/ui/States";
 import { cn } from "@/utils/cn";
+import { mountedPath } from "@/utils/asset";
 import { count, relativeTime } from "@/utils/format";
 import { RoomCover, crowdLine, whenRoom } from "@/features/live/parts";
 import { ReportSheet } from "@/features/report/ReportSheet";
@@ -329,7 +330,7 @@ export function RoomPage() {
     if (!room) return "";
     const who = room.host?.name || room.host?.username || "Somebody";
     const what = room.kind === "stream" ? "is live" : room.kind === "ama" ? "is taking questions" : "is on";
-    const url = `${window.location.origin}/app/live/${room.id}`;
+    const url = `${window.location.origin}${mountedPath(`/live/${room.id}`)}`;
     return `${who} ${what}: ${room.title} — on Live in Xelvic. ${url}`;
   }
 
@@ -459,7 +460,7 @@ export function RoomPage() {
         ) : roomQuery.isError && !room ? (
           <div className="rounded-control border border-line bg-card"><ErrorState error={roomQuery.error} onRetry={() => void roomQuery.refetch()} /></div>
         ) : !room ? (
-          <div className="rounded-control border border-line bg-card"><EmptyState icon={<Radio className="size-6" />} title="This room is not here" body="It may have ended or the link may be wrong." action={<Link to="/app/live" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105">Back to Live</Link>} /></div>
+          <div className="rounded-control border border-line bg-card"><EmptyState icon={<Radio className="size-6" />} title="This room is not here" body="It may have ended or the link may be wrong." action={<Link to="/live" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-transparent bg-accent text-on-accent hover:[&:not(:disabled)]:brightness-105">Back to Live</Link>} /></div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
             <div className="space-y-4">
