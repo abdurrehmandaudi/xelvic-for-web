@@ -1,4 +1,13 @@
-import { useMemo, useState, type ReactNode } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -17,6 +26,7 @@ import {
   QrCode,
   Settings,
   UserRound,
+  X,
 } from "lucide-react";
 import { Backdrop } from "@/components/layout/Backdrop";
 import { ConfirmDialog, Modal } from "@/components/overlays/Modal";
@@ -66,7 +76,12 @@ import { useTheme } from "@/hooks/useTheme";
 import { useWideScreen } from "@/hooks/useWideScreen";
 import { useToast } from "@/hooks/useToast";
 import { authService } from "@/services/auth.service";
+import { CrewList } from "@/pages/CrewPage";
 import type { Me } from "@/types/api";
+
+const SparksWallet = lazy(() =>
+  import("@/pages/SparksPage").then((mod) => ({ default: mod.SparksPage })),
+);
 
 /**
  * My own profile — the page about me, drawn from my account rather than from
@@ -99,11 +114,58 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
   const queryClient = useQueryClient();
 
   const [menu, setMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState<{
+    top: number;
+    right: number;
+    maxHeight: number;
+  } | null>(null);
   const [photo, setPhoto] = useState(false);
   const [privacyGoing, setPrivacyGoing] = useState<boolean | null>(null);
   const [privacyBusy, setPrivacyBusy] = useState(false);
   /** The link a tap is asking about, before it is taken. See `openLink`. */
   const [going, setGoing] = useState<{ url: string; word: string } | null>(null);
+  const [panel, setPanel] = useState<null | "crew" | "kept" | "spark">(null);
+
+  const openMenuAt = (event: MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setMenuPos({
+      top: rect.bottom + 8,
+      right: Math.max(12, window.innerWidth - rect.right),
+      maxHeight: Math.max(180, window.innerHeight - rect.bottom - 16),
+    });
+    setMenu(true);
+  };
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(false);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+      }
+    };
+    window.addEventListener("scroll", close, { passive: true });
+    window.addEventListener("resize", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("scroll", close);
+      window.removeEventListener("resize", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
+
+  useEffect(() => {
+    if (!panel) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setPanel(null);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [panel]);
 
   const me = user as Me | null;
   const figure = usePosedFigure(me?.character ?? null, null);
@@ -212,20 +274,20 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
       key: "crew",
       label: t("Crew"),
       value: me.followers_count,
-      onTap: () => navigate(`/app/u/${handle}/crew/followers`),
+      onTap: () => setPanel("crew"),
       faded: me.show_crew !== true,
     },
     {
       key: "kept",
       label: t("Kept"),
       value: me.following_count,
-      onTap: () => navigate(`/app/u/${handle}/crew/following`),
+      onTap: () => setPanel("kept"),
     },
     {
       key: "spark",
       label: t("Spark"),
       value: typeof sparks.data?.total === "number" ? sparks.data.total : null,
-      onTap: () => navigate("/app/sparks"),
+      onTap: () => setPanel("spark"),
       faded: me.show_sparks === false,
     },
   ];
@@ -252,7 +314,12 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
   );
 
   return (
-    <div className="relative isolate min-h-dvh bg-card pb-24 sm:pb-[calc(26px+env(safe-area-inset-bottom,0px))]">
+    <div
+      className={cn(
+        "relative isolate min-h-dvh bg-card pb-24 transition-[padding] duration-300 ease-out motion-reduce:transition-none sm:pb-[calc(26px+env(safe-area-inset-bottom,0px))]",
+        panel && "md:pr-[350px]",
+      )}
+    >
       {/* The page's own ground, and the lowest thing on it: a theme that drew a
           profile stands behind this whole page, the same way it stands behind
           the five the shell holds. Drawn first so the card and everything in the
@@ -277,7 +344,9 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
             type="button"
             aria-label={t("More")}
             title={t("More")}
-            onClick={() => setMenu(true)}
+            aria-haspopup="menu"
+            aria-expanded={menu}
+            onClick={openMenuAt}
             className={COVER_CONTROL}
           >
             <MoreHorizontal className="size-[18px]" aria-hidden />
@@ -436,28 +505,50 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
           scrolls. */}
       {birthdayToday ? <BirthdayFall /> : null}
 
-      <Modal open={menu} onClose={() => setMenu(false)} size="sm" hideClose>
-        <div className="py-1.5">
-          <SheetRow
-            icon={<UserRound className="size-[18px]" />}
-            label={t("Profile")}
-            line={t("Your photo, your name and your era.")}
-            onClick={() => {
-              setMenu(false);
-              navigate("/app/settings?section=profile");
-            }}
-          />
-          <SheetRow
-            icon={<Settings className="size-[18px]" />}
-            label={t("Settings")}
-            line={t("Privacy, notifications and the way out.")}
-            onClick={() => {
-              setMenu(false);
-              navigate("/app/settings");
-            }}
-          />
-        </div>
-      </Modal>
+      {menu && menuPos
+        ? createPortal(
+            <div className="fixed inset-0 z-[70]">
+              <button
+                type="button"
+                className="absolute inset-0 bg-transparent"
+                onClick={() => setMenu(false)}
+                aria-label={t("Close")}
+                tabIndex={-1}
+              />
+              <div
+                role="menu"
+                style={{
+                  top: menuPos.top,
+                  right: menuPos.right,
+                  maxHeight: menuPos.maxHeight,
+                }}
+                className="absolute w-[min(19rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-[14px] border border-line bg-card p-1.5 shadow-[0_18px_50px_-18px_color-mix(in_srgb,var(--ink)_40%,transparent)]"
+              >
+                <div className="py-1.5">
+                  <SheetRow
+                    icon={<UserRound className="size-[18px]" />}
+                    label={t("Profile")}
+                    line={t("Your photo, your name and your era.")}
+                    onClick={() => {
+                      setMenu(false);
+                      navigate("/app/settings?section=profile");
+                    }}
+                  />
+                  <SheetRow
+                    icon={<Settings className="size-[18px]" />}
+                    label={t("Settings")}
+                    line={t("Privacy, notifications and the way out.")}
+                    onClick={() => {
+                      setMenu(false);
+                      navigate("/app/settings");
+                    }}
+                  />
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {/* The photo, as large as it goes — the one place it is shown at more than
           the size of a thumbnail, and the same dialog the app opens on a tap. */}
@@ -490,6 +581,60 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
         confirmLabel={t("Open now")}
         icon={<ExternalLink className="size-5" />}
       />
+
+      <aside
+        className={cn(
+          "fixed inset-0 z-[80] flex w-full flex-col overflow-hidden border-line bg-card transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none md:inset-auto md:right-0 md:top-0 md:z-30 md:h-dvh md:w-[350px] md:border-l",
+          panel
+            ? "translate-x-0 opacity-100"
+            : "pointer-events-none translate-x-full opacity-0 md:opacity-100",
+        )}
+        aria-hidden={!panel}
+        aria-label={
+          panel === "crew" ? t("Crew") : panel === "kept" ? t("Kept") : t("Wallet")
+        }
+      >
+        <div className="flex h-full w-full shrink-0 flex-col md:w-[350px]">
+          {panel ? (
+            <>
+              <header className="flex shrink-0 items-center gap-3 border-b border-line px-3.5 py-2.5">
+                <h2 className="min-w-0 flex-1 truncate text-[14px] font-extrabold tracking-[-0.02em]">
+                  {panel === "crew"
+                    ? t("Crew")
+                    : panel === "kept"
+                      ? t("Kept")
+                      : t("Wallet")}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setPanel(null)}
+                  aria-label={t("Close")}
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-dim transition hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] hover:text-ink active:scale-95"
+                >
+                  <X className="size-5" />
+                </button>
+              </header>
+              <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
+                {panel === "crew" ? (
+                  <CrewList username={handle} kind="followers" />
+                ) : panel === "kept" ? (
+                  <CrewList username={handle} kind="following" />
+                ) : (
+                  <Suspense
+                    fallback={
+                      <div className="flex justify-center py-16">
+                        <span className="size-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                      </div>
+                    }
+                  >
+                    <SparksWallet panel />
+                  </Suspense>
+                )}
+              </div>
+            </>
+          ) : null}
+        </div>
+      </aside>
     </div>
   );
 }

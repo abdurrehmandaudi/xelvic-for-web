@@ -96,7 +96,7 @@ function Head({ children, right }: { children: React.ReactNode; right?: React.Re
   );
 }
 
-export function SparksPage() {
+export function SparksPage({ panel = false }: { panel?: boolean }) {
   const navigate = useNavigate();
   const { t } = usePreferences();
   const { user } = useAuth();
@@ -200,10 +200,16 @@ export function SparksPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[760px] pb-[calc(100px+env(safe-area-inset-bottom,0px))] md:pb-16">
-      <PageHeader title={t("Wallet")} back />
+    <div
+      className={cn(
+        panel
+          ? "w-full pb-6"
+          : "mx-auto w-full max-w-[760px] pb-[calc(100px+env(safe-area-inset-bottom,0px))] md:pb-16",
+      )}
+    >
+      {panel ? null : <PageHeader title={t("Wallet")} back />}
 
-      <div className="px-4 pt-1">
+      <div className={panel ? "px-4 pt-4" : "px-4 pt-1"}>
         {/* ---- the balance, with what it is not said underneath ------------ */}
         <div className="rounded-[18px] border border-line bg-card px-[18px] pb-4 pt-[18px]">
           <div className="flex items-end">

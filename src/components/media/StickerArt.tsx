@@ -35,23 +35,19 @@ import { cn } from "@/utils/cn";
  * 312, and even after jumping to the very bottom **216 cells were still empty**.
  * On a shelf 11,941 pixels tall, that reads as stickers that never came.
  *
- * So a shelf that has been asked for is asked for *eagerly* (`eager`), which is
- * why this file no longer leans on lazy loading to keep the downloads down. The
- * cost is written down rather than hidden, and it is measured rather than
- * guessed: a cold open of the shelf pulls **602 pictures, 26 MB, one request
- * each**, and the last of them is drawn about 7.5 seconds after the panel
- * appears. (An earlier estimate from `content-length` headers on a sample of
- * twenty-five said 54 MB; the wire count says 26 MB, and the wire count is the
- * one to believe.) Every one of them answers `immutable, max-age=2592000`, so it
- * is paid once a month rather than once a visit — a warm re-open costs almost
- * nothing — and the shelf turns the flag on a beat after it opens, so that the
- * first screenful keeps the connections to itself.
+ * A cell is now drawn *eagerly* the moment it is built, which is why this file
+ * does not lean on lazy loading to keep the downloads down — and it is built by
+ * a grid that only builds what is near the window it scrolls in, the way the
+ * phone's own `GridView.builder` does. A cold open of the shelf pulls a
+ * screenful, one request each, and every one of them answers `immutable,
+ * max-age=2592000`, so it is paid once a month rather than once a visit.
  *
  * Three things this must not do, and does not:
  *
  * - **Fetch a picture twice.** The measurement reads the very `<img>` the grid
  *   has loaded, so measuring costs no request of its own — not even for the
- *   six hundredth sticker.
+ *   six hundredth sticker. A cell the window has moved away from and back to
+ *   draws from what was measured the first time round.
  * - **Break a sticker because its host forbids reading it.** Reading a canvas
  *   needs the picture's own CORS header. The picture is requested with
  *   `crossorigin="anonymous"` so it can be measured; if the host refuses that
@@ -69,8 +65,15 @@ export interface InkBox {
   h: number;
 }
 
+/** What a picture is, once it has been seen: its ink, and the file it was in. */
+interface Measured {
+  ink: InkBox | null;
+  width: number;
+  height: number;
+}
+
 /** What has already been measured, by URL: the shelf is redrawn many times. */
-const measured = new Map<string, InkBox | null>();
+const measured = new Map<string, Measured>();
 
 /** How wide the picture is drawn while its alpha is being read. */
 const SAMPLE = 128;
@@ -153,26 +156,19 @@ function place(ink: InkBox, natural: { width: number; height: number }) {
 
 export function StickerArt({
   url,
-  eager = false,
   className,
 }: {
   url: string;
-  /**
-   * Draw this sticker whether or not it is near the window — except an animated
-   * one, which is left to the window because six hundred of them are hundreds of
-   * megabytes of movement. The shelf of six hundred turns this on once it is
-   * open, so that a scroll never arrives before the picture does — and turns it
-   * off again when it closes, so the downloads are asked for by somebody who
-   * actually opened the shelf.
-   */
-  eager?: boolean;
   className?: string;
 }) {
   // `null` with `known` false means "not measured yet", and the plain drawing
   // is what a cell shows until it is.
-  const [ink, setInk] = useState<InkBox | null>(() => measured.get(url) ?? null);
-  const [known, setKnown] = useState(() => measured.has(url));
-  const [natural, setNatural] = useState<{ width: number; height: number } | null>(null);
+  const kept = measured.get(url);
+  const [ink, setInk] = useState<InkBox | null>(() => kept?.ink ?? null);
+  const [known, setKnown] = useState(() => Boolean(kept));
+  const [natural, setNatural] = useState<{ width: number; height: number } | null>(
+    () => (kept ? { width: kept.width, height: kept.height } : null),
+  );
   // Whether this picture may be asked for with CORS, which is what makes its
   // alpha readable. A host that refuses the request gets asked again without it.
   const [crossed, setCrossed] = useState(true);
@@ -184,7 +180,7 @@ export function StickerArt({
       const size = { width: element.naturalWidth, height: element.naturalHeight };
       if (!size.width || !size.height) return;
       const found = inkOf(element);
-      measured.set(url, found);
+      measured.set(url, { ink: found, width: size.width, height: size.height });
       setNatural(size);
       setInk(found);
       setKnown(true);
@@ -201,11 +197,14 @@ export function StickerArt({
   }, [animated, read]);
 
   // A URL that changed under us (a different sticker in the same cell) starts
-  // again rather than showing the last one's shape.
+  // again rather than showing the last one's shape. One that has been drawn
+  // before starts where it left off, because a grid that only builds what is
+  // near the window draws the same cell again every time it is scrolled back to.
   useEffect(() => {
-    setInk(measured.get(url) ?? null);
-    setKnown(measured.has(url));
-    setNatural(null);
+    const was = measured.get(url);
+    setInk(was?.ink ?? null);
+    setKnown(Boolean(was));
+    setNatural(was ? { width: was.width, height: was.height } : null);
   }, [url]);
 
   const spot =
@@ -217,7 +216,7 @@ export function StickerArt({
         ref={node}
         src={url}
         alt=""
-        loading={eager && !animated ? "eager" : "lazy"}
+        loading="eager"
         decoding="async"
         crossOrigin={!animated && crossed ? "anonymous" : undefined}
         onLoad={(event) => {

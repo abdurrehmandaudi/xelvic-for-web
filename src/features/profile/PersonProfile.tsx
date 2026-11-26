@@ -34,6 +34,7 @@ import {
 import { MdVerified } from "react-icons/md";
 import { FaRegCommentDots, FaUserPlus, FaUserCheck } from "react-icons/fa6";
 import { Blank } from "@/components/ui/Blank";
+import { Spinner } from "@/components/ui/Button";
 import {
   ConfirmDialog,
   Modal,
@@ -200,6 +201,7 @@ export function PersonProfile() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [convoOpen, setConvoOpen] = useState(false);
   const [sparkOpen, setSparkOpen] = useState(false);
+  const panelOpen = sparkOpen || convoOpen;
 
   const openMenuAt = (event: MouseEvent<HTMLButtonElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -329,6 +331,25 @@ export function PersonProfile() {
     enabled: sparkOpen && Boolean(convo?.id),
     staleTime: 10_000,
   });
+
+  useEffect(() => {
+    if (!panelOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSparkOpen(false);
+        setConvoOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [panelOpen]);
+
+  useEffect(() => {
+    if (sparkOpen && spark.isFetched && spark.data == null) {
+      setSparkOpen(false);
+    }
+  }, [sparkOpen, spark.isFetched, spark.data]);
 
   function keepName(next: string) {
     if (!profile) return;
@@ -729,7 +750,12 @@ export function PersonProfile() {
   );
 
   return (
-    <div className="relative isolate min-h-dvh bg-card pb-24 sm:pb-[calc(26px+env(safe-area-inset-bottom,0px))]">
+    <div
+      className={cn(
+        "relative isolate min-h-dvh bg-card pb-24 transition-[padding] duration-300 ease-out motion-reduce:transition-none sm:pb-[calc(26px+env(safe-area-inset-bottom,0px))]",
+        convo && panelOpen && "md:pr-[350px]",
+      )}
+    >
       <article className="overflow-hidden bg-card">
         <ProfileCover url={profile.cover} art={design.coverArt}>
           <button
@@ -1030,6 +1056,7 @@ export function PersonProfile() {
                         line={t("The run the two of you are on.")}
                         onClick={() => {
                           setMenu(false);
+                          setConvoOpen(false);
                           setSparkOpen(true);
                         }}
                       />
@@ -1039,6 +1066,7 @@ export function PersonProfile() {
                         line={t("Wallpaper, theme, disappearing and the rest.")}
                         onClick={() => {
                           setMenu(false);
+                          setSparkOpen(false);
                           setConvoOpen(true);
                         }}
                       />
@@ -1065,31 +1093,52 @@ export function PersonProfile() {
       />
 
       {convo ? (
-        <ConvoSheet
-          open={convoOpen}
-          onClose={() => setConvoOpen(false)}
-          thread={convo}
-          kind="convo"
-          onChanged={() =>
-            void queryClient.invalidateQueries({ queryKey: ["threads"] })
-          }
-          onGone={() => {
-            setConvoOpen(false);
-            void queryClient.invalidateQueries({ queryKey: ["threads"] });
-          }}
-        />
-      ) : null}
-
-      {convo ? (
-        <SparkSheet
-          open={sparkOpen}
-          threadId={String(convo.id)}
-          title={name}
-          spark={spark.data ?? null}
-          face={profile}
-          onClose={() => setSparkOpen(false)}
-          onChanged={() => void spark.refetch()}
-        />
+        <aside
+          className={cn(
+            "fixed inset-0 z-[80] flex w-full flex-col overflow-hidden border-line bg-card transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none md:inset-auto md:right-0 md:top-0 md:z-30 md:h-dvh md:w-[350px] md:border-l",
+            panelOpen
+              ? "translate-x-0 opacity-100"
+              : "pointer-events-none translate-x-full opacity-0 md:opacity-100",
+          )}
+          aria-hidden={!panelOpen}
+          aria-label={sparkOpen ? t("Spark") : t("Convo settings")}
+        >
+          <div className="flex h-full w-full shrink-0 flex-col md:w-[350px]">
+            {sparkOpen ? (
+              spark.data ? (
+                <SparkSheet
+                  open={sparkOpen}
+                  variant="panel"
+                  threadId={String(convo.id)}
+                  title={name}
+                  spark={spark.data}
+                  face={profile}
+                  onClose={() => setSparkOpen(false)}
+                  onChanged={() => void spark.refetch()}
+                />
+              ) : (
+                <div className="grid h-full place-items-center">
+                  <Spinner className="size-6 text-accent" />
+                </div>
+              )
+            ) : convoOpen ? (
+              <ConvoSheet
+                open={convoOpen}
+                variant="panel"
+                onClose={() => setConvoOpen(false)}
+                thread={convo}
+                kind="convo"
+                onChanged={() =>
+                  void queryClient.invalidateQueries({ queryKey: ["threads"] })
+                }
+                onGone={() => {
+                  setConvoOpen(false);
+                  void queryClient.invalidateQueries({ queryKey: ["threads"] });
+                }}
+              />
+            ) : null}
+          </div>
+        </aside>
       ) : null}
 
       <Modal

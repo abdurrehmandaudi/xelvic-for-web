@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Search, Star, X } from "lucide-react";
 import { Spinner } from "@/components/ui/Button";
 import {
@@ -12,6 +19,7 @@ import {
 import { StickerArt } from "@/components/media/StickerArt";
 import { cn } from "@/utils/cn";
 import {
+  shelfPreview,
   siftShelf,
   stickersService,
   type ShelfSticker,
@@ -22,7 +30,11 @@ type Narrow = "all" | "recent" | "saved";
 
 const HOLD_MS = 420;
 
-const GIF_CHUNK = 24;
+const COLUMNS = 4;
+
+const SPARE_ROWS = 3;
+
+const FIRST_ROWS = 4;
 
 export function StickerSheet({
   open,
@@ -45,11 +57,9 @@ export function StickerSheet({
   const didHold = useRef(false);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [eager, setEager] = useState(false);
-  const [gifCap, setGifCap] = useState(GIF_CHUNK);
+  const [framed, setFramed] = useState<[number, number]>([0, FIRST_ROWS]);
   const root = useRef<HTMLDivElement>(null);
   const grid = useRef<HTMLDivElement>(null);
-  const sentinel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -77,26 +87,6 @@ export function StickerSheet({
       cancelled = true;
     };
   }, [open]);
-
-  // Every sticker on the shelf gets drawn, not only the dozen the eye can reach
-  // at once. Measured in the running app on 2026-11-12, with the pictures left
-  // to load themselves: of 602 cells, 526 were still empty when the panel
-  // opened and **216 were still empty after a scroll to the very end** — a
-  // shelf 11,941 pixels tall arriving blank behind the reader. That is what the
-  // owner saw and reported: *"Abhi sabhi stickers nahi aa raha hai, please ise
-  // fix kijiye jisse sabhi stickers aaye"*.
-  //
-  // So a beat after the shelf opens — long enough for the first screenful to
-  // take the connections — the rest are asked for too. The beat is why this is
-  // a timer rather than a plain `true`.
-  useEffect(() => {
-    if (!open || !rows.length) {
-      setEager(false);
-      return;
-    }
-    const soon = setTimeout(() => setEager(true), 350);
-    return () => clearTimeout(soon);
-  }, [open, rows.length]);
 
   // The box is emptied each time the shelf is opened, which is what the phone
   // does: a search that survived a close would hide the shelf the next time
@@ -139,28 +129,41 @@ export function StickerSheet({
     () => new Set(saved.map((row) => row.url)),
     [saved],
   );
-  const cells = kind === "gif" ? shown.slice(0, gifCap) : shown;
-  const more = cells.length < shown.length;
+  const lanes = Math.ceil(shown.length / COLUMNS);
 
-  useEffect(() => {
-    setGifCap(GIF_CHUNK);
-  }, [kind, narrow, find]);
-
-  useEffect(() => {
+  const frame = useCallback(() => {
     const view = grid.current;
-    const gate = sentinel.current;
-    if (kind !== "gif" || !view || !gate) return;
-    const watcher = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setGifCap((now) => Math.min(now + GIF_CHUNK, shown.length));
-        }
-      },
-      { root: view, rootMargin: "200px" },
+    const inner = view?.firstElementChild;
+    const cell = inner?.firstElementChild;
+    if (!(view && inner instanceof HTMLElement && cell instanceof HTMLElement)) {
+      return;
+    }
+    const pitch =
+      cell.getBoundingClientRect().height +
+      (Number.parseFloat(getComputedStyle(inner).rowGap) || 0);
+    if (!pitch) return;
+    const pad = Number.parseFloat(getComputedStyle(view).paddingTop) || 0;
+    const seen = Math.ceil(view.clientHeight / pitch);
+    const top = Math.min(
+      Math.max(0, Math.floor((view.scrollTop - pad) / pitch) - SPARE_ROWS),
+      Math.max(0, lanes - 1),
     );
-    watcher.observe(gate);
-    return () => watcher.disconnect();
-  }, [kind, shown.length, gifCap]);
+    const end = Math.min(lanes, top + seen + SPARE_ROWS * 2 + 1);
+    setFramed((was) => (was[0] === top && was[1] === end ? was : [top, end]));
+  }, [lanes]);
+
+  useLayoutEffect(() => {
+    const view = grid.current;
+    if (!lanes || !view) return;
+    frame();
+    view.addEventListener("scroll", frame, { passive: true });
+    const watcher = new ResizeObserver(frame);
+    watcher.observe(view);
+    return () => {
+      view.removeEventListener("scroll", frame);
+      watcher.disconnect();
+    };
+  }, [lanes, frame]);
 
   function toggleStar(row: ShelfSticker) {
     stickersService.star(row);
@@ -273,7 +276,7 @@ export function StickerSheet({
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-1">
-            {cells.map((row) => (
+            {shown.map((row, index) => (
               <button
                 key={row.id}
                 type="button"
@@ -298,7 +301,9 @@ export function StickerSheet({
                 aria-label={row.name || "Sticker"}
                 title={row.packName || row.name || undefined}
               >
-                <StickerArt url={row.url} eager={eager && kind !== "gif"} />
+                {index >= framed[0] * COLUMNS && index < framed[1] * COLUMNS ? (
+                  <StickerArt url={shelfPreview(row)} />
+                ) : null}
                 {starred.has(row.url) ? (
                   <Star
                     className="absolute right-1 top-1 size-3.5 fill-current text-accent"
@@ -307,9 +312,6 @@ export function StickerSheet({
                 ) : null}
               </button>
             ))}
-            {more ? (
-              <div ref={sentinel} className="col-span-4 h-px" aria-hidden />
-            ) : null}
           </div>
         )}
       </div>

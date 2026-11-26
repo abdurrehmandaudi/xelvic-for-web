@@ -44,6 +44,23 @@ function nameOf(person: UserCard): string {
 export function CrewPage() {
   const { username = "", kind = "followers" } = useParams();
   const which: Kind = kind === "following" ? "following" : "followers";
+  const { t } = usePreferences();
+  return (
+    <div className="mx-auto w-full max-w-[760px] pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-14">
+      <PageHeader title={which === "following" ? t("Kept") : t("Crew")} back />
+      <CrewList username={username} kind={which} />
+    </div>
+  );
+}
+
+export function CrewList({
+  username,
+  kind,
+}: {
+  username: string;
+  kind: Kind;
+}) {
+  const which: Kind = kind;
   const { user, updateUser } = useAuth();
   const { t } = usePreferences();
   const { toast } = useToast();
@@ -130,12 +147,8 @@ export function CrewPage() {
     }
   }
 
-  const title = which === "following" ? t("Kept") : t("Crew");
-
   return (
-    <div className="mx-auto w-full max-w-[760px] pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-14">
-      <PageHeader title={title} back />
-
+    <>
       {waiting ? (
         <div className="flex justify-center py-16">
           <span className="size-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
@@ -255,6 +268,6 @@ export function CrewPage() {
         loading={busy}
         icon={<UserMinus className="size-5" />}
       />
-    </div>
+    </>
   );
 }

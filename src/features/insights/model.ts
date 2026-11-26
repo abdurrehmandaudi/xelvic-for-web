@@ -53,6 +53,7 @@ export interface InsightMetric {
   previous: number;
   change: InsightChange;
   points: InsightPoint[];
+  previousPoints: InsightPoint[];
 }
 
 /** A heading the screen groups metrics under, as the server named it. */
@@ -230,13 +231,37 @@ function floorOf(day: string, by: Buckets): string {
  * beside them.
  */
 export function bucket(points: InsightPoint[], by: Buckets): InsightPoint[] {
-  if (by === "day" || points.length < 2) return points;
-  const sums = new Map<string, number>();
-  for (const point of points) {
+  return paired(points, [], by).points;
+}
+
+export function paired(
+  points: InsightPoint[],
+  previous: InsightPoint[],
+  by: Buckets,
+): { points: InsightPoint[]; previous: InsightPoint[] } {
+  if (by === "day" || points.length < 2) return { points, previous };
+  const groups: number[][] = [];
+  const keys: string[] = [];
+  points.forEach((point, index) => {
     const key = floorOf(point.day, by);
-    sums.set(key, (sums.get(key) ?? 0) + point.value);
-  }
-  return [...sums.entries()].map(([day, value]) => ({ day, value }));
+    if (keys[keys.length - 1] !== key) {
+      keys.push(key);
+      groups.push([]);
+    }
+    groups[groups.length - 1].push(index);
+  });
+  const sum = (series: InsightPoint[], at: number[]) =>
+    at.reduce((total, index) => total + (series[index]?.value ?? 0), 0);
+  return {
+    points: groups.map((at, index) => ({ day: keys[index], value: sum(points, at) })),
+    previous:
+      previous.length === 0
+        ? []
+        : groups.map((at, index) => ({
+            day: previous[at[0]] ? floorOf(previous[at[0]].day, by) : keys[index],
+            value: sum(previous, at),
+          })),
+  };
 }
 
 /**
@@ -312,6 +337,10 @@ function readMetric(raw: Record<string, unknown>): InsightMetric {
     previous: int(raw.previous),
     change: readChange(raw.change),
     points: list(raw.points).map((point) => ({
+      day: text(point.date),
+      value: int(point.value),
+    })),
+    previousPoints: list(raw.previous_points).map((point) => ({
       day: text(point.date),
       value: int(point.value),
     })),
