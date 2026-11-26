@@ -11,6 +11,7 @@ import { errorMessage } from "@/utils/errors";
 import { useAuth } from "@/hooks/useAuth";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useToast } from "@/hooks/useToast";
+import { profileService } from "@/services/profile.service";
 import { socialService } from "@/services/social.service";
 import type { UserCard } from "@/types/api";
 
@@ -43,6 +44,23 @@ function nameOf(person: UserCard): string {
 export function CrewPage() {
   const { username = "", kind = "followers" } = useParams();
   const which: Kind = kind === "following" ? "following" : "followers";
+  const { t } = usePreferences();
+  return (
+    <div className="mx-auto w-full max-w-[760px] pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-14">
+      <PageHeader title={which === "following" ? t("Kept") : t("Crew")} back />
+      <CrewList username={username} kind={which} />
+    </div>
+  );
+}
+
+export function CrewList({
+  username,
+  kind,
+}: {
+  username: string;
+  kind: Kind;
+}) {
+  const which: Kind = kind;
   const { user, updateUser } = useAuth();
   const { t } = usePreferences();
   const { toast } = useToast();
@@ -54,16 +72,32 @@ export function CrewPage() {
   const mine = Boolean(user && user.username === username);
   const ownerName = mine ? t("You") : username;
 
+  const person = useQuery({
+    queryKey: ["profile", username],
+    queryFn: () => profileService.byUsername(username),
+    enabled: Boolean(username) && !mine,
+    retry: (count, error) =>
+      (error as { status?: number }).status !== 410 && count < 2,
+  });
+
+  const ownerId = mine ? String(user?.id ?? "") : String(person.data?.id ?? "");
+
   const people = useQuery({
-    queryKey: ["crew", username, which],
+    queryKey: ["crew", ownerId, which],
     // A bare list, which the endpoint answers with directly — it has no page to
     // it. Reading `results` here matched nothing in the app and left the list
     // permanently empty, which looks exactly like a person nobody keeps.
-    queryFn: () => socialService.crew(username, which),
-    enabled: Boolean(username),
+    queryFn: () => socialService.crew(ownerId, which),
+    enabled: Boolean(ownerId),
   });
 
   const rows = useMemo(() => people.data ?? [], [people.data]);
+  const waiting = people.isLoading || (!mine && person.isLoading);
+  const trouble = people.isError
+    ? people.error
+    : person.isError
+      ? person.error
+      : null;
 
   /** The query as it is matched: trimmed, lower-cased, with a leading `@` off. */
   const query = useMemo(() => {
@@ -103,7 +137,7 @@ export function CrewPage() {
       // `bumpCrewCount` the app makes, and the count on my own profile is asked
       // again so the number behind this list moves with it.
       updateUser({ followers_count: Math.max(0, (user?.followers_count ?? 1) - 1) });
-      await queryClient.invalidateQueries({ queryKey: ["crew", username, which] });
+      await queryClient.invalidateQueries({ queryKey: ["crew", ownerId, which] });
       await queryClient.invalidateQueries({ queryKey: ["profile"] });
       setRemoving(null);
     } catch (error) {
@@ -113,24 +147,23 @@ export function CrewPage() {
     }
   }
 
-  const title = which === "following" ? t("Kept") : t("Crew");
-
   return (
-    <div className="mx-auto w-full max-w-[760px] pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-14">
-      <PageHeader title={title} back />
-
-      {people.isLoading ? (
+    <>
+      {waiting ? (
         <div className="flex justify-center py-16">
           <span className="size-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
         </div>
-      ) : people.isError ? (
+      ) : trouble ? (
         <Blank
           top="pt-20"
           icon={<WifiOff className="size-[46px]" />}
           title={t("No answer from the server")}
-          line={errorMessage(people.error)}
+          line={errorMessage(trouble)}
           action={
-            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4" onClick={() => void people.refetch()}>
+            <button type="button" className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4" onClick={() => {
+                void person.refetch();
+                void people.refetch();
+              }}>
               {t("Try again")}
             </button>
           }
@@ -235,6 +268,6 @@ export function CrewPage() {
         loading={busy}
         icon={<UserMinus className="size-5" />}
       />
-    </div>
+    </>
   );
 }

@@ -202,7 +202,6 @@ export function SparkSheet({
                   <span key={award.key} className="flex items-center gap-1.5">
                     <award.Icon
                       className="size-[19px]"
-                      strokeWidth={2.2}
                       style={{
                         color: cold ? fade(award.colour, 0.4) : award.colour,
                       }}
@@ -296,7 +295,6 @@ export function SparkSheet({
               >
                 <award.Icon
                   className="size-5"
-                  strokeWidth={2.2}
                   style={{
                     color: lit ? award.colour : fade("var(--dim)", 0.3),
                   }}
@@ -563,7 +561,6 @@ function SparkRing({ spark }: { spark: Spark }) {
       </svg>
       <head.Icon
         className="size-[52px]"
-        strokeWidth={1.8}
         style={{ color: head.colour }}
       />
     </div>

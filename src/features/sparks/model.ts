@@ -1,13 +1,13 @@
 import {
-  Flame,
-  FlameKindling,
-  Medal,
-  Rocket,
-  Sparkles,
-  Sun,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
+  MdOutlineAutoAwesome,
+  MdOutlineBrightness7,
+  MdOutlineLocalFireDepartment,
+  MdLocalFireDepartment,
+  MdOutlineRocketLaunch,
+  MdOutlineWorkspacePremium,
+  MdWhatshot,
+} from "react-icons/md";
+import type { IconType } from "react-icons";
 import { count, plural } from "@/utils/format";
 import type { Spark, SparkTier } from "@/types/api";
 
@@ -52,11 +52,10 @@ export interface Award {
    *
    * The prototype draws each award as its own SVG path and the app has no SVG
    * renderer, so the phone draws the ladder out of Material glyphs and this
-   * draws it out of the icon set the rest of this client already uses. The
-   * mapping is this table and nothing else, which is what makes swapping in
-   * the real paths one edit rather than a hunt.
+   * draws the same seven out of the same set — the same marks, at the same
+   * rungs, so a spark looks the same in both clients.
    */
-  Icon: LucideIcon;
+  Icon: IconType;
 
   colour: string;
 
@@ -79,13 +78,13 @@ export interface Award {
  * would be two ladders.
  */
 export const AWARDS: Award[] = [
-  { key: "ember", name: "Ember", Icon: Flame, colour: "#C07A12", from: 1, to: 3 },
-  { key: "flame", name: "Flame", Icon: FlameKindling, colour: "#CE3F62", from: 4, to: 7 },
-  { key: "blaze", name: "Blaze", Icon: Zap, colour: "#B02E9B", from: 8, to: 15 },
-  { key: "comet", name: "Comet", Icon: Rocket, colour: "#6C46D6", from: 16, to: 30 },
-  { key: "nova", name: "Nova", Icon: Sun, colour: "#1B87AC", from: 31, to: 60 },
-  { key: "supernova", name: "Supernova", Icon: Sparkles, colour: "#11836A", from: 61, to: 99 },
-  { key: "century", name: "Century", Icon: Medal, colour: "#A8870F", from: 100, to: null },
+  { key: "ember", name: "Ember", Icon: MdOutlineLocalFireDepartment, colour: "#C07A12", from: 1, to: 3 },
+  { key: "flame", name: "Flame", Icon: MdLocalFireDepartment, colour: "#CE3F62", from: 4, to: 7 },
+  { key: "blaze", name: "Blaze", Icon: MdWhatshot, colour: "#B02E9B", from: 8, to: 15 },
+  { key: "comet", name: "Comet", Icon: MdOutlineRocketLaunch, colour: "#6C46D6", from: 16, to: 30 },
+  { key: "nova", name: "Nova", Icon: MdOutlineBrightness7, colour: "#1B87AC", from: 31, to: 60 },
+  { key: "supernova", name: "Supernova", Icon: MdOutlineAutoAwesome, colour: "#11836A", from: 61, to: 99 },
+  { key: "century", name: "Century", Icon: MdOutlineWorkspacePremium, colour: "#A8870F", from: 100, to: null },
 ];
 
 /** The warning amber the row and the sheet share. */

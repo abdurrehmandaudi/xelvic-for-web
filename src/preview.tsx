@@ -60,7 +60,7 @@ const profile = {
   relation: { self: false, following: false, follow_state: "none" },
   gate: { can_send: true, can_type: true, can_call: true },
   character: null,
-  show_character: false,
+  show_character: true,
 };
 
 function drop(id: string, kind: string, title: string, index: number) {

@@ -7,6 +7,8 @@ import {
   useMemo,
   useRef,
   useState,
+  type ClipboardEvent,
+  type DragEvent,
   type FormEvent,
 } from "react";
 import { createPortal } from "react-dom";
@@ -64,6 +66,7 @@ import {
   Sticker,
   Tag,
   Trash2,
+  Upload,
   User,
   Users,
   Video,
@@ -74,6 +77,7 @@ import {
 import { FaRegCommentDots } from "react-icons/fa6";
 import { FiShare2 } from "react-icons/fi";
 import { FaFileLines } from "react-icons/fa6";
+import { MdAutoAwesome } from "react-icons/md";
 import { Avatar } from "@/components/ui/Avatar";
 import { Backdrop } from "@/components/layout/Backdrop";
 import { DocumentGlyph } from "@/components/icons/DocumentGlyph";
@@ -83,9 +87,21 @@ import { AuthedImage, AuthedVideo } from "@/components/media/Media";
 import { Modal } from "@/components/overlays/Modal";
 import { EmptyState, ErrorState } from "@/components/ui/States";
 import { Arrivals } from "@/features/convo/arrivals";
+import {
+  subscribeDroppedFiles,
+  takeDroppedFiles,
+} from "@/features/convo/dropHandoff";
+import { AgentTail } from "@/features/convo/AgentTail";
+import {
+  agentAsked,
+  agentFrame,
+  agentSettled,
+  agentWriting,
+  useAgentTurn,
+} from "@/features/convo/agent";
 import { ConvoSheet } from "@/features/convo/ConvoSheet";
 import { GroupPanel } from "@/features/convo/GroupPanel";
-import { threadTitle } from "@/features/convo/model";
+import { threadGone, threadTitle } from "@/features/convo/model";
 import { useNames } from "@/features/convo/names";
 import { VibesPanel } from "@/features/convo/VibesPanel";
 import {
@@ -115,6 +131,11 @@ import {
   wallpaperOpacity,
 } from "@/features/convo/skin";
 import { useOwnWall } from "@/features/convo/look";
+import {
+  mix,
+  paletteFromImage,
+  type PhotoPalette,
+} from "@/features/convo/palette";
 import { convoPalette, rgbChannels } from "@/providers/ThemeProvider";
 import {
   coverTone,
@@ -138,6 +159,7 @@ import {
   dropStill,
 } from "@/features/drops/model";
 import { apiPathFrom, apiUrl } from "@/config/urls";
+import { e2ee } from "@/crypto/e2ee";
 import { chatService } from "@/services/chat.service";
 import { cachedThread } from "@/store/seed";
 import { dropsService } from "@/services/drops.service";
@@ -147,13 +169,22 @@ import {
   type ShelfSticker,
 } from "@/services/stickers.service";
 import { cn } from "@/utils/cn";
-import { clock, count, duration, mediaSize } from "@/utils/format";
+import { clock, count, duration, mediaSize, personLabel } from "@/utils/format";
 import { ApiError, errorMessage } from "@/utils/errors";
 import { claimEar, releaseEar } from "@/utils/playback";
 import { mediaBlob, warmMedia } from "@/utils/mediaCache";
+import {
+  begin,
+  forget,
+  pause,
+  resume,
+  transferBlob,
+  useTransfer,
+} from "@/features/media/transfer";
 import { lockScroll } from "@/utils/scrollLock";
 import { useLooking } from "@/hooks/useLooking";
 import { useMediaUrl } from "@/hooks/useMediaUrl";
+import { agentService } from "@/services/agent.service";
 import { usePlayer } from "@/hooks/usePlayer";
 import { kindOf, uploadAsset } from "@/utils/upload";
 import { useAuth } from "@/hooks/useAuth";
@@ -226,6 +257,42 @@ function writeDraft(threadId: string, text: string) {
     else localStorage.removeItem(draftKey(threadId));
   } catch {
     // Ignore: the convo itself is unaffected.
+  }
+}
+
+interface StoredSend {
+  clientId: string;
+  localId: string;
+  kind: string;
+  body: string;
+  replyToId?: string;
+  payload?: Record<string, unknown>;
+  channel?: string | null;
+  assetId?: string;
+  hadFile?: boolean;
+}
+
+function outboxKey(threadId: string) {
+  return `xelvic:convo-outbox:${threadId}`;
+}
+
+function readOutbox(threadId: string): StoredSend[] {
+  try {
+    const raw = localStorage.getItem(outboxKey(threadId));
+    if (!raw) return [];
+    const data: unknown = JSON.parse(raw);
+    return Array.isArray(data) ? (data as StoredSend[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeOutbox(threadId: string, rows: StoredSend[]) {
+  try {
+    if (rows.length) localStorage.setItem(outboxKey(threadId), JSON.stringify(rows));
+    else localStorage.removeItem(outboxKey(threadId));
+  } catch {
+    return;
   }
 }
 
@@ -403,19 +470,27 @@ function ChatDocument({
 }) {
   const { toast } = useToast();
   const [busy, setBusy] = useState<"view" | "save" | null>(null);
+  const transfer = useTransfer(src);
+  const wantSave = useRef(false);
   /** The bytes, once they have crossed: View and Save as share one read. */
   const bytes = useRef<Blob | null>(null);
-  if (!src) return null;
   const title = name || (kind === "audio" ? "An audio file" : "A document");
   const type = (asset?.mime || "").toLowerCase();
   const shownInTab = /^(application\/pdf|text\/|image\/|video\/|audio\/)/.test(
     type,
   );
   const fileName = name || asset?.original_name || "download";
+  const running =
+    (transfer.live || transfer.paused) && !transfer.done && !transfer.failed;
+  const percent =
+    transfer.total && transfer.total > 0
+      ? Math.min(100, Math.round((transfer.received / transfer.total) * 100))
+      : null;
 
   async function bytesFor() {
     if (bytes.current) return bytes.current;
-    const blob = await mediaBlob(src!);
+    const carried = transferBlob(src!);
+    const blob = carried ?? (await mediaBlob(src!));
     // Re-made under the file's own type: a `.pdf` handed over as
     // `application/octet-stream` is one the reader's own viewer will not open,
     // however right the bytes are.
@@ -475,7 +550,24 @@ function ChatDocument({
   }
 
   async function save() {
-    if (busy) return;
+    if (busy === "view") return;
+    if (transfer.done) {
+      await deliverBlob();
+      return;
+    }
+    if (transfer.paused) {
+      resume(src!);
+      return;
+    }
+    if (transfer.received > 0 && !transfer.failed) {
+      pause(src!);
+      return;
+    }
+    wantSave.current = true;
+    begin(src!, asset?.size ?? null);
+  }
+
+  async function deliverBlob() {
     setBusy("save");
     try {
       const url = URL.createObjectURL(await bytesFor());
@@ -486,6 +578,7 @@ function ChatDocument({
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
+      forget(src!);
     } catch (error) {
       toast({
         title: "Could not save that file.",
@@ -496,6 +589,27 @@ function ChatDocument({
       setBusy(null);
     }
   }
+
+  useEffect(() => {
+    if (!transfer.done || !wantSave.current) return;
+    wantSave.current = false;
+    void deliverBlob();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transfer.done]);
+
+  useEffect(() => {
+    if (!transfer.failed || !wantSave.current) return;
+    wantSave.current = false;
+    setBusy(null);
+    toast({
+      title: "Could not save that file.",
+      description: "The download stopped before it reached the end.",
+      tone: "error",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transfer.failed]);
+
+  if (!src) return null;
 
   return (
     <div className="w-[238px] overflow-hidden rounded-[8px] border border-line bg-card">
@@ -524,6 +638,49 @@ function ChatDocument({
       </button>
       {/* The two answers under the file, told apart by what the file is: a PDF
           can be read where it is, a zip cannot and only comes down. */}
+      {running ? (
+        <div className="border-t border-line px-2.5 py-2">
+          <div className="flex items-center gap-1.5">
+            <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-dim">
+              {transfer.paused ? "Paused" : "Downloading"}
+              {percent === null ? "…" : ` · ${percent}%`}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                transfer.paused ? resume(src!) : pause(src!)
+              }
+              className="flex size-7 shrink-0 items-center justify-center rounded-full text-dim transition hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] hover:text-ink"
+              aria-label={
+                transfer.paused
+                  ? "Resume the download"
+                  : "Pause the download"
+              }
+              title={transfer.paused ? "Resume" : "Pause"}
+            >
+              {transfer.paused ? (
+                <Play className="size-3.5" />
+              ) : (
+                <Pause className="size-3.5" />
+              )}
+            </button>
+          </div>
+          <p className="mt-0.5 text-[10px] font-medium tabular-nums text-dim">
+            {transfer.total
+              ? `${mediaSize(transfer.received)} of ${mediaSize(transfer.total)} · ${mediaSize(transfer.total - transfer.received)} left`
+              : `${mediaSize(transfer.received)} here`}
+          </p>
+          <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-line">
+            <span
+              className={cn(
+                "block h-full rounded-full bg-accent transition-[width] duration-200",
+                percent === null && "animate-pulse",
+              )}
+              style={{ width: percent === null ? "35%" : `${percent}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
       <div className="flex items-stretch border-t border-line">
         {shownInTab ? (
           <>
@@ -644,6 +801,7 @@ function sharedPerson(message: Message) {
     avatar: typeof raw.avatar === "string" ? raw.avatar : "",
     verified: raw.verified === true,
     isPrivate: raw.is_private === true,
+    deleted: raw.deleted === true,
   };
 }
 
@@ -875,7 +1033,7 @@ function SparkCard({
         className="relative flex max-w-[78vw] items-center gap-2 border border-[color-mix(in_srgb,var(--accent)_42%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,var(--card))] py-1.5 px-2 text-left transition active:scale-[0.99]"
       >
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-accent">
-          <Sparkles className="size-[19px]" />
+          <MdAutoAwesome className="size-[19px]" aria-hidden />
         </span>
         <span className="min-w-0">
           <span className="block text-[15px] font-bold text-ink">
@@ -907,7 +1065,7 @@ function SparkCard({
       {state.opened ? (
         <EyeOff className="size-[18px]" />
       ) : (
-        <Sparkles className="size-[18px]" />
+        <MdAutoAwesome className="size-[18px]" aria-hidden />
       )}
       {label}
       {tail}
@@ -2094,7 +2252,7 @@ function SparkViewer({
     }
   }
 
-  const who = look.sender?.name || look.sender?.username || "";
+  const who = personLabel(look.sender, "");
 
   return createPortal(
     <div
@@ -2455,23 +2613,29 @@ function ChatPersonCard({
     avatar: string;
     verified: boolean;
     isPrivate: boolean;
+    deleted: boolean;
   };
 }) {
-  const label = person.name || person.username || "Somebody";
+  const label = personLabel(person, "Somebody");
   const body = (
     <>
-      <Avatar src={person.avatar || null} name={label} size={44} />
+      <Avatar
+        src={person.avatar || null}
+        name={label}
+        size={44}
+        deleted={person.deleted}
+      />
       <span className="min-w-0 flex-1 text-left">
         <span className="flex items-center gap-1">
           <span className="truncate text-[13.5px] font-extrabold">{label}</span>
           {person.verified ? <VerifiedTick size={12} /> : null}
         </span>
-        {person.username ? (
+        {!person.deleted && person.username ? (
           <span className="mt-[2px] block truncate text-[11px] text-dim">
             @{person.username}
           </span>
         ) : null}
-        {person.isPrivate ? (
+        {!person.deleted && person.isPrivate ? (
           <span className="mt-[3px] flex items-center gap-1 text-[10.5px] font-semibold text-dim">
             <Lock className="size-3" aria-hidden /> Private
           </span>
@@ -2481,7 +2645,7 @@ function ChatPersonCard({
   );
   const shell =
     "flex w-[258px] max-w-[72vw] items-center gap-2.5 rounded-[18px] border border-line bg-card p-3";
-  return person.username ? (
+  return person.username && !person.deleted ? (
     <Link
       to={`/profile/${encodeURIComponent(person.username)}`}
       className={cn(shell, "transition hover:border-accent/40")}
@@ -3016,6 +3180,21 @@ function receiptWord(
   return "Sent";
 }
 
+function otherAccounts(
+  thread: ThreadDetail | undefined,
+  meId: string | undefined,
+): string[] {
+  const out: string[] = [];
+  const add = (id: unknown) => {
+    const who = String(id ?? "");
+    if (!who || who === meId || out.includes(who)) return;
+    out.push(who);
+  };
+  add(thread?.other?.id);
+  for (const seat of thread?.members ?? []) add(seat.user?.id);
+  return out;
+}
+
 interface CallNote {
   media: "audio" | "video";
   outcome: string;
@@ -3221,6 +3400,7 @@ function MessageBubble({
 }) {
   const mine = meId ? message.sender?.id === meId : Boolean(message.mine);
   const deleted = message.deleted_for_all;
+  const sealedHere = Boolean(message.enc);
   const spark = isSparkMessage(message);
   const hasCard = isSharedMessage(message);
   const storyShare = Boolean(sharedStory(message));
@@ -3358,7 +3538,7 @@ function MessageBubble({
   }
 
   if (message.kind === "system") {
-    const who = message.sender?.name || message.sender?.username || "";
+    const who = personLabel(message.sender, "");
     return (
       <div className="flex justify-center px-6 py-[1px]">
         <p className="rounded-full border border-line bg-card px-[13px] py-1.5 text-center text-[12.5px] font-semibold text-dim">
@@ -3456,7 +3636,7 @@ function MessageBubble({
                     className="text-[11.5px] font-bold leading-4"
                     style={{ color: nameTint(senderSeed(message.sender)) }}
                   >
-                    {message.sender.name || message.sender.username}
+                    {personLabel(message.sender)}
                   </p>
                 ) : null}
                 {!deleted && moment ? (
@@ -3479,7 +3659,7 @@ function MessageBubble({
                     className="mb-0.5 rounded-[8px] border-l-[3px] px-2 py-0.5 text-[11px] leading-4"
                   >
                     <span className="block font-bold text-accent">
-                      {reply.sender?.name || "Reply"}
+                      {personLabel(reply.sender, "Reply")}
                     </span>
                     <span
                       className="line-clamp-1 opacity-80"
@@ -3704,7 +3884,13 @@ function MessageBubble({
                     !location &&
                     message.kind !== "collab" &&
                     message.kind !== "vanish_ask" ? (
-                      <p className="opacity-60">Empty message</p>
+                      sealedHere ? (
+                        <p className="italic opacity-70">
+                          This message is encrypted for another device.
+                        </p>
+                      ) : (
+                        <p className="opacity-60">Empty message</p>
+                      )
                     ) : null}
                   </>
                 )}
@@ -3798,6 +3984,7 @@ function MessageBubble({
                             name={person.name || person.username}
                             src={person.avatar}
                             size={15}
+                            deleted={person.deleted === true}
                           />
                         </span>
                       ))}
@@ -4210,7 +4397,6 @@ function ThreadInfoPanel({
   const title = threadTitle(thread);
   const vanishOn = Boolean(thread.vanish_mode && thread.vanish_mode !== "off");
   const vanish = vanishLabel(thread.vanish_mode ?? "off", thread.vanish_days);
-  const online = !group && Boolean(thread.other?.online);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-[color-mix(in_srgb,var(--page)_58%,var(--card))] scroll-thin">
@@ -4235,9 +4421,6 @@ function ThreadInfoPanel({
             {title}
           </p>
           <p className="mt-0.5 flex items-center gap-1.5 truncate text-[10.5px] font-medium text-dim">
-            {online ? (
-              <span className="size-1.5 shrink-0 rounded-full bg-[var(--good)]" />
-            ) : null}
             {group
               ? `${memberCount} ${memberCount === 1 ? "member" : "members"}`
               : face?.username
@@ -4340,20 +4523,23 @@ function ThreadInfoPanel({
                 const role = (member.role || "member").toLowerCase();
                 const admin =
                   role === "admin" || role === "owner" || role === "creator";
-                return (
-                  <Link
-                    key={member.user.id}
-                    to={`/profile/${member.user.username}`}
-                    className="group flex items-center gap-2.5 rounded-[13px] px-2 py-2 transition hover:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]"
-                  >
-                    <Avatar user={member.user} size={36} />
+                const seatGone = member.user.deleted === true;
+                const rowBody = (
+                  <>
+                    <Avatar
+                      user={member.user}
+                      size={36}
+                      deleted={seatGone}
+                    />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12px] font-bold">
-                        {member.user.name || member.user.username}
+                        {personLabel(member.user)}
                       </span>
-                      <span className="mt-0.5 block truncate text-[10px] text-dim">
-                        @{member.user.username}
-                      </span>
+                      {seatGone ? null : (
+                        <span className="mt-0.5 block truncate text-[10px] text-dim">
+                          @{member.user.username}
+                        </span>
+                      )}
                     </span>
                     <span
                       className={cn(
@@ -4365,6 +4551,21 @@ function ThreadInfoPanel({
                     >
                       {role}
                     </span>
+                  </>
+                );
+                const rowClass =
+                  "group flex items-center gap-2.5 rounded-[13px] px-2 py-2 transition hover:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]";
+                return seatGone ? (
+                  <div key={member.user.id} className={rowClass}>
+                    {rowBody}
+                  </div>
+                ) : (
+                  <Link
+                    key={member.user.id}
+                    to={`/profile/${member.user.username}`}
+                    className={rowClass}
+                  >
+                    {rowBody}
                   </Link>
                 );
               })}
@@ -4408,6 +4609,7 @@ function MessageOptions({
   open,
   group,
   thread,
+  audience,
   onClose,
   onChanged,
   onReact,
@@ -4420,6 +4622,7 @@ function MessageOptions({
   open: boolean;
   group?: boolean;
   thread?: ThreadDetail;
+  audience?: string[];
   onClose: () => void;
   onChanged: () => void;
   onReact: (emoji: string) => Promise<void>;
@@ -4461,7 +4664,10 @@ function MessageOptions({
     if (!body.trim() || busy) return;
     setBusy(true);
     try {
-      await chatService.edit(current.thread, current.id, body.trim());
+      await chatService.edit(current.thread, current.id, body.trim(), {
+        audience,
+        sealed: Boolean(current.enc),
+      });
       onChanged();
       onClose();
       toast({ title: "Message edited", tone: "success" });
@@ -5092,7 +5298,7 @@ function ForwardSheet({
         <div className="mb-3 rounded-[14px] border border-line bg-[color-mix(in_srgb,var(--accent)_4%,var(--card))] px-3 py-2.5">
           <p className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-dim">
             {messages.length === 1
-              ? first.sender?.name || first.sender?.username || "Message"
+              ? personLabel(first.sender, "Message")
               : `${count(messages.length)} lines`}
           </p>
           <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-ink">
@@ -5417,6 +5623,8 @@ export function ChatPage() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   /** What the picker handed over, waiting above the box for Send. */
   const [attachments, setAttachments] = useState<PendingFile[]>([]);
+  const [fileDrag, setFileDrag] = useState(false);
+  const dragDepth = useRef(0);
   const [sending, setSending] = useState(0);
   const [uploadPercent, setUploadPercent] = useState<Record<string, number>>(
     {},
@@ -5427,6 +5635,8 @@ export function ChatPage() {
   const [attachOpen, setAttachOpen] = useState(false);
   const [stickerOpen, setStickerOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const stickerShown =
+    Array.from(text.replace(/\s+/g, "")).length < 3;
   const [locationOpen, setLocationOpen] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);
   const [selected, setSelected] = useState<Message | null>(null);
@@ -5442,6 +5652,7 @@ export function ChatPage() {
   } | null>(null);
   const [sparkView, setSparkView] = useState<Message[] | null>(null);
   const [typers, setTypers] = useState<Record<string, string>>({});
+  const agent = useAgentTurn();
   const [receipts, setReceipts] = useState<Record<string, ReceiptMark>>({});
   const [channel, setChannel] = useState<string | null>(null);
   const [showJump, setShowJump] = useState(false);
@@ -5488,6 +5699,8 @@ export function ChatPage() {
   }, []);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const listContent = useRef<HTMLDivElement>(null);
+  const pinned = useRef(false);
   const firstScroll = useRef(false);
   const lastThread = useRef("");
   const typingTimer = useRef<number | null>(null);
@@ -5518,25 +5731,63 @@ export function ChatPage() {
   });
 
   const thread = threadQuery.data?.thread;
+  const audience = useMemo(
+    () =>
+      threadQuery.isPlaceholderData
+        ? undefined
+        : otherAccounts(thread, user?.id),
+    [thread, threadQuery.isPlaceholderData, user?.id],
+  );
+  useEffect(() => {
+    void e2ee.prepare().catch(() => undefined);
+  }, [user?.id]);
   const own = useOwnWall(threadId);
   const skinLocal = useSkinOverlay(thread?.wallpaper, thread?.tint);
-  const ownWall = own && own.opacity > 0 ? own : null;
-  const wallpaper = own
+  const sharedWall = thread?.wallpaper_asset
+    ? apiUrl(`/chat/assets/${thread.wallpaper_asset}/content/`)
+    : null;
+  const ownWall = !sharedWall && own && own.opacity > 0 ? own : null;
+  const wallpaper = ownWall
     ? null
-    : wallUrl(skinLocal.wallpaper ?? thread?.wallpaper);
+    : (sharedWall ?? wallUrl(skinLocal.wallpaper ?? thread?.wallpaper));
   const opacity = wallpaperOpacity();
   const tinted = chosenTint(skinLocal.tint ?? thread?.tint);
-  const convo = useMemo(
-    () =>
-      tinted
-        ? convoColors({
-            ...convoPalette(palette),
-            accent: tinted,
-            chatTint: tinted,
-          })
-        : null,
-    [tinted, palette],
-  );
+  const [photo, setPhoto] = useState<PhotoPalette | null>(null);
+  useEffect(() => {
+    const src = ownWall?.src ?? wallpaper;
+    if (!src) {
+      setPhoto(null);
+      return;
+    }
+    let live = true;
+    void paletteFromImage(src).then((read) => {
+      if (live) setPhoto(read);
+    });
+    return () => {
+      live = false;
+    };
+  }, [ownWall?.src, wallpaper]);
+  const convo = useMemo(() => {
+    if (photo) {
+      return convoColors({
+        accent: photo.accent,
+        page: photo.ground,
+        card: mix(photo.ground, photo.ink, 0.06),
+        line: mix(photo.ground, photo.ink, 0.14),
+        ink: photo.ink,
+        dim: photo.dim,
+        tones: photo.tones,
+        chatTint: tinted ?? undefined,
+      });
+    }
+    return tinted
+      ? convoColors({
+          ...convoPalette(palette),
+          accent: tinted,
+          chatTint: tinted,
+        })
+      : null;
+  }, [photo, tinted, palette]);
   const themeWall = wallpaper || own ? null : chatBackdrop;
   const wallpaperSrc = ownWall?.src ?? wallpaper;
   const painting =
@@ -5600,6 +5851,7 @@ export function ChatPage() {
   );
   const hasOlder = messages.hasNextPage;
   const fetchOlder = messages.fetchNextPage;
+  const drawn = allMessages.length > 0;
 
   useEffect(() => {
     setText(readDraft(threadId));
@@ -5622,6 +5874,7 @@ export function ChatPage() {
     setVibesOpen(false);
     setInfoOpen(false);
     firstScroll.current = false;
+    pinned.current = false;
     lastThread.current = threadId;
   }, [threadId]);
 
@@ -5649,8 +5902,23 @@ export function ChatPage() {
         });
       });
       firstScroll.current = true;
+      pinned.current = true;
     }
-  }, [allMessages.length, threadId]);
+  }, [allMessages.length, threadId, agent.partial.length]);
+
+  useEffect(() => {
+    const element = scrollRef.current;
+    const content = listContent.current;
+    if (!element || !content) return;
+    const hold = () => {
+      if (!pinned.current) return;
+      bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+    };
+    const watcher = new ResizeObserver(hold);
+    watcher.observe(content);
+    watcher.observe(element);
+    return () => watcher.disconnect();
+  }, [threadId, drawn]);
 
   useEffect(() => {
     if (!latestOrdinal) return;
@@ -5670,9 +5938,10 @@ export function ChatPage() {
     const element = scrollRef.current;
     if (!element) return;
     const onScroll = () => {
-      setShowJump(
-        element.scrollHeight - element.scrollTop - element.clientHeight > 600,
-      );
+      const gap =
+        element.scrollHeight - element.scrollTop - element.clientHeight;
+      pinned.current = gap < 280;
+      setShowJump(gap > 600);
       if (element.scrollTop > 240 || !hasOlder || olderPending.current) return;
       olderAnchor.current = {
         height: element.scrollHeight,
@@ -5753,7 +6022,11 @@ export function ChatPage() {
       if (frame.event === "message.new") {
         const message = data.message as Message | undefined;
         if (message) {
-          cache.arrive(message);
+          void e2ee
+            .absorb(message)
+            .then((opened) => cache.arrive(opened))
+            .catch(() => undefined);
+          if (!message.mine) agentSettled(threadId);
           if (!message.mine && document.visibilityState === "visible") {
             void chatService
               .read(threadId, message.ordinal)
@@ -5762,7 +6035,12 @@ export function ChatPage() {
         }
       } else if (frame.event === "message.edit") {
         const message = data.message as Message | undefined;
-        if (message) cache.insert(message);
+        if (message) {
+          void e2ee
+            .absorb(message)
+            .then((opened) => cache.insert(opened))
+            .catch(() => undefined);
+        }
       } else if (frame.event === "message.gone") {
         const ids = (data.message_ids as string[] | undefined) ?? [];
         cache.remove(ids);
@@ -5836,8 +6114,15 @@ export function ChatPage() {
             return { ...current, thread: { ...current.thread, members } };
           },
         );
+      } else if (frame.event === "thread.update") {
+        const waiting = Number(data.unread ?? 0);
+        if (waiting > 0 && document.visibilityState === "visible") {
+          void chatService
+            .read(threadId, Number(data.ordinal ?? latestOrdinal ?? 0))
+            .catch(() => undefined);
+        }
+        void queryClient.invalidateQueries({ queryKey: ["thread", threadId] });
       } else if (
-        frame.event === "thread.update" ||
         frame.event === "thread.members" ||
         frame.event === "thread.channels"
       ) {
@@ -5845,6 +6130,8 @@ export function ChatPage() {
       }
     },
   );
+
+  useSocketEvent(["agent.typing", "agent.token"], agentFrame);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -5890,7 +6177,68 @@ export function ChatPage() {
       }
       next.push(staged);
     }
-    if (next.length) setAttachments([...attachments, ...next]);
+    if (next.length) setAttachments((current) => [...current, ...next]);
+  }
+
+  const chooseFilesRef = useRef(chooseFiles);
+  useEffect(() => {
+    chooseFilesRef.current = chooseFiles;
+  });
+
+  useEffect(() => {
+    const stage = (files: File[]) => chooseFilesRef.current(files);
+    const early = takeDroppedFiles(threadId);
+    if (early?.length) stage(early);
+    return subscribeDroppedFiles((payload) => {
+      if (payload.threadId !== threadId) return;
+      const files = takeDroppedFiles(threadId);
+      if (files?.length) stage(files);
+    });
+  }, [threadId]);
+
+  function dragHasFiles(event: DragEvent<HTMLElement>) {
+    return Array.from(event.dataTransfer.types).includes("Files");
+  }
+
+  function onFileDragEnter(event: DragEvent<HTMLDivElement>) {
+    if (!dragHasFiles(event)) return;
+    event.preventDefault();
+    dragDepth.current += 1;
+    setFileDrag(true);
+  }
+
+  function onFileDragOver(event: DragEvent<HTMLDivElement>) {
+    if (!dragHasFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  function onFileDragLeave() {
+    if (dragDepth.current === 0) return;
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setFileDrag(false);
+  }
+
+  function onFileDrop(event: DragEvent<HTMLDivElement>) {
+    const files = Array.from(event.dataTransfer.files ?? []);
+    if (!files.length) return;
+    event.preventDefault();
+    dragDepth.current = 0;
+    setFileDrag(false);
+    chooseFiles(files);
+  }
+
+  function onPasteFiles(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const direct = Array.from(event.clipboardData.files ?? []);
+    const files = direct.length
+      ? direct
+      : Array.from(event.clipboardData.items)
+          .filter((item) => item.kind === "file")
+          .map((item) => item.getAsFile())
+          .filter((file): file is File => Boolean(file));
+    if (!files.length) return;
+    event.preventDefault();
+    chooseFiles(files);
   }
 
   /** What the box lets go of once a message is on its way. */
@@ -5939,6 +6287,41 @@ export function ChatPage() {
 
   const outbox = useRef<Map<string, OutgoingSend>>(new Map());
 
+  useEffect(() => {
+    for (const row of readOutbox(threadId)) {
+      if (outbox.current.has(row.clientId)) continue;
+      if (row.hadFile && !row.assetId) continue;
+      outbox.current.set(row.clientId, {
+        clientId: row.clientId,
+        localId: row.localId,
+        kind: row.kind,
+        body: row.body,
+        replyToId: row.replyToId,
+        payload: row.payload,
+        channel: row.channel,
+        assetId: row.assetId,
+      });
+    }
+  }, [threadId]);
+
+  function saveOutbox() {
+    const rows: StoredSend[] = [];
+    for (const intent of outbox.current.values()) {
+      rows.push({
+        clientId: intent.clientId,
+        localId: intent.localId,
+        kind: intent.kind,
+        body: intent.body,
+        replyToId: intent.replyToId,
+        payload: intent.payload,
+        channel: intent.channel,
+        assetId: intent.assetId,
+        hadFile: Boolean(intent.file),
+      });
+    }
+    writeOutbox(threadId, rows);
+  }
+
   async function deliver(intent: OutgoingSend) {
     const { clientId, localId, kind, body, replyToId, payload, file } = intent;
     setSending((count) => count + 1);
@@ -5968,6 +6351,7 @@ export function ChatPage() {
         });
         assetId = asset.id;
         intent.assetId = asset.id;
+        saveOutbox();
         // Show the real uploaded asset while the message row lands.
         cache.patch(localId, { asset });
       }
@@ -5978,10 +6362,15 @@ export function ChatPage() {
         asset: assetId,
         payload,
         channel: intent.channel ?? undefined,
+        audience,
         client_id: clientId,
       });
       outbox.current.delete(clientId);
+      saveOutbox();
       cache.arrive(response.message);
+      if (isAgent && (kind === "text" || kind === "image")) {
+        agentAsked(threadId);
+      }
       if (file?.preview) URL.revokeObjectURL(file.preview);
       return true;
     } catch (error) {
@@ -6021,6 +6410,7 @@ export function ChatPage() {
   /** Drop a line that never went: nothing holds it but this browser. */
   function discardSend(message: Message) {
     if (message.client_id) outbox.current.delete(message.client_id);
+    saveOutbox();
     cache.remove([message.id]);
   }
 
@@ -6138,6 +6528,7 @@ export function ChatPage() {
       file: file ?? undefined,
     };
     outbox.current.set(clientId, intent);
+    saveOutbox();
 
     const preview = file?.preview;
     // A picture, a film and a voice note all have something to show before the
@@ -6170,6 +6561,7 @@ export function ChatPage() {
             sender: {
               id: answering.sender?.id ?? "",
               name: answering.sender?.name ?? answering.sender?.username ?? "",
+              deleted: answering.sender?.deleted,
             },
             deleted_for_all: answering.deleted_for_all,
           }
@@ -6214,6 +6606,7 @@ export function ChatPage() {
         kind: "text",
         body,
         reply_to: look.id,
+        audience,
         client_id: crypto.randomUUID(),
       });
       cache.arrive(response.message);
@@ -6357,6 +6750,24 @@ export function ChatPage() {
 
   const title = thread ? threadTitle(thread) : "Convo";
   const face = thread?.other ?? thread?.members?.[0]?.user;
+  const gone = thread ? threadGone(thread) : false;
+  const isAgent = thread?.kind === "agent";
+  const agentSpeaks = isAgent && agentWriting(agent);
+  const agentHome = useQuery({
+    queryKey: ["agent", "home"],
+    queryFn: () => agentService.home(),
+    enabled: isAgent,
+    staleTime: 5 * 60_000,
+  });
+  const [noteOff, setNoteOff] = useState(false);
+  useEffect(() => {
+    if (!isAgent) return;
+    try {
+      setNoteOff(sessionStorage.getItem("xelvic.agent.note") === "off");
+    } catch {
+      setNoteOff(false);
+    }
+  }, [isAgent]);
   const rightOpen = sheetOpen || vibesOpen || infoOpen;
 
   function openOptions() {
@@ -6383,7 +6794,7 @@ export function ChatPage() {
   const typingNames = Object.values(typers);
 
   const canRingBack =
-    Boolean(thread?.other?.username) && thread?.gate?.can_call === true;
+    !gone && Boolean(thread?.other?.username) && thread?.gate?.can_call === true;
 
   if (threadQuery.isLoading) {
     return (
@@ -6432,10 +6843,21 @@ export function ChatPage() {
                 backgroundPosition: "center",
               }
             : {}),
-          ...(convo && tinted
+          ...(convo && (photo || tinted)
             ? {
-                "--convo-accent": tinted,
-                "--convo-accent-rgb": rgbChannels(tinted),
+                "--convo-accent": photo ? photo.accent : tinted,
+                "--convo-accent-rgb": rgbChannels(
+                  (photo ? photo.accent : tinted)!,
+                ),
+                ...(photo
+                  ? {
+                      "--page": photo.ground,
+                      "--card": mix(photo.ground, photo.ink, 0.06),
+                      "--line": mix(photo.ground, photo.ink, 0.14),
+                      "--ink": photo.ink,
+                      "--dim": photo.dim,
+                    }
+                  : {}),
                 "--convo-bubble-wash": convo.convoBubbleWash,
                 "--convo-bubble-edge": convo.convoBubbleEdge,
                 "--convo-bubble-run": convo.convoBubbleRun,
@@ -6457,7 +6879,7 @@ export function ChatPage() {
           className="pointer-events-none absolute inset-0 -z-10"
           style={{
             backgroundColor: "var(--page)",
-            opacity: ownWall ? 1 - ownWall.opacity : opacity,
+            opacity: photo ? 0.62 : ownWall ? 1 - ownWall.opacity : opacity,
           }}
           aria-hidden="true"
         />
@@ -6470,7 +6892,13 @@ export function ChatPage() {
         }}
         aria-hidden="true"
       />
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+      <div
+        className="relative flex min-h-0 min-w-0 flex-1 flex-col"
+        onDragEnter={onFileDragEnter}
+        onDragOver={onFileDragOver}
+        onDragLeave={onFileDragLeave}
+        onDrop={onFileDrop}
+      >
         <header
           className={cn(
             "relative z-30 flex h-[56.5px] shrink-0 items-center gap-2.5 border-b border-[color-mix(in_srgb,var(--line)_78%,transparent)] px-3 md:px-5",
@@ -6496,7 +6924,18 @@ export function ChatPage() {
               </button>
               <Link
                 to={face ? `/profile/${face.username}` : "#"}
-                className="flex min-w-0 flex-1 items-center gap-2.5 py-0.5 pr-2 transition hover:opacity-90"
+                aria-disabled={gone || undefined}
+                onClick={
+                  gone
+                    ? (event) => {
+                        event.preventDefault();
+                      }
+                    : undefined
+                }
+                className={cn(
+                  "flex min-w-0 flex-1 items-center gap-2.5 py-0.5 pr-2 transition",
+                  gone ? "cursor-default" : "hover:opacity-90",
+                )}
               >
                 <span className="relative flex shrink-0">
                   <Avatar
@@ -6504,6 +6943,7 @@ export function ChatPage() {
                     name={title}
                     src={thread.avatar}
                     size={38}
+                    deleted={gone}
                   />
                 </span>
                 <span className="min-w-0">
@@ -6532,7 +6972,7 @@ export function ChatPage() {
                 </span>
               </Link>
               <div className="flex shrink-0 items-center gap-0.5">
-                {thread.kind !== "group" ? (
+                {thread.kind !== "group" && !gone ? (
                   <>
                     <button
                       type="button"
@@ -6594,6 +7034,29 @@ export function ChatPage() {
             </>
           )}
         </header>
+        {isAgent && !noteOff && agentHome.data?.note ? (
+          <div className="flex items-start gap-2 border-b border-line bg-[color-mix(in_srgb,var(--accent)_6%,var(--card))] px-3 py-2">
+            <Sparkles className="mt-0.5 size-3.5 shrink-0 text-accent" aria-hidden />
+            <p className="min-w-0 flex-1 text-[11.5px] leading-4 text-dim">
+              {agentHome.data.note}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setNoteOff(true);
+                try {
+                  sessionStorage.setItem("xelvic.agent.note", "off");
+                } catch {
+                  return;
+                }
+              }}
+              className="flex size-6 shrink-0 items-center justify-center rounded-full text-dim transition hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] hover:text-ink"
+              aria-label="Dismiss the agent note"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        ) : null}
 
         {thread.channels?.length ? (
           <div className="no-scrollbar flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line bg-[color-mix(in_srgb,var(--card)_70%,transparent)] px-3 py-2 backdrop-blur">
@@ -6631,7 +7094,7 @@ export function ChatPage() {
           ref={scrollRef}
           className="[scrollbar-width:thin] [scrollbar-color:color-mix(in_srgb,var(--dim)_30%,transparent)_transparent] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-dim-26 min-h-0 flex-1 overflow-y-auto px-3 pb-5 pt-3 md:px-4"
         >
-          <div className="mx-auto max-w-[1040px]">
+          <div ref={listContent} className="mx-auto max-w-[1040px]">
             {messages.isLoading ? (
               <div className="space-y-5 py-8" aria-hidden>
                 {[0, 1, 2, 3, 4].map((row) => (
@@ -6824,6 +7287,11 @@ export function ChatPage() {
                   somebody is writing — the phone's own `kPeekClear` — because
                   a list that lifted its newest line every time a figure came
                   up would be worse than the overlap it avoids. */}
+                {agentSpeaks ? (
+                  <div className="pt-0.5">
+                    <AgentTail partial={agent.partial} />
+                  </div>
+                ) : null}
                 <div ref={bottomRef} style={{ height: PEEK_CLEAR }} />
               </>
             )}
@@ -6893,7 +7361,7 @@ export function ChatPage() {
                       <Reply className="size-4 shrink-0" />
                       <span className="truncate">
                         Replying to{" "}
-                        {replyTo.sender.name || replyTo.sender.username}
+                        {personLabel(replyTo.sender)}
                       </span>
                     </p>
                     <p className="truncate pl-5 text-[12px] text-dim">
@@ -7055,6 +7523,14 @@ export function ChatPage() {
                     {attachOpen ? (
                       <div className="absolute bottom-[46px] left-0 z-30 w-48 rounded-lg border border-line bg-card p-1.5 shadow-[0_6px_20px_rgba(17,17,26,0.18)]">
                         <AttachRow
+                          icon={<MapPin className="size-4" />}
+                          label="Where I am"
+                          onClick={() => {
+                            setAttachOpen(false);
+                            setLocationOpen(true);
+                          }}
+                        />
+                        <AttachRow
                           icon={<ImageIcon className="size-4" />}
                           label="Photos and videos"
                           onClick={() => {
@@ -7071,15 +7547,7 @@ export function ChatPage() {
                           }}
                         />
                         <AttachRow
-                          icon={<MapPin className="size-4" />}
-                          label="Send location"
-                          onClick={() => {
-                            setAttachOpen(false);
-                            setLocationOpen(true);
-                          }}
-                        />
-                        <AttachRow
-                          icon={<Sparkles className="size-4" />}
+                          icon={<MdAutoAwesome className="size-4" />}
                           label="Spark"
                           // A hover or a finger on the row is the beat before the tap,
                           // and that beat is enough to fetch the camera's chunk.
@@ -7129,6 +7597,7 @@ export function ChatPage() {
                           void sendDraft();
                         }
                       }}
+                      onPaste={onPasteFiles}
                       rows={1}
                       maxLength={8000}
                       placeholder="Say something ...."
@@ -7146,6 +7615,24 @@ export function ChatPage() {
                     />
                   )}
                 </div>
+                {voice.phase === "idle" && stickerShown ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmojiOpen(false);
+                      setStickerOpen((open) => !open);
+                    }}
+                    className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-full text-dim transition hover:bg-[var(--accent-soft)] hover:text-accent active:scale-95",
+                      stickerOpen && "bg-[var(--accent-soft)] text-accent",
+                    )}
+                    aria-label={stickerOpen ? "Close stickers" : "Stickers"}
+                    aria-pressed={stickerOpen}
+                    title="Stickers"
+                  >
+                    <Sticker className="size-[22px]" />
+                  </button>
+                ) : null}
                 <button
                   type={
                     voice.phase === "idle" &&
@@ -7192,6 +7679,23 @@ export function ChatPage() {
             </div>
           )}
         </div>
+
+        {fileDrag ? (
+          <div className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center bg-[color-mix(in_srgb,var(--accent)_7%,transparent)] p-6 backdrop-blur-[2px]">
+            <div className="flex max-w-sm flex-col items-center rounded-[24px] border-2 border-dashed border-[color-mix(in_srgb,var(--accent)_48%,transparent)] bg-card px-8 py-7 text-center shadow-[0_18px_50px_-20px_rgba(17,17,26,0.32)]">
+              <span className="flex size-12 items-center justify-center rounded-full bg-[var(--accent-soft)] text-accent">
+                <Upload className="size-5" />
+              </span>
+              <p className="mt-3 text-[15px] font-extrabold tracking-tight">
+                Drop files to attach
+              </p>
+              <p className="mt-1 text-[12px] leading-5 text-dim">
+                Photos, videos, audio, and documents will wait above the box
+                until you send.
+              </p>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <aside
@@ -7312,6 +7816,7 @@ export function ChatPage() {
         open={Boolean(selected)}
         group={thread.kind === "group"}
         thread={thread}
+        audience={audience}
         onClose={() => setSelected(null)}
         onChanged={() => void messages.refetch()}
         onReact={(emoji) =>

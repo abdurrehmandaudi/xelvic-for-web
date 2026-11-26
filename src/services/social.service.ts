@@ -119,7 +119,9 @@ export const socialService = {
   },
 
   insights: async (userId: string, days: number | string): Promise<unknown> => {
-    const response = await api.get(`/social/users/${userId}/insights/?days=${days}&visitors=0`);
+    const response = await api.get(
+      `/social/users/${userId}/insights/?days=${days}&visitors=0&compare=1`,
+    );
     return response.data;
   },
 

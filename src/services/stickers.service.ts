@@ -272,6 +272,27 @@ export function siftShelf(
   );
 }
 
+const PREVIEW_WIDTH = 160;
+
+const CLOUDINARY = /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//;
+
+export function shelfPreview(row: ShelfSticker): string {
+  if (row.kind !== "gif") return row.url;
+  const store = row.url.match(CLOUDINARY);
+  if (!store) return row.url;
+  const rest = row.url.slice(store[0].length);
+  const cut = rest.indexOf("/");
+  if (cut < 0) return row.url;
+  const step = rest.slice(0, cut);
+  if (step.startsWith("s--")) return row.url;
+  if (/^v\d+$/.test(step)) {
+    return `${store[0]}w_${PREVIEW_WIDTH},c_limit/${rest}`;
+  }
+  const tuned = step.replace(/(^|,)w_\d+(?=,|$)/, `$1w_${PREVIEW_WIDTH}`);
+  if (tuned === step) return row.url;
+  return `${store[0]}${tuned}/${rest.slice(cut + 1)}`;
+}
+
 /**
  * The shelves those stickers came off, in the order the catalogue lists them.
  *

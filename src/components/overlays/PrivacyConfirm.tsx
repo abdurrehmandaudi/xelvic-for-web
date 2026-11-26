@@ -46,7 +46,7 @@ export function PrivacyConfirm({
   ];
   const opening: { icon: ReactNode; label: string; text: string }[] = [
     { icon: <Globe className="size-[17px]" />, label: "Anyone can see", text: "Drops, vibes and audio go back on every shelf." },
-    { icon: <UserPlus className="size-[17px]" />, label: "Anyone can keep you", text: "New people follow straight away, with no request." },
+    { icon: <UserPlus className="size-[17px]" />, label: "Anyone can keep you", text: "New people keep you straight away, with no request." },
     { icon: <PlusCircle className="size-[17px]" />, label: "Posting opens again", text: "You can put up new drops, vibes and audio." },
   ];
   return (

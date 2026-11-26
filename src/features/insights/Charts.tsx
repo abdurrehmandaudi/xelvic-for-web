@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/utils/cn";
 import { count } from "@/utils/format";
 import { niceTop, type InsightChange, type InsightMetric, type InsightPoint } from "./model";
@@ -14,18 +14,13 @@ import { niceTop, type InsightChange, type InsightMetric, type InsightPoint } fr
  * `CustomPainter`; the web draws them as SVG, which is the same thing said in
  * the language the browser already has.
  *
- * Three rules are kept here rather than in the screen that uses them, because
+ * Two rules are kept here rather than in the screen that uses them, because
  * they are properties of the drawing and a screen that had to remember them
  * would eventually forget one.
  *
  * **The y axis starts at zero, always.** A chart whose baseline is the smallest
  * value it happens to hold turns a rise from 40 to 44 into a cliff, and it is
  * the single most common way a dashboard lies without saying anything untrue.
- *
- * **Nothing is a gradient.** The app's rule: the fill under a line is one flat
- * colour at a low alpha, from the line down to the axis, and it does not fade
- * out as it goes. The fading version is prettier in a still and worse in a
- * chart — the eye reads the darker part as more.
  *
  * **A flat line draws no arrow.** `DeltaChip` has three states and not two; see
  * the note in the model about why `null` is a state of its own.
@@ -45,7 +40,39 @@ const LINE = "var(--line)";
 const CARD = "var(--card)";
 /** `X.fade(hex, a)` — the app's one way of saying "this colour, quieter". */
 const faded = (colour: string, alpha: number) =>
-  `color-mix(in_srgb,${colour} ${Math.round(alpha * 100)}%,transparent)`;
+  `color-mix(in srgb, ${colour} ${Math.round(alpha * 100)}%, transparent)`;
+
+function curve(points: { x: number; y: number }[]): string {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  const n = points.length;
+  const gap: number[] = [];
+  const slope: number[] = [];
+  for (let i = 0; i < n - 1; i += 1) {
+    gap[i] = points[i + 1].x - points[i].x;
+    slope[i] = gap[i] === 0 ? 0 : (points[i + 1].y - points[i].y) / gap[i];
+  }
+  const pull: number[] = new Array<number>(n).fill(0);
+  pull[0] = slope[0];
+  pull[n - 1] = slope[n - 2];
+  for (let i = 1; i < n - 1; i += 1) {
+    if (slope[i - 1] * slope[i] <= 0) {
+      pull[i] = 0;
+    } else {
+      const here = 2 * gap[i] + gap[i - 1];
+      const next = gap[i] + 2 * gap[i - 1];
+      pull[i] = (here + next) / (here / slope[i - 1] + next / slope[i]);
+    }
+  }
+  let path = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 0; i < n - 1; i += 1) {
+    const reach = gap[i] / 3;
+    path += ` C ${points[i].x + reach} ${points[i].y + pull[i] * reach} ${
+      points[i + 1].x - reach
+    } ${points[i + 1].y - pull[i + 1] * reach} ${points[i + 1].x} ${points[i + 1].y}`;
+  }
+  return path;
+}
 
 /**
  * How wide the box actually is.
@@ -75,13 +102,22 @@ export function Sparkline({
   points,
   color,
   height = 34,
+  previous = [],
 }: {
   points: InsightPoint[];
   color: string;
   height?: number;
+  previous?: InsightPoint[];
 }) {
   return (
-    <Plot points={points} color={color} height={height} axes={false} selected={null} />
+    <Plot
+      points={points}
+      previous={previous}
+      color={color}
+      height={height}
+      axes={false}
+      selected={null}
+    />
   );
 }
 
@@ -100,6 +136,7 @@ export function Sparkline({
  */
 export function TrendChart({
   points,
+  previous = [],
   color,
   height = 160,
   hint,
@@ -107,6 +144,7 @@ export function TrendChart({
   readoutLabel,
 }: {
   points: InsightPoint[];
+  previous?: InsightPoint[];
   color: string;
   height?: number;
   /** What the readout says before anybody touches it. */
@@ -166,6 +204,7 @@ export function TrendChart({
       <div className="mt-2">
         <TouchPlot
           points={points}
+          previous={previous}
           color={color}
           height={height}
           selected={at}
@@ -180,6 +219,7 @@ export function TrendChart({
 /** The plot, with the pointer handling the trend chart needs. */
 function TouchPlot({
   points,
+  previous,
   color,
   height,
   selected,
@@ -187,6 +227,7 @@ function TouchPlot({
   onPick,
 }: {
   points: InsightPoint[];
+  previous: InsightPoint[];
   color: string;
   height: number;
   /** Which point the readout above is naming, so the cursor is drawn on it. */
@@ -215,6 +256,7 @@ function TouchPlot({
     <div className="relative">
       <Plot
         points={points}
+        previous={previous}
         color={color}
         height={height}
         axes
@@ -241,6 +283,7 @@ function TouchPlot({
 /** The line itself, drawn into a measured box. */
 function Plot({
   points,
+  previous,
   color,
   height,
   axes,
@@ -248,12 +291,14 @@ function Plot({
   axisLabel,
 }: {
   points: InsightPoint[];
+  previous: InsightPoint[];
   color: string;
   height: number;
   axes: boolean;
   selected: number | null;
   axisLabel?: (day: string) => string;
 }) {
+  const gradient = useId();
   const [box, wide] = useWidth();
   const left = axes ? PLOT_LEFT : 0;
   const right = axes ? PLOT_RIGHT : 0;
@@ -261,20 +306,27 @@ function Plot({
   const bottom = axes ? PLOT_BOTTOM : 2;
   const inner = wide - left - right;
   const tall = height - top - bottom;
+  const labelSize = wide >= 560 ? 10.5 : 9.5;
 
   const peak = points.reduce((best, point) => Math.max(best, point.value), 0);
-  const ceiling = axes ? niceTop(peak) : Math.max(1, peak);
+  const was = previous.reduce((best, point) => Math.max(best, point.value), 0);
+  const highest = axes ? Math.max(peak, was) : peak;
+  const ceiling = axes ? niceTop(highest) : Math.max(1, highest);
   const yOf = (value: number) => top + tall - (value / ceiling) * tall;
   const across = (index: number) =>
     points.length <= 1 ? left + inner / 2 : left + (index / (points.length - 1)) * inner;
 
-  const line = points.map((point, index) => `${across(index)},${yOf(point.value)}`).join(" ");
+  const at = points.map((point, index) => ({ x: across(index), y: yOf(point.value) }));
+  const before = previous.map((point, index) => ({ x: across(index), y: yOf(point.value) }));
+  const line = curve(at);
+  const trace = curve(before);
   const area =
-    points.length > 0
-      ? `${across(0)},${top + tall} ${line} ${across(points.length - 1)},${top + tall}`
+    at.length > 0
+      ? `${line} L ${at[at.length - 1].x} ${top + tall} L ${at[0].x} ${top + tall} Z`
       : "";
 
   const pick = selected !== null && selected >= 0 && selected < points.length ? selected : null;
+  const marked = axes && pick !== null;
 
   return (
     <div ref={box} className="w-full">
@@ -288,6 +340,12 @@ function Plot({
         focusable={false}
         className="block"
       >
+      <defs>
+        <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={axes ? 0.26 : 0.2} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+        </linearGradient>
+      </defs>
       {axes ? (
         <>
           {/* Three lines: the top of the scale, the middle, and the baseline.
@@ -309,7 +367,7 @@ function Plot({
                 y={yOf(value)}
                 textAnchor="end"
                 dominantBaseline="middle"
-                fontSize={9.5}
+                fontSize={labelSize}
                 fontWeight={600}
                 fill={DIM}
               >
@@ -331,15 +389,38 @@ function Plot({
         />
       ) : (
         <>
-          <polygon points={area} fill={faded(color, 0.12)} />
-          <polyline
-            points={line}
+          <path d={area} fill={axes ? `url(#${gradient})` : faded(color, 0.1)} />
+          {trace ? (
+            <path
+              d={trace}
+              fill="none"
+              stroke={faded(DIM, 0.55)}
+              strokeWidth={1.4}
+              strokeDasharray="2 5"
+              strokeLinecap="round"
+            />
+          ) : null}
+          <path
+            d={line}
             fill="none"
             stroke={color}
-            strokeWidth={axes ? 2.2 : 1.8}
+            strokeWidth={axes ? 2.4 : 1.8}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
+          {axes && marked
+            ? at.map((point, index) => (
+                <circle
+                  key={`${points[index].day}-${index}`}
+                  cx={point.x}
+                  cy={point.y}
+                  r={4}
+                  fill={color}
+                  stroke={CARD}
+                  strokeWidth={1.8}
+                />
+              ))
+            : null}
         </>
       )}
 
@@ -365,7 +446,7 @@ function Plot({
           {/* Only the two ends of the window are labelled. A tick per day would
               be thirty labels under a phone-wide chart; the shape between them
               is what the axis is for, and the readout names any day exactly. */}
-          <text x={left} y={height - 14} fontSize={9.5} fontWeight={600} fill={DIM}>
+          <text x={left} y={height - 14} fontSize={labelSize} fontWeight={600} fill={DIM}>
             {(axisLabel ?? ((day: string) => day))(points[0].day)}
           </text>
           {points.length > 1 ? (
@@ -373,7 +454,7 @@ function Plot({
               x={left + inner}
               y={height - 14}
               textAnchor="end"
-              fontSize={9.5}
+              fontSize={labelSize}
               fontWeight={600}
               fill={DIM}
             >
@@ -392,20 +473,25 @@ export function Panel({
   title,
   children,
   className,
+  action,
 }: {
   title: string;
   children: ReactNode;
   className?: string;
+  action?: ReactNode;
 }) {
   return (
     <section
       className={cn(
-        "rounded-[18px] border border-line bg-card px-3.5 pb-2 pt-3",
+        "rounded-[16px] border border-line bg-card p-4 pb-2 md:p-5 md:pb-3",
         className,
       )}
     >
-      <h2 className="text-[14px] font-extrabold">{title}</h2>
-      <div className="mt-2">{children}</div>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="shrink-0 text-[14px] font-semibold md:text-[15px]">{title}</h2>
+        {action}
+      </div>
+      <div className="mt-2 md:mt-3">{children}</div>
     </section>
   );
 }
@@ -430,11 +516,11 @@ export function Chip({
       disabled={!enabled}
       aria-pressed={on}
       className={cn(
-        "shrink-0 rounded-full border px-3.5 py-[7px] text-[12.5px] font-bold transition",
+        "shrink-0 rounded-full border px-3.5 py-2 text-[12.5px] font-semibold transition-colors",
         on
           ? "border-accent bg-accent text-[var(--on-accent)]"
           : enabled
-            ? "border-line bg-card text-dim"
+            ? "border-line bg-card text-dim hover:text-ink"
             : "border-line bg-card text-[color-mix(in_srgb,var(--dim)_45%,transparent)]",
       )}
     >
@@ -447,10 +533,13 @@ export function Chip({
 export function DeltaChip({
   change,
   bare = false,
+  first = "first this period",
 }: {
   change: InsightChange;
   /** Drawn without its own pill, for use inside a line of text. */
   bare?: boolean;
+  /** What a rise from nothing is called in the language being worn. */
+  first?: string;
 }) {
   if (change.up === null) {
     // Either nothing moved or there is nothing behind it. A dash for the first
@@ -465,7 +554,7 @@ export function DeltaChip({
         // percentage of nothing, so "first this period" is the honest way to
         // say it — and a fall from nothing is not a thing to say at all.
         up
-        ? "first this period"
+        ? first
         : ""
       : `${up ? "+" : "−"}${Math.round(Math.abs(change.ratio) * 100)}%`;
   if (!label) return bare ? <span className="text-[12px] text-dim">—</span> : null;
@@ -473,8 +562,8 @@ export function DeltaChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap text-[11.5px] font-bold",
-        !bare && "rounded-full px-[7px] py-[3px]",
+        "inline-flex items-center gap-1 whitespace-nowrap text-[11.5px] font-semibold",
+        !bare && "rounded-full px-2 py-1",
       )}
       style={{ color: tone, background: bare ? undefined : faded(tone, 0.1) }}
     >
@@ -496,22 +585,30 @@ export function DeltaChip({
  * like. The label is small and dim and the number is large, because a card is
  * found by its number and only then read for what it counts.
  */
-export function MetricCard({ metric, color }: { metric: InsightMetric; color: string }) {
+export function MetricCard({
+  metric,
+  color,
+  first,
+}: {
+  metric: InsightMetric;
+  color: string;
+  first?: string;
+}) {
   return (
-    <div className="rounded-[18px] border border-line bg-card px-3.5 pb-2.5 pt-3">
+    <div className="rounded-[16px] border border-line bg-card p-4 pb-3 md:p-5 md:pb-4">
       <div className="flex items-center">
-        <span className="min-w-0 flex-1 truncate text-[11.5px] font-bold text-dim">
+        <span className="min-w-0 flex-1 truncate text-[11.5px] font-semibold text-dim md:text-[12px]">
           {metric.title}
         </span>
         <span className="ml-2 shrink-0">
-          <DeltaChip change={metric.change} />
+          <DeltaChip change={metric.change} first={first} />
         </span>
       </div>
-      <p className="mt-1.5 text-[26px] font-extrabold leading-[1.05] tracking-[-0.6px] tabular-nums">
+      <p className="mt-2 text-[26px] font-extrabold leading-[1.05] tracking-[-0.6px] tabular-nums md:text-[30px]">
         {count(metric.total)}
       </p>
-      <div className="mt-1.5">
-        <Sparkline points={metric.points} color={color} height={30} />
+      <div className="mt-2">
+        <Sparkline points={metric.points} color={color} height={28} />
       </div>
     </div>
   );
@@ -543,7 +640,7 @@ export function BarRow({
   const tone = color ?? "var(--accent)";
   const share = top <= 0 ? 0 : Math.min(1, Math.max(0, value / top));
   return (
-    <div className="py-[9px]">
+    <div className="py-2.5">
       <div className="flex items-center">
         <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">{label}</span>
         <span className="ml-2.5 shrink-0 text-[14px] font-extrabold tabular-nums">
@@ -556,13 +653,13 @@ export function BarRow({
           squeezed somewhere, and what gets squeezed is the sentence somebody
           needed to read. */}
       {note ? (
-        <p className="mt-0.5 truncate text-[11.5px] font-semibold text-dim">{note}</p>
+        <p className="mt-1 truncate text-[11.5px] font-medium text-dim">{note}</p>
       ) : null}
       {/* The track is the full row's width and the fill is a share of it, so the
           bars in a column are comparable by their lengths alone. */}
-      <div className="mt-1.5 h-[5px] overflow-hidden rounded-[3px]" style={{ background: faded(LINE, 0.8) }}>
+      <div className="mt-2 h-1 overflow-hidden rounded-[2px]" style={{ background: faded(LINE, 0.8) }}>
         <div
-          className="h-full rounded-[3px]"
+          className="h-full rounded-[2px]"
           style={{ width: `${(share === 0 ? 0.02 : share) * 100}%`, background: faded(tone, 0.85) }}
         />
       </div>

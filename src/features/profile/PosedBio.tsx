@@ -27,6 +27,35 @@ import { cn } from "@/utils/cn";
  * there is only ever one figure on the page — the app had two stacked once and
  * the owner reported the double image on 2026-10-03.
  */
+export function usePosedFigure(
+  character?: string | null,
+  show?: boolean | null,
+) {
+  const shelf = useDripShelf();
+
+  const figure = useMemo(() => {
+    const key = (character ?? "").trim() || (shelf.data?.worn ?? "").trim();
+    if (!key || key === CLASSIC_FIGURE) return null;
+    return shelf.data?.characters?.find((row) => row.key === key) ?? null;
+  }, [character, shelf.data]);
+
+  /**
+   * The three pictures, with the same fallback the shop's tiles use: a figure
+   * with no `bio` pose has nothing to say standing beside a profile, and the
+   * app's chain is applied rather than a second one invented here.
+   */
+  const art = figure ? figurePoses(figure) : BUNDLED_POSES;
+
+  /**
+   * Null means "read the shelf". A session that has not answered yet reads as
+   * shown, which is the app's own default (`show_character` ships on), so the
+   * figure does not pop in a moment after the page.
+   */
+  const shows = show ?? shelf.data?.show_character ?? true;
+
+  return { art, shows };
+}
+
 export function PosedBio({
   text,
   character,
@@ -50,27 +79,7 @@ export function PosedBio({
   show?: boolean | null;
   className?: string;
 }) {
-  const shelf = useDripShelf();
-
-  const figure = useMemo(() => {
-    const key = (character ?? "").trim() || (shelf.data?.worn ?? "").trim();
-    if (!key || key === CLASSIC_FIGURE) return null;
-    return shelf.data?.characters?.find((row) => row.key === key) ?? null;
-  }, [character, shelf.data]);
-
-  /**
-   * The three pictures, with the same fallback the shop's tiles use: a figure
-   * with no `bio` pose has nothing to say standing beside a profile, and the
-   * app's chain is applied rather than a second one invented here.
-   */
-  const art = figure ? figurePoses(figure) : BUNDLED_POSES;
-
-  /**
-   * Null means "read the shelf". A session that has not answered yet reads as
-   * shown, which is the app's own default (`show_character` ships on), so the
-   * figure does not pop in a moment after the page.
-   */
-  const shows = show ?? shelf.data?.show_character ?? true;
+  const { art, shows } = usePosedFigure(character, show);
 
   const letters = useMemo(() => Array.from(text), [text]);
   const [written, setWritten] = useState(0);
@@ -113,10 +122,8 @@ export function PosedBio({
 
   return (
     <div className={cn("flex items-end gap-2.5 px-[18px] pt-3", className)}>
-      <div className="min-w-0 flex-1 rounded-[14px] border border-[color-mix(in_srgb,var(--ink)_8%,transparent)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] px-[13px] py-[11px]">
-        {/* The bio's own type, unchanged from the bare paragraph this
-            replaced: the bubble is a new frame around the same words. */}
-        <p className="whitespace-pre-wrap text-[13px] font-semibold leading-[1.45] text-[color-mix(in_srgb,var(--ink)_85%,transparent)]">
+      <div className="min-w-0 flex-1 px-[13px] py-1">
+        <p className="whitespace-pre-wrap text-[15px] font-semibold leading-7 text-[color-mix(in_srgb,var(--ink)_85%,transparent)]">
           {Array.from(text).slice(0, written).join("")}
         </p>
       </div>
@@ -132,5 +139,28 @@ export function PosedBio({
         />
       ) : null}
     </div>
+  );
+}
+
+export function PosedFigure({
+  character,
+  show,
+  className,
+}: {
+  character?: string | null;
+  show?: boolean | null;
+  className?: string;
+}) {
+  const { art, shows } = usePosedFigure(character, show);
+  if (!shows) return null;
+
+  return (
+    <img
+      src={art.bio ?? art.wait ?? art.typing ?? ""}
+      alt=""
+      aria-hidden
+      className={cn("object-contain", className)}
+      draggable={false}
+    />
   );
 }

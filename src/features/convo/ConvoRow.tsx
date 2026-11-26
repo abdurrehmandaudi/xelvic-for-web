@@ -1,4 +1,10 @@
-import { useRef, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 import { BellOff, Cake, Check, Pin, Sparkles, Timer, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/utils/cn";
@@ -87,7 +93,6 @@ function SparkChip({ spark, onOpen }: { spark: Spark; onOpen: () => void }) {
         <award.Icon
           key={award.key}
           className={cn("size-[21px]", index > 0 && "ml-0.5")}
-          strokeWidth={2.2}
           aria-hidden
           style={{
             color: urgent
@@ -125,6 +130,7 @@ export function ConvoRow({
   onActions,
   onOpenMoment,
   onOpenSpark,
+  onFiles,
 }: {
   thread: ThreadCard;
   active?: boolean;
@@ -137,6 +143,7 @@ export function ConvoRow({
   onActions: () => void;
   onOpenMoment?: (username: string) => void;
   onOpenSpark?: () => void;
+  onFiles?: (files: File[]) => void;
 }) {
   const title = threadTitle(thread);
   const face = threadFace(thread);
@@ -150,6 +157,41 @@ export function ConvoRow({
   const username = face?.username;
   const ring = Boolean(username && moment && onOpenMoment && !gone && !picking);
   const longPress = useLongPress(picking ? () => undefined : onActions);
+  const [fileOver, setFileOver] = useState(false);
+  const fileDepth = useRef(0);
+
+  const hasFiles = (event: DragEvent<HTMLElement>) =>
+    Array.from(event.dataTransfer.types).includes("Files");
+
+  const onDragEnter = (event: DragEvent<HTMLDivElement>) => {
+    if (!onFiles || !hasFiles(event)) return;
+    event.preventDefault();
+    fileDepth.current += 1;
+    setFileOver(true);
+  };
+
+  const onDragOver = (event: DragEvent<HTMLDivElement>) => {
+    if (!onFiles || !hasFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const onDragLeave = () => {
+    if (!onFiles) return;
+    fileDepth.current = Math.max(0, fileDepth.current - 1);
+    if (fileDepth.current === 0) setFileOver(false);
+  };
+
+  const onDrop = (event: DragEvent<HTMLDivElement>) => {
+    if (!onFiles) return;
+    const files = Array.from(event.dataTransfer.files ?? []);
+    if (!files.length) return;
+    event.preventDefault();
+    event.stopPropagation();
+    fileDepth.current = 0;
+    setFileOver(false);
+    onFiles(files);
+  };
 
   const style = hot
     ? { background: HOT_FILL, borderColor: HOT_EDGE }
@@ -195,11 +237,16 @@ export function ConvoRow({
         event.preventDefault();
         if (!picking) onActions();
       }}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
       {...longPress.handlers}
       className={cn(
         "group relative flex min-h-[64px] cursor-pointer items-center gap-2 overflow-hidden px-1.5 pl-2 pr-2.5 outline-none transition-colors hover:bg-accent/5",
         "border-b border-[color-mix(in_srgb,var(--line)_70%,transparent)] focus-visible:ring-2 focus-visible:ring-accent/50",
         marked && !picking && "border",
+        fileOver && "bg-accent/10 ring-2 ring-inset ring-accent",
       )}
       style={picking ? undefined : style}
     >
