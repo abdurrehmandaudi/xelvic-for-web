@@ -9,7 +9,6 @@ import {
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { QRCodeSVG } from "qrcode.react";
 import {
   ArrowLeft,
   BadgePlus,
@@ -18,24 +17,22 @@ import {
   Clock,
   ExternalLink,
   Flag,
-  Gem,
   Globe,
   Lock,
   Mail,
   MapPin,
-  MessageCircle,
   MoreHorizontal,
   Plus,
-  Settings2,
   QrCode,
+  Settings2,
   UserPlus,
   Users,
   VolumeX,
-  X,
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { Avatar } from "@/components/ui/Avatar";
+import { MdVerified } from "react-icons/md";
+import { FaRegCommentDots, FaUserPlus, FaUserCheck } from "react-icons/fa6";
 import { Blank } from "@/components/ui/Blank";
 import {
   ConfirmDialog,
@@ -43,11 +40,11 @@ import {
   PromptDialog,
 } from "@/components/overlays/Modal";
 import { PageSkeleton } from "@/components/ui/States";
-import { VerifiedTick } from "@/components/icons/Tick";
 import { ConvoSheet } from "@/features/convo/ConvoSheet";
 import { aliasOf, rememberName, useNames } from "@/features/convo/names";
 import { MomentViewer } from "@/features/moments/MomentViewer";
-import { PosedBio } from "@/features/profile/PosedBio";
+import { PosedFigure } from "@/features/profile/PosedBio";
+import { ProfileQr } from "@/features/profile/ProfileQr";
 import { SparkSheet } from "@/features/sparks/SparkSheet";
 import { BirthdayFall } from "@/features/profile/BirthdayFall";
 import { isBirthdayTodayIn } from "@/features/profile/birthday";
@@ -69,19 +66,25 @@ import {
   PROFILE_MAX,
   PROFILE_PHOTO,
   PROFILE_SECTION,
-  ProfileCard,
   ProfileCover,
   ProfileStats,
   QUIET_PILL,
   SOLID_PILL,
   SheetRow,
   TILE_CONTROL,
+  ProfileAbout,
   askPulse,
+  profileArt,
+  type ProfileDetail,
   type ProfileStat,
 } from "@/features/profile/parts";
 import { PinnedStrip, ProfileShelf } from "@/features/profile/ProfileShelf";
 import { ProfessionalLead, linkPillIcon } from "@/features/professional/parts";
-import { linkLabel } from "@/features/professional/model";
+import {
+  linkLabel,
+  websiteAddress,
+  websiteLink,
+} from "@/features/professional/model";
 import { chatService } from "@/services/chat.service";
 import { sparksService } from "@/services/sparks.service";
 import { dropsService } from "@/services/drops.service";
@@ -93,7 +96,7 @@ import { useWideScreen } from "@/hooks/useWideScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/utils/cn";
-import { count, firstName } from "@/utils/format";
+import { firstName } from "@/utils/format";
 import { profileService } from "@/services/profile.service";
 import { socialService } from "@/services/social.service";
 import type {
@@ -111,12 +114,6 @@ interface PeopleState {
   cta: string | null;
 }
 
-interface Detail {
-  icon: LucideIcon;
-  text: string;
-  onClick?: () => void;
-}
-
 /** The mark for a gate's action, from the server's own name for it. */
 function gateIcon(hint: string | null | undefined, className = "size-[18px]") {
   const Mark =
@@ -127,6 +124,48 @@ function gateIcon(hint: string | null | undefined, className = "size-[18px]") {
       user: UserPlus,
     }[String(hint ?? "")] ?? MoreHorizontal;
   return <Mark className={className} aria-hidden />;
+}
+
+function ProfilePanel({
+  icon: Icon,
+  title,
+  tone = "var(--accent)",
+  meta,
+  children,
+  className,
+}: {
+  icon: LucideIcon;
+  title: string;
+  tone?: string;
+  meta?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "rounded-[12px] border border-line bg-card px-3 py-1.5 shadow-[0_1px_2px_color-mix(in_srgb,var(--ink)_5%,transparent)]",
+        className,
+      )}
+    >
+      <div className="flex items-center gap-2.5">
+        <span
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+          style={{
+            backgroundColor: `color-mix(in srgb, ${tone} 12%, transparent)`,
+            color: tone,
+          }}
+        >
+          <Icon className="size-4" aria-hidden />
+        </span>
+        <h2 className="min-w-0 flex-1 truncate text-[14px] font-bold">
+          {title}
+        </h2>
+        {meta}
+      </div>
+      {children ? <div className="mt-1">{children}</div> : null}
+    </section>
+  );
 }
 
 export function PersonProfile() {
@@ -242,9 +281,7 @@ export function PersonProfile() {
   const liveFresh = useMemo(
     () =>
       Boolean(
-        (tray.data?.unseen ?? []).some(
-          (row) => row.author?.id === personId,
-        ),
+        (tray.data?.unseen ?? []).some((row) => row.author?.id === personId),
       ),
     [tray.data, personId],
   );
@@ -536,16 +573,10 @@ export function PersonProfile() {
   const canView = profile.can_view !== false;
   const mutualCount = Number(profile.mutuals_count ?? 0);
   const mutualShown = !isMe && mutualCount > 0;
+  const showsFigure = profile.show_character !== false;
   const keepDoor =
     isPublic && !isMe && ((canKeep && !following) || (justKept && following));
   const first = firstName(name);
-  const followerCount = profile.followers_count;
-  const keepCount =
-    followerCount === null || followerCount === undefined
-      ? null
-      : followerCount <= 0
-        ? t("Be the first in their Crew")
-        : t(`${count(followerCount)} in their Crew`);
 
   const metrics: ProfileStat[] = [];
   if (canView) {
@@ -553,8 +584,6 @@ export function PersonProfile() {
       key: "drops",
       label: t("Drops"),
       value: profile.posts_count,
-      icon: Gem,
-      tone: "var(--tone-pink)",
     });
   }
   if (
@@ -566,8 +595,6 @@ export function PersonProfile() {
       key: "sparks",
       label: t("Sparks"),
       value: profile.sparks_count,
-      icon: Zap,
-      tone: "var(--tone-violet)",
     });
   }
   if (
@@ -578,19 +605,20 @@ export function PersonProfile() {
       key: "crew",
       label: t("Crew"),
       value: profile.followers_count,
-      icon: Users,
-      tone: "var(--tone-blue)",
     });
   }
 
-  const details: Detail[] = [];
+  const details: ProfileDetail[] = [];
   const address = String(profile.address ?? "").trim();
   const email = String(profile.contact_email ?? "").trim();
-  if (address) details.push({ icon: MapPin, text: address });
+  if (address) {
+    details.push({ icon: MapPin, text: address, tone: "var(--tone-teal)" });
+  }
   if (email) {
     details.push({
       icon: Mail,
       text: email,
+      tone: "var(--tone-blue)",
       onClick: () => {
         window.location.href = `mailto:${email}`;
       },
@@ -599,6 +627,18 @@ export function PersonProfile() {
 
   const bio = String(profile.bio ?? "").trim();
   const linkRows = links.filter((row) => String(row.url ?? "").trim());
+
+  const site = websiteLink(linkRows);
+  if (site) {
+    const url = String(site.url ?? "").trim();
+    const word = linkLabel(site, t("Website"));
+    details.push({
+      icon: Globe,
+      text: websiteAddress(url),
+      tone: "var(--tone-violet)",
+      onClick: () => setGoing({ url, word }),
+    });
+  }
 
   const chips: { text: string; mark: ReactNode; onOpen?: () => void }[] = [];
 
@@ -612,6 +652,9 @@ export function PersonProfile() {
     });
   }
 
+  const privacyBadge =
+    "inline-flex shrink-0 items-center gap-1.5 rounded-[8px] border border-[color-mix(in_srgb,var(--accent)_22%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--card))] px-2.5 py-1 text-[12px] font-semibold capitalize text-accent";
+
   const actionRow = (
     <div className="flex flex-wrap items-center gap-2">
       {canSend ? (
@@ -619,11 +662,10 @@ export function PersonProfile() {
           type="button"
           disabled={busy}
           onClick={() => void message()}
-          style={following && !busy ? askPulse(palette.isDark) : undefined}
           className={SOLID_PILL}
         >
-          <MessageCircle className="size-[18px]" aria-hidden />
-          {gate?.text_only === true ? t("Start one convo") : t("Message")}
+          <FaRegCommentDots className="size-[18px]" aria-hidden />
+          {gate?.text_only === true ? t("Start one convo") : t("Convo")}
         </button>
       ) : null}
       {following || (canKeep && !keepDoor) ? (
@@ -637,11 +679,11 @@ export function PersonProfile() {
           className={following ? QUIET_PILL : SOLID_PILL}
         >
           {following ? (
-            <CheckCircle2 className="size-[17px]" aria-hidden />
+            <FaUserCheck className="size-[17px]" aria-hidden />
           ) : (
-            <UserPlus className="size-[17px]" aria-hidden />
+            <FaUserPlus className="size-[17px]" aria-hidden />
           )}
-          {following ? t("Following") : t("Keep")}
+          {following ? t("Keeping") : t("Keep")}
         </button>
       ) : cta && action ? (
         <button
@@ -681,13 +723,13 @@ export function PersonProfile() {
         onClick={() => setQr(true)}
         className={TILE_CONTROL}
       >
-        <QrCode className="size-[18px]" aria-hidden />
+        <QrCode className="size-[20px]" aria-hidden />
       </button>
     </div>
   );
 
   return (
-    <div className="relative isolate min-h-dvh bg-card pb-[calc(26px+env(safe-area-inset-bottom,0px))]">
+    <div className="relative isolate min-h-dvh bg-card pb-24 sm:pb-[calc(26px+env(safe-area-inset-bottom,0px))]">
       <article className="overflow-hidden bg-card">
         <ProfileCover url={profile.cover} art={design.coverArt}>
           <button
@@ -714,7 +756,7 @@ export function PersonProfile() {
           </button>
         </ProfileCover>
 
-        <div className={cn(PROFILE_MAX, PROFILE_GUTTER, "relative")}>
+        <div className={cn(PROFILE_MAX, PROFILE_GUTTER, "relative pb-5 sm:pb-6")}>
           <div className={PROFILE_HEAD}>
             <div className={PROFILE_FACE}>
               <FaceButton
@@ -734,48 +776,67 @@ export function PersonProfile() {
             <div className={PROFILE_HEAD_TEXT}>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  {trading ? (
-                    <ProfessionalLead
-                      trade={trading}
-                      t={t}
-                      className="mb-1.5 justify-start"
-                    />
-                  ) : null}
                   <div className="flex min-w-0 items-center gap-2">
                     <h1 className="truncate text-[26px] font-extrabold leading-[1.08] tracking-[-0.02em] sm:text-[32px]">
                       {name}
                     </h1>
                     {profile.verified ? (
-                      <span className="flex shrink-0">
-                        <VerifiedTick size={20} />
+                      <span className="flex shrink-0 self-center">
+                        <MdVerified
+                          size={22}
+                          className="translate-y-[1px] text-[#1D9BF0] sm:translate-y-[2px]"
+                          aria-label="Verified"
+                        />
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-[13px] font-medium text-dim">
-                    <span className="truncate">@{handle}</span>
+                  <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium text-dim">
+                    {trading ? (
+                      <>
+                        <ProfessionalLead
+                          trade={trading}
+                          t={t}
+                          className="justify-start"
+                        />
+                        <span aria-hidden>&middot;</span>
+                      </>
+                    ) : null}
+                    <span className="truncate font-bold text-[13px]">
+                      @{handle}
+                    </span>
                     <span aria-hidden>&middot;</span>
-                    <span className="shrink-0">{t("Privacy:")}</span>
-                    <button
-                      type="button"
-                      onClick={() => setPrivacyOpen(true)}
-                      aria-expanded={privacyOpen}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-[8px] border border-[color-mix(in_srgb,var(--accent)_22%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--card))] px-2.5 py-1 text-[12px] font-semibold capitalize text-accent transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--accent)_13%,var(--card))]"
-                    >
-                      {profile.is_private ? (
-                        <Lock className="size-3.5" aria-hidden />
-                      ) : (
-                        <Globe className="size-3.5" aria-hidden />
-                      )}
-                      {open}
-                      <ChevronDown className="size-3.5" aria-hidden />
-                    </button>
+                    {isMe ? (
+                      <button
+                        type="button"
+                        onClick={() => setPrivacyOpen(true)}
+                        aria-expanded={privacyOpen}
+                        className={`${privacyBadge} transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--accent)_13%,var(--card))]`}
+                      >
+                        {profile.is_private ? (
+                          <Lock className="size-3.5" aria-hidden />
+                        ) : (
+                          <Globe className="size-3.5" aria-hidden />
+                        )}
+                        {open}
+                        <ChevronDown className="size-3.5" aria-hidden />
+                      </button>
+                    ) : (
+                      <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold capitalize leading-none">
+                        {profile.is_private ? (
+                          <Lock className="size-3.5 shrink-0" aria-hidden />
+                        ) : (
+                          <Globe className="size-3.5 shrink-0" aria-hidden />
+                        )}
+                        <span className="translate-y-[0.5px]">{open}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="shrink-0">{actionRow}</div>
               </div>
 
               {chips.length ? (
-                <div className="mt-4 flex flex-wrap items-center gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   {chips.map((chip, index) => (
                     <Chip
                       key={`${chip.text}-${index}`}
@@ -790,123 +851,104 @@ export function PersonProfile() {
               {birthdayToday ? <BirthdayPill name={name} /> : null}
             </div>
           </div>
+        </div>
+      </article>
 
-          <ProfileStats items={metrics} className="mt-5" />
+      <div className={cn(PROFILE_MAX, PROFILE_GUTTER, PROFILE_SECTION)}>
+        <div
+          className={cn(
+            "grid overflow-hidden",
+            showsFigure && "lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]",
+          )}
+        >
+          <div className="min-w-0 space-y-4 px-4 sm:px-5 lg:px-6">
+            <div className="space-y-3">
+              <ProfileStats items={metrics} />
 
-          {keepDoor ? (
-            justKept ? (
-              <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[color-mix(in_srgb,var(--good)_38%,transparent)] bg-[color-mix(in_srgb,var(--good)_10%,var(--card))] px-4 py-3.5">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--good)_16%,transparent)] text-[var(--good)]">
-                  <CheckCircle2 className="size-[18px]" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[14px] font-semibold">
-                    {t(`${first} is in your Kept`)}
-                  </span>
-                  {keepCount ? (
-                    <span className="mt-0.5 block text-[12px] text-dim tabular-nums">
-                      {keepCount}
-                    </span>
-                  ) : null}
-                </span>
-              </div>
-            ) : (
-              <div className="mt-4 rounded-[14px] border border-[color-mix(in_srgb,var(--accent)_20%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_7%,var(--card))] p-4 sm:p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-[color-mix(in_srgb,var(--accent)_13%,transparent)] text-accent">
-                    <UserPlus className="size-[19px]" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[14.5px] font-semibold">
-                      {t(`Keep ${first}`)}
-                    </span>
-                    <span className="mt-1 block max-w-[66ch] text-[12.5px] leading-5 text-dim">
+              {keepDoor ? (
+                justKept ? (
+                  <ProfilePanel
+                    icon={CheckCircle2}
+                    title={t(`${first} is in your Kept`)}
+                    tone="var(--good)"
+                    className="border-[color-mix(in_srgb,var(--good)_28%,var(--line))] bg-[linear-gradient(120deg,color-mix(in_srgb,var(--good)_7%,var(--card)),var(--card))]"
+                  />
+                ) : (
+                  <ProfilePanel
+                    icon={UserPlus}
+                    title={t(`Keep ${first}`)}
+                    className="border-[color-mix(in_srgb,var(--accent)_20%,var(--line))] bg-[linear-gradient(140deg,color-mix(in_srgb,var(--accent)_5%,var(--card)),var(--card))]"
+                    meta={
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void act("follow")}
+                        className={cn(SOLID_PILL, "shrink-0")}
+                      >
+                        {t("Keep")}
+                      </button>
+                    }
+                  >
+                    <p className="max-w-[58ch] text-[12.5px] leading-5 text-dim">
                       {t(
                         "They join your Kept, and can message you, call you and send you a moment",
                       )}
-                    </span>
-                  </span>
-                  <div className="flex shrink-0 items-center gap-3">
-                    {keepCount ? (
-                      <span className="inline-flex items-center gap-2 text-[12px] font-medium text-dim tabular-nums">
-                        <Users className="size-4" aria-hidden />
-                        {keepCount}
-                      </span>
+                    </p>
+                  </ProfilePanel>
+                )
+              ) : null}
+            </div>
+
+            <ProfileAbout
+              bio={bio}
+              character={profile.character ?? null}
+              empty={t("No bio yet")}
+              art={profileArt(personId || username)}
+              details={details}
+            >
+              {gate?.title && gate.text_only !== true ? (
+                <div className="mt-4 flex gap-3 rounded-[10px] border border-line bg-[color-mix(in_srgb,var(--accent)_5%,var(--card))] px-3 py-2">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]">
+                    <Lock className="size-4 text-accent" aria-hidden />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h3 className="text-[13px] font-semibold">{gate.title}</h3>
+
+                    {gate.text ? (
+                      <p className="mt-0.5 text-[12px] leading-5 text-dim">
+                        {gate.text}
+                      </p>
                     ) : null}
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void act("follow")}
-                      className={SOLID_PILL}
-                    >
-                      {t("Keep")}
-                    </button>
                   </div>
                 </div>
-              </div>
-            )
-          ) : null}
+              ) : null}
+            </ProfileAbout>
+          </div>
 
-          {mutualShown ? (
+          {showsFigure ? (
+            <aside className="relative order-first flex min-h-[220px] items-center justify-center overflow-hidden border-b border-line px-6 py-8 lg:order-none lg:min-h-0 lg:border-b-0 lg:border-l">
+              <span className="pointer-events-none absolute bottom-8 h-4 w-2/5 rounded-full bg-[color-mix(in_srgb,var(--ink)_12%,transparent)] blur-lg" />
+              <PosedFigure
+                character={profile.character ?? null}
+                show={profile.show_character ?? null}
+                className="relative w-full max-w-[190px] drop-shadow-[0_8px_12px_color-mix(in_srgb,var(--ink)_18%,transparent)]"
+              />
+            </aside>
+          ) : null}
+        </div>
+
+        {mutualShown ? (
+          <div className={cn(PROFILE_MAX, PROFILE_GUTTER)}>
             <MutualStrip
               count={mutualCount}
               faces={profile.mutuals}
               onOpen={() => setMutuals(true)}
             />
-          ) : null}
-        </div>
-      </article>
+          </div>
+        ) : null}
 
-      <div className={cn(PROFILE_MAX, PROFILE_GUTTER, PROFILE_SECTION)}>
-        <div className="space-y-4 lg:space-y-5">
-          <ProfileCard>
-            {bio ? (
-              <PosedBio
-                text={bio}
-                character={profile.character ?? null}
-                show={profile.show_character ?? null}
-                className="max-w-[680px] px-0 pt-0"
-              />
-            ) : (
-              <p className="text-[14px] leading-6 text-ink/75">
-                {t("No bio yet")}
-              </p>
-            )}
-          </ProfileCard>
-
-          {details.length > 0 ? (
-            <ProfileCard title={t("Details")}>
-              <div className="space-y-3.5">
-                {details.map((detail, index) => (
-                  <DetailRow key={`${detail.text}-${index}`} {...detail} />
-                ))}
-              </div>
-            </ProfileCard>
-          ) : null}
-
-          {gate?.title && gate.text_only !== true ? (
-            <section
-              className={cn(
-                PROFILE_CARD,
-                "flex items-start gap-3 border-[color-mix(in_srgb,var(--accent)_22%,var(--line))] bg-[color-mix(in_srgb,var(--accent)_7%,var(--card))] p-4 sm:p-5",
-              )}
-            >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-accent">
-                <Lock className="size-[18px]" aria-hidden />
-              </span>
-              <span className="min-w-0 pt-0.5">
-                <span className="block text-[14px] font-semibold">
-                  {gate.title}
-                </span>
-                {gate.text ? (
-                  <span className="mt-1 block text-[12.5px] leading-5 text-dim">
-                    {gate.text}
-                  </span>
-                ) : null}
-              </span>
-            </section>
-          ) : null}
-
+        <div className="mt-4 space-y-4 lg:mt-5 lg:space-y-5">
           <MemoriesShelf
             username={handle}
             mine={false}
@@ -928,6 +970,7 @@ export function PersonProfile() {
           ) : null}
         </div>
       </div>
+
       {birthdayToday ? <BirthdayFall /> : null}
 
       {menu && menuPos
@@ -1149,60 +1192,12 @@ export function PersonProfile() {
       </Modal>
 
       <Modal open={qr} onClose={() => setQr(false)} size="sm" hideClose>
-        <div className="relative flex flex-col items-center px-5 pb-6 pt-6">
-          <button
-            type="button"
-            onClick={() => setQr(false)}
-            aria-label={t("Close")}
-            className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-transparent text-dim transition-[background-color,color,transform] duration-[160ms] hover:bg-ink-6 hover:text-ink active:scale-[0.94] absolute right-3 top-3"
-          >
-            <X className="size-4" />
-          </button>
-          <span className="flex items-center gap-2.5">
-            <Avatar user={profile} size={40} />
-            <span className="min-w-0 text-left">
-              <span className="block truncate text-[14px] font-medium">
-                {name}
-              </span>
-              <span className="block truncate text-[12px] text-dim">
-                @{handle}
-              </span>
-            </span>
-          </span>
-          <div className="mt-4 rounded-[14px] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-card p-3.5">
-            {/* Drawn in the theme's accent rather than the app's near-black: the
-                accent is the one colour a theme guarantees reads as text on its
-                own page, which is the contrast a scanner wants off the card. */}
-            <QRCodeSVG
-              value={`xelvic://u/@${handle}`}
-              size={200}
-              level="M"
-              includeMargin={false}
-              fgColor="currentColor"
-              bgColor="transparent"
-              className="text-accent"
-            />
-          </div>
-          <p className="mt-4 text-center text-[12px] leading-[1.5] text-dim">
-            {t("Point the Xelvic scanner at this to open their profile.")}
-          </p>
-          <button
-            type="button"
-            className="inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-control px-[1.1rem] font-bold tracking-[-0.01em] transition-[transform,background-color,color,border-color,opacity] duration-[160ms] ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 border border-line bg-card text-ink hover:[&:not(:disabled)]:border-accent-30 hover:[&:not(:disabled)]:bg-accent-5 mt-4"
-            onClick={() => {
-              void navigator.clipboard
-                .writeText(`@${handle}`)
-                .then(() =>
-                  toast({ title: t("Handle copied"), tone: "success" }),
-                )
-                .catch(() =>
-                  toast({ title: t("Copy it from the page"), tone: "info" }),
-                );
-            }}
-          >
-            {t("Copy the handle")}
-          </button>
-        </div>
+        <ProfileQr
+          user={profile}
+          handle={handle}
+          name={name}
+          onClose={() => setQr(false)}
+        />
       </Modal>
 
       {/* Their day, walked over the page that named them — the app's
@@ -1234,27 +1229,3 @@ export function PersonProfile() {
 }
 
 /** One line of the About card: a mark and the thing it names. */
-function DetailRow({ icon: Icon, text, onClick }: Detail) {
-  const body = (
-    <>
-      <span className="flex size-5 shrink-0 items-center justify-center text-[color-mix(in_srgb,var(--ink)_45%,transparent)]">
-        <Icon className="size-[18px]" aria-hidden />
-      </span>
-      <span className="min-w-0 truncate text-[13px] font-medium text-ink/80">
-        {text}
-      </span>
-    </>
-  );
-  if (!onClick) {
-    return <div className="flex min-w-0 items-center gap-2.5">{body}</div>;
-  }
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full min-w-0 items-center gap-2.5 text-left transition-colors duration-150 hover:text-accent"
-    >
-      {body}
-    </button>
-  );
-}

@@ -259,6 +259,24 @@ export const LINK_SHORTCUTS: { label: string; icon: LucideIcon }[] = [
   { label: "Location", icon: MapPin },
 ];
 
+export function websiteLink<T extends { label?: string | null; url?: string | null }>(
+  links: T[],
+): T | null {
+  const rows = links.filter((row) => String(row.url ?? "").trim());
+  const named = rows.find((row) =>
+    String(row.label ?? "").toLowerCase().includes("website"),
+  );
+  if (named) return named;
+  return rows.find((row) => linkIcon(row) === Link2) ?? null;
+}
+
+export function websiteAddress(url: string): string {
+  return String(url ?? "")
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/+$/, "");
+}
+
 /**
  * The word on a link button: the label the account typed, or the host of the
  * URL when it left the label blank — a button that has to say something.

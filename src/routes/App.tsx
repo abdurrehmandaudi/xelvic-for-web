@@ -87,7 +87,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/app/drops" replace />} />
+        <Route index element={<Navigate to="/app/convo" replace />} />
         <Route path="drops" element={<LazyPage page={DropsPage} />} />
         <Route path="drops/muted" element={<LazyPage page={MutedPage} />} />
         <Route path="drops/:dropId" element={<LazyPage page={DropPage} />} />

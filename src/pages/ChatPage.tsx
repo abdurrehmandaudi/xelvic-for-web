@@ -77,6 +77,7 @@ import {
 import { FaRegCommentDots } from "react-icons/fa6";
 import { FiShare2 } from "react-icons/fi";
 import { FaFileLines } from "react-icons/fa6";
+import { MdAutoAwesome } from "react-icons/md";
 import { Avatar } from "@/components/ui/Avatar";
 import { Backdrop } from "@/components/layout/Backdrop";
 import { DocumentGlyph } from "@/components/icons/DocumentGlyph";
@@ -86,6 +87,10 @@ import { AuthedImage, AuthedVideo } from "@/components/media/Media";
 import { Modal } from "@/components/overlays/Modal";
 import { EmptyState, ErrorState } from "@/components/ui/States";
 import { Arrivals } from "@/features/convo/arrivals";
+import {
+  subscribeDroppedFiles,
+  takeDroppedFiles,
+} from "@/features/convo/dropHandoff";
 import { AgentTail } from "@/features/convo/AgentTail";
 import {
   agentAsked,
@@ -1028,7 +1033,7 @@ function SparkCard({
         className="relative flex max-w-[78vw] items-center gap-2 border border-[color-mix(in_srgb,var(--accent)_42%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,var(--card))] py-1.5 px-2 text-left transition active:scale-[0.99]"
       >
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-accent">
-          <Sparkles className="size-[19px]" />
+          <MdAutoAwesome className="size-[19px]" aria-hidden />
         </span>
         <span className="min-w-0">
           <span className="block text-[15px] font-bold text-ink">
@@ -1060,7 +1065,7 @@ function SparkCard({
       {state.opened ? (
         <EyeOff className="size-[18px]" />
       ) : (
-        <Sparkles className="size-[18px]" />
+        <MdAutoAwesome className="size-[18px]" aria-hidden />
       )}
       {label}
       {tail}
@@ -6172,8 +6177,24 @@ export function ChatPage() {
       }
       next.push(staged);
     }
-    if (next.length) setAttachments([...attachments, ...next]);
+    if (next.length) setAttachments((current) => [...current, ...next]);
   }
+
+  const chooseFilesRef = useRef(chooseFiles);
+  useEffect(() => {
+    chooseFilesRef.current = chooseFiles;
+  });
+
+  useEffect(() => {
+    const stage = (files: File[]) => chooseFilesRef.current(files);
+    const early = takeDroppedFiles(threadId);
+    if (early?.length) stage(early);
+    return subscribeDroppedFiles((payload) => {
+      if (payload.threadId !== threadId) return;
+      const files = takeDroppedFiles(threadId);
+      if (files?.length) stage(files);
+    });
+  }, [threadId]);
 
   function dragHasFiles(event: DragEvent<HTMLElement>) {
     return Array.from(event.dataTransfer.types).includes("Files");
@@ -7526,7 +7547,7 @@ export function ChatPage() {
                           }}
                         />
                         <AttachRow
-                          icon={<Sparkles className="size-4" />}
+                          icon={<MdAutoAwesome className="size-4" />}
                           label="Spark"
                           // A hover or a finger on the row is the beat before the tap,
                           // and that beat is enough to fetch the camera's chunk.

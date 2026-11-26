@@ -22,6 +22,8 @@ type Narrow = "all" | "recent" | "saved";
 
 const HOLD_MS = 420;
 
+const GIF_CHUNK = 24;
+
 export function StickerSheet({
   open,
   onClose,
@@ -44,7 +46,10 @@ export function StickerSheet({
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [eager, setEager] = useState(false);
+  const [gifCap, setGifCap] = useState(GIF_CHUNK);
   const root = useRef<HTMLDivElement>(null);
+  const grid = useRef<HTMLDivElement>(null);
+  const sentinel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -134,6 +139,28 @@ export function StickerSheet({
     () => new Set(saved.map((row) => row.url)),
     [saved],
   );
+  const cells = kind === "gif" ? shown.slice(0, gifCap) : shown;
+  const more = cells.length < shown.length;
+
+  useEffect(() => {
+    setGifCap(GIF_CHUNK);
+  }, [kind, narrow, find]);
+
+  useEffect(() => {
+    const view = grid.current;
+    const gate = sentinel.current;
+    if (kind !== "gif" || !view || !gate) return;
+    const watcher = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setGifCap((now) => Math.min(now + GIF_CHUNK, shown.length));
+        }
+      },
+      { root: view, rootMargin: "200px" },
+    );
+    watcher.observe(gate);
+    return () => watcher.disconnect();
+  }, [kind, shown.length, gifCap]);
 
   function toggleStar(row: ShelfSticker) {
     stickersService.star(row);
@@ -219,7 +246,7 @@ export function StickerSheet({
         ) : null}
       </div>
 
-      <div className={SHELF_GRID}>
+      <div ref={grid} className={SHELF_GRID}>
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <Spinner className="size-5" />
@@ -246,7 +273,7 @@ export function StickerSheet({
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-1">
-            {shown.map((row) => (
+            {cells.map((row) => (
               <button
                 key={row.id}
                 type="button"
@@ -271,7 +298,7 @@ export function StickerSheet({
                 aria-label={row.name || "Sticker"}
                 title={row.packName || row.name || undefined}
               >
-                <StickerArt url={row.url} eager={eager} />
+                <StickerArt url={row.url} eager={eager && kind !== "gif"} />
                 {starred.has(row.url) ? (
                   <Star
                     className="absolute right-1 top-1 size-3.5 fill-current text-accent"
@@ -280,6 +307,9 @@ export function StickerSheet({
                 ) : null}
               </button>
             ))}
+            {more ? (
+              <div ref={sentinel} className="col-span-4 h-px" aria-hidden />
+            ) : null}
           </div>
         )}
       </div>

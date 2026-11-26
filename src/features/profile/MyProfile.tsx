@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
-  Gem,
   Globe,
   LineChart,
   Lock,
@@ -18,9 +17,6 @@ import {
   QrCode,
   Settings,
   UserRound,
-  Users,
-  Zap,
-  type LucideIcon,
 } from "lucide-react";
 import { Backdrop } from "@/components/layout/Backdrop";
 import { ConfirmDialog, Modal } from "@/components/overlays/Modal";
@@ -29,7 +25,7 @@ import { VerifiedTick } from "@/components/icons/Tick";
 import { BirthdayFall } from "@/features/profile/BirthdayFall";
 import { isBirthdayTodayIn } from "@/features/profile/birthday";
 import { MemoriesShelf } from "@/features/profile/MemoriesShelf";
-import { PosedBio } from "@/features/profile/PosedBio";
+import { PosedFigure, usePosedFigure } from "@/features/profile/PosedBio";
 import { PinnedStrip, ProfileShelf } from "@/features/profile/ProfileShelf";
 import {
   BirthdayPill,
@@ -45,9 +41,11 @@ import {
   PROFILE_MAX,
   PROFILE_PHOTO,
   PROFILE_SECTION,
-  ProfileCard,
+  ProfileAbout,
   ProfileCover,
   ProfileStats,
+  profileArt,
+  type ProfileDetail,
   QUIET_PILL,
   SheetRow,
   SOLID_PILL,
@@ -55,7 +53,11 @@ import {
   type ProfileStat,
 } from "@/features/profile/parts";
 import { ProfessionalLead, linkPillIcon } from "@/features/professional/parts";
-import { linkLabel } from "@/features/professional/model";
+import {
+  linkLabel,
+  websiteAddress,
+  websiteLink,
+} from "@/features/professional/model";
 import { sparksService } from "@/services/sparks.service";
 import { cn } from "@/utils/cn";
 import { useAuth } from "@/hooks/useAuth";
@@ -104,6 +106,7 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
   const [going, setGoing] = useState<{ url: string; word: string } | null>(null);
 
   const me = user as Me | null;
+  const figure = usePosedFigure(me?.character ?? null, null);
   const wide = useWideScreen("(min-width: 1024px)");
 
   /**
@@ -122,6 +125,7 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
     retry: false,
   });
 
+  const showsFigure = figure.shows;
   const privateAccount = Boolean(me?.is_private);
   const handle = me?.username ?? "";
   const name = me?.name || handle;
@@ -170,17 +174,31 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
   }
 
   const bio = String(me.bio ?? "").trim();
-  const details: { icon: LucideIcon; text: string; onClick?: () => void }[] = [];
+  const details: ProfileDetail[] = [];
   const address = me.is_company ? String(me.address ?? "").trim() : "";
   const email = me.is_company ? String(me.contact_email ?? "").trim() : "";
-  if (address) details.push({ icon: MapPin, text: address });
+  if (address) {
+    details.push({ icon: MapPin, text: address, tone: "var(--tone-teal)" });
+  }
   if (email) {
     details.push({
       icon: Mail,
       text: email,
+      tone: "var(--tone-blue)",
       onClick: () => {
         window.location.href = `mailto:${email}`;
       },
+    });
+  }
+  const site = websiteLink(linkRows);
+  if (site) {
+    const url = String(site.url ?? "").trim();
+    const word = linkLabel(site, t("Website"));
+    details.push({
+      icon: Globe,
+      text: websiteAddress(url),
+      tone: "var(--tone-violet)",
+      onClick: () => setGoing({ url, word }),
     });
   }
 
@@ -189,15 +207,11 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
       key: "drops",
       label: t("Drops"),
       value: me.posts_count,
-      icon: Gem,
-      tone: "var(--tone-pink)",
     },
     {
       key: "crew",
       label: t("Crew"),
       value: me.followers_count,
-      icon: Users,
-      tone: "var(--tone-blue)",
       onTap: () => navigate(`/app/u/${handle}/crew/followers`),
       faded: me.show_crew !== true,
     },
@@ -205,16 +219,12 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
       key: "kept",
       label: t("Kept"),
       value: me.following_count,
-      icon: Bookmark,
-      tone: "var(--tone-teal)",
       onTap: () => navigate(`/app/u/${handle}/crew/following`),
     },
     {
       key: "spark",
       label: t("Spark"),
       value: typeof sparks.data?.total === "number" ? sparks.data.total : null,
-      icon: Zap,
-      tone: "var(--tone-violet)",
       onTap: () => navigate("/app/sparks"),
       faded: me.show_sparks === false,
     },
@@ -242,7 +252,7 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
   );
 
   return (
-    <div className="relative isolate min-h-dvh bg-card pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-16">
+    <div className="relative isolate min-h-dvh bg-card pb-24 sm:pb-[calc(26px+env(safe-area-inset-bottom,0px))]">
       {/* The page's own ground, and the lowest thing on it: a theme that drew a
           profile stands behind this whole page, the same way it stands behind
           the five the shell holds. Drawn first so the card and everything in the
@@ -274,7 +284,7 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
           </button>
         </ProfileCover>
 
-        <div className={cn(PROFILE_MAX, PROFILE_GUTTER, "relative pb-5 sm:pb-6")}>
+        <div className={cn(PROFILE_MAX, PROFILE_GUTTER, "relative")}>
           <div className={PROFILE_HEAD}>
             <div className={PROFILE_FACE}>
               <FaceButton
@@ -349,82 +359,73 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
               {birthdayToday ? <BirthdayPill name={name} /> : null}
             </div>
           </div>
-
-          <ProfileStats items={stats} className="mt-5" />
         </div>
       </article>
 
       <div className={cn(PROFILE_MAX, PROFILE_GUTTER, PROFILE_SECTION)}>
         <div
           className={cn(
-            "grid gap-4 lg:gap-5",
-            details.length > 0 && "lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start",
+            "grid overflow-hidden",
+            showsFigure && "lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]",
           )}
         >
-          <div className="min-w-0 space-y-4 lg:space-y-5">
-            {/* The era, said by the figure the account wears — the same
-                widget their own page draws, so one person is described one
-                way on both halves of the pair. */}
-            <ProfileCard>
-              <PosedBio
-                text={bio || t("No era yet")}
-                character={me.character ?? null}
-                show={null}
-                className="max-w-[680px] px-0 pt-0"
-              />
-            </ProfileCard>
+          <div className="min-w-0 space-y-4 px-4 sm:px-5 lg:px-6">
+            <div className="space-y-3">
+              <ProfileStats items={stats} />
 
-            {/* The way in to Insights: it sits straight under the numbers,
-                because it is about the numbers rather than about the shelf
-                below it. */}
-            <Link
-              to="/app/insights"
-              className={cn(
-                PROFILE_CARD,
-                "flex items-center gap-3 px-4 py-3.5 transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]",
-              )}
-            >
-              <LineChart className="size-[18px] shrink-0 text-accent" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[14px] font-semibold">{t("Insights")}</span>
-                <span className="mt-0.5 block truncate text-[12px] text-dim">
-                  {t("Views, new crew, interactions and what worked")}
+              <Link
+                to="/app/insights"
+                className={cn(
+                  PROFILE_CARD,
+                  "flex items-center gap-3 px-4 py-3.5 transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]",
+                )}
+              >
+                <LineChart className="size-[18px] shrink-0 text-accent" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold">{t("Insights")}</span>
+                  <span className="mt-0.5 block truncate text-[12px] text-dim">
+                    {t("Views, new crew, interactions and what worked")}
+                  </span>
                 </span>
-              </span>
-              <ChevronRight className="size-[18px] shrink-0 text-dim" aria-hidden />
-            </Link>
-
-            {/* Memories, kept where they have always been: their own strip up the
-                page, above the row of tabs, not folded into it. Drawn even with
-                nothing on it, because this is my own and the card at the end of it
-                is how one gets made. */}
-            <MemoriesShelf
-              username={handle}
-              mine
-              author={user}
-              variant="showcase"
-              onAdd={() => navigate("/app/moments?memories=1")}
-              className={cn(PROFILE_CARD, "overflow-hidden p-4 sm:p-5")}
-            />
-
-            {/* What was dropped, under what was kept. */}
-            <div className={cn(PROFILE_CARD, "overflow-hidden p-4 sm:p-5")}>
-              <PinnedStrip username={handle} className="pb-3" />
-              <ProfileShelf username={handle} mine hasShowcase={Boolean(me.is_company)} variant="showcase" />
+                <ChevronRight className="size-[18px] shrink-0 text-dim" aria-hidden />
+              </Link>
             </div>
+
+            <ProfileAbout
+              bio={bio}
+              character={me.character ?? null}
+              empty={t("No era yet")}
+              art={profileArt(String(me.id ?? handle))}
+              details={details}
+            />
           </div>
 
-          {details.length > 0 ? (
-            <div className="min-w-0">
-              <ProfileCard title={t("Details")}>
-                <div className="space-y-3.5">
-                  {details.map((detail, index) => (
-                    <DetailRow key={`${detail.text}-${index}`} {...detail} />
-                  ))}
-                </div>
-              </ProfileCard>
-            </div>
+          {showsFigure ? (
+            <aside className="relative order-first flex min-h-[220px] items-center justify-center overflow-hidden border-b border-line px-6 py-8 lg:order-none lg:min-h-0 lg:border-b-0 lg:border-l">
+              <span className="pointer-events-none absolute bottom-8 h-4 w-2/5 rounded-full bg-[color-mix(in_srgb,var(--ink)_12%,transparent)] blur-lg" />
+              <PosedFigure
+                character={me.character ?? null}
+                show={null}
+                className="relative w-full max-w-[190px] drop-shadow-[0_8px_12px_color-mix(in_srgb,var(--ink)_18%,transparent)]"
+              />
+            </aside>
           ) : null}
+        </div>
+
+        <div className="mt-4 space-y-4 lg:mt-5 lg:space-y-5">
+          <MemoriesShelf
+            username={handle}
+            mine
+            author={user}
+            variant="showcase"
+            onAdd={() => navigate("/app/moments?memories=1")}
+            className={cn(PROFILE_CARD, "overflow-hidden p-4 sm:p-5")}
+          />
+
+          <div className={cn(PROFILE_CARD, "overflow-hidden p-4 sm:p-5")}>
+            <PinnedStrip username={handle} className="pb-3" />
+            <ProfileShelf username={handle} mine hasShowcase={Boolean(me.is_company)} variant="showcase" />
+          </div>
         </div>
       </div>
 
@@ -490,29 +491,5 @@ export function MyProfile() {  const { user, updateUser } = useAuth();
         icon={<ExternalLink className="size-5" />}
       />
     </div>
-  );
-}
-
-/** One line of the About card: a mark and the thing it names. */
-function DetailRow({ icon: Icon, text, onClick }: { icon: LucideIcon; text: string; onClick?: () => void }) {
-  const body = (
-    <>
-      <span className="flex size-5 shrink-0 items-center justify-center text-[color-mix(in_srgb,var(--ink)_45%,transparent)]">
-        <Icon className="size-[18px]" aria-hidden />
-      </span>
-      <span className="min-w-0 truncate text-[13px] font-medium text-ink/80">{text}</span>
-    </>
-  );
-  if (!onClick) {
-    return <div className="flex min-w-0 items-center gap-2.5">{body}</div>;
-  }
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full min-w-0 items-center gap-2.5 text-left transition-colors duration-150 hover:text-accent"
-    >
-      {body}
-    </button>
   );
 }

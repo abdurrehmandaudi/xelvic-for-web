@@ -4,6 +4,7 @@ import {
   Suspense,
   useDeferredValue,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -47,6 +48,7 @@ import { AlertsRow } from "@/features/alerts/AlertsRow";
 import { alertWhen } from "@/features/alerts/model";
 import { useAlerts } from "@/hooks/useAlerts";
 import { ConvoRow } from "@/features/convo/ConvoRow";
+import { handOffFiles } from "@/features/convo/dropHandoff";
 import { ConvoSheet } from "@/features/convo/ConvoSheet";
 import {
   PICK_LIMIT,
@@ -1094,6 +1096,9 @@ export function ConvoPage({
   const [trashOpen, setTrashOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLElement>(null);
+  const dragPull = useRef(0);
+  const dragFrame = useRef<number | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -1113,6 +1118,37 @@ export function ConvoPage({
   useEffect(() => {
     setCallsSeenAt(readCallsSeen(user?.id));
   }, [user?.id]);
+
+  useEffect(
+    () => () => {
+      if (dragFrame.current !== null) {
+        window.cancelAnimationFrame(dragFrame.current);
+      }
+    },
+    [],
+  );
+
+  function dragHalt() {
+    dragPull.current = 0;
+    if (dragFrame.current !== null) {
+      window.cancelAnimationFrame(dragFrame.current);
+      dragFrame.current = null;
+    }
+  }
+
+  function dragScroll() {
+    if (dragFrame.current !== null) return;
+    const tick = () => {
+      const node = listRef.current;
+      if (!node || dragPull.current === 0) {
+        dragFrame.current = null;
+        return;
+      }
+      node.scrollTop += dragPull.current;
+      dragFrame.current = window.requestAnimationFrame(tick);
+    };
+    dragFrame.current = window.requestAnimationFrame(tick);
+  }
 
   const threads = useQuery({
     queryKey: ["threads"],
@@ -1508,10 +1544,25 @@ export function ConvoPage({
   const tabLanes = lanes.filter(
     (item) => item.key !== "requested" || user?.is_company === true,
   );
-  const activeTabIndex = tabLanes.findIndex((item) => item.key === lane);
-  const tabPercent = 100 / tabLanes.length;
-  const underlineWidth = tabPercent;
-  const underlineLeft = activeTabIndex * tabPercent;
+  const hasActiveTab = tabLanes.some((item) => item.key === lane);
+  const tabListRef = useRef<HTMLDivElement>(null);
+  const [underline, setUnderline] = useState({ left: 0, width: 0 });
+  useLayoutEffect(() => {
+    const list = tabListRef.current;
+    if (!list) return;
+    const measure = () => {
+      const active = list.querySelector<HTMLElement>(
+        '[role="tab"][aria-selected="true"]',
+      );
+      if (active) {
+        setUnderline({ left: active.offsetLeft, width: active.offsetWidth });
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [lane, tabLanes.length, user?.is_company]);
 
   const displayRows =
     lane === "unread"
@@ -1829,7 +1880,8 @@ export function ConvoPage({
           </div>
         ) : (
           <div
-            className="relative mx-auto flex w-full max-w-[760px] shrink-0 items-stretch border-b-2"
+            ref={tabListRef}
+            className="relative mx-auto flex w-full max-w-[760px] shrink-0 items-stretch gap-1 border-b-2"
             role="tablist"
             aria-label="Convo lanes"
           >
@@ -1843,25 +1895,25 @@ export function ConvoPage({
                   aria-selected={on}
                   onClick={() => setLane(item.key)}
                   className={cn(
-                    "relative flex h-[32px] min-w-0 flex-1 basis-0 items-center justify-center gap-1 text-[14px] transition-colors",
+                    "relative flex h-[32px] min-w-0 grow basis-auto items-center justify-center gap-1 px-1 text-[14px] transition-colors",
                     on
                       ? "font-extrabold text-accent"
                       : "font-semibold text-dim hover:text-ink",
                   )}
                 >
                   <span className="truncate">{item.label}</span>
-                  <span className="w-[20px] shrink-0 text-center tabular-nums">
+                  <span className="shrink-0 text-center tabular-nums">
                     {item.count ?? ""}
                   </span>
                 </button>
               );
             })}
-            {activeTabIndex >= 0 ? (
+            {hasActiveTab ? (
               <span
                 className="pointer-events-none absolute bottom-0 h-[2.5px] bg-accent transition-[left,width] duration-300 ease-out motion-reduce:transition-none"
                 style={{
-                  left: `${underlineLeft}%`,
-                  width: `${underlineWidth}%`,
+                  left: `${underline.left}px`,
+                  width: `${underline.width}px`,
                 }}
                 aria-hidden
               />
@@ -1870,11 +1922,40 @@ export function ConvoPage({
         )}
 
         <main
+          ref={listRef}
           className={cn(
             "scroll-thin min-h-0 flex-1 overflow-y-auto",
             embedded &&
               "pb-[calc(92px+env(safe-area-inset-bottom,0px))] md:pb-4",
           )}
+          onDragOver={(event) => {
+            if (!Array.from(event.dataTransfer.types).includes("Files")) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "copy";
+            const box = event.currentTarget.getBoundingClientRect();
+            const edge = Math.min(96, Math.max(48, box.height / 4));
+            const down = event.clientY - (box.bottom - edge);
+            const up = box.top + edge - event.clientY;
+            dragPull.current =
+              down > 0
+                ? Math.min(18, 3 + (down / edge) * 15)
+                : up > 0
+                  ? -Math.min(18, 3 + (up / edge) * 15)
+                  : 0;
+            if (dragPull.current === 0) dragHalt();
+            else dragScroll();
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              dragHalt();
+            }
+          }}
+          onDropCapture={dragHalt}
+          onDrop={(event) => {
+            if (Array.from(event.dataTransfer.types).includes("Files")) {
+              event.preventDefault();
+            }
+          }}
         >
           {lane === "requested" ? (
             <RequestsPanel />
@@ -1988,6 +2069,10 @@ export function ConvoPage({
                             sparks.data?.wallet.balance,
                           )
                         }
+                        onFiles={(files) => {
+                          handOffFiles(thread.id, files);
+                          navigate(`/app/convo/${thread.id}`);
+                        }}
                       />
                     </Fragment>
                   );

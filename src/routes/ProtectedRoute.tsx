@@ -29,7 +29,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 export function PublicOnly({ children }: { children: ReactNode }) {
   const { status } = useAuth();
   if (status === "loading") return <Splash label="Restoring your session" />;
-  if (status === "authenticated") return <Navigate to="/app/drops" replace />;
+  if (status === "authenticated") return <Navigate to="/app/convo" replace />;
   return <>{children}</>;
 }
 

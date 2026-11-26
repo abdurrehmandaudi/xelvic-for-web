@@ -158,10 +158,12 @@ export function StickerArt({
 }: {
   url: string;
   /**
-   * Draw this sticker whether or not it is near the window. The shelf of six
-   * hundred turns this on once it is open, so that a scroll never arrives
-   * before the picture does — and turns it off again when it closes, so the
-   * downloads are asked for by somebody who actually opened the shelf.
+   * Draw this sticker whether or not it is near the window — except an animated
+   * one, which is left to the window because six hundred of them are hundreds of
+   * megabytes of movement. The shelf of six hundred turns this on once it is
+   * open, so that a scroll never arrives before the picture does — and turns it
+   * off again when it closes, so the downloads are asked for by somebody who
+   * actually opened the shelf.
    */
   eager?: boolean;
   className?: string;
@@ -175,6 +177,7 @@ export function StickerArt({
   // alpha readable. A host that refuses the request gets asked again without it.
   const [crossed, setCrossed] = useState(true);
   const node = useRef<HTMLImageElement | null>(null);
+  const animated = /\.gif(\?|#|$)/i.test(url);
 
   const read = useCallback(
     (element: HTMLImageElement) => {
@@ -193,8 +196,9 @@ export function StickerArt({
   // attaches the `onLoad` that would have measured it.
   useEffect(() => {
     const element = node.current;
+    if (animated) return;
     if (element?.complete && element.naturalWidth) read(element);
-  }, [read]);
+  }, [animated, read]);
 
   // A URL that changed under us (a different sticker in the same cell) starts
   // again rather than showing the last one's shape.
@@ -204,7 +208,8 @@ export function StickerArt({
     setNatural(null);
   }, [url]);
 
-  const spot = crossed && known && ink && natural ? place(ink, natural) : null;
+  const spot =
+    !animated && crossed && known && ink && natural ? place(ink, natural) : null;
 
   return (
     <span className={cn("relative block size-full overflow-hidden", className)}>
@@ -212,10 +217,12 @@ export function StickerArt({
         ref={node}
         src={url}
         alt=""
-        loading={eager ? "eager" : "lazy"}
+        loading={eager && !animated ? "eager" : "lazy"}
         decoding="async"
-        crossOrigin={crossed ? "anonymous" : undefined}
-        onLoad={(event) => read(event.currentTarget)}
+        crossOrigin={!animated && crossed ? "anonymous" : undefined}
+        onLoad={(event) => {
+          if (!animated) read(event.currentTarget);
+        }}
         onError={() => {
           // Tried with CORS and the host said no. Ask again the plain way: a
           // sticker drawn at the old, uneven size is worth more than a hole.

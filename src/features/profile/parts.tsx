@@ -1,7 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Users, type LucideIcon } from "lucide-react";
+import { ChevronRight, Info, Quote, Users, type LucideIcon } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { AuthedImage } from "@/components/media/Media";
 import { Modal } from "@/components/overlays/Modal";
@@ -9,6 +9,7 @@ import { cn } from "@/utils/cn";
 import { count } from "@/utils/format";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useTheme } from "@/hooks/useTheme";
+import { PosedBio } from "@/features/profile/PosedBio";
 import { socialService } from "@/services/social.service";
 import { toneNamed } from "@/theme/shelf";
 import type { UserCard } from "@/types/api";
@@ -47,6 +48,31 @@ export const PROFILE_HEAD_TEXT = "mt-3.5 min-w-0 max-w-[760px] lg:mt-2";
 
 export const PROFILE_PHOTO = { narrow: 148, wide: 196 };
 
+const PROFILE_ART = [
+  "/art/landmarks/01.png",
+  "/art/landmarks/02.png",
+  "/art/landmarks/03.png",
+  "/art/landmarks/04.png",
+  "/art/landmarks/05.png",
+  "/art/landmarks/06.png",
+  "/art/landmarks/07.png",
+  "/art/landmarks/08.png",
+  "/art/landmarks/09.png",
+];
+
+export function profileArt(seed: string): string {
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = Math.imul(hash ^ seed.charCodeAt(i), 16777619);
+  }
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 2246822507);
+  hash ^= hash >>> 13;
+  hash = Math.imul(hash, 3266489909);
+  hash ^= hash >>> 16;
+  return PROFILE_ART[(hash >>> 0) % PROFILE_ART.length];
+}
+
 export function ProfileCover({
   url,
   art,
@@ -57,7 +83,7 @@ export function ProfileCover({
   children?: ReactNode;
 }) {
   return (
-    <div className="relative h-[208px] overflow-hidden rounded-b-[72px]">
+    <div className="relative h-[160px] sm:h-[208px] overflow-hidden rounded-b-[32px] sm:rounded-b-[72px]">
       {url ? (
         <>
           <AuthedImage
@@ -164,17 +190,15 @@ export interface ProfileStat {
   key: string;
   label: string;
   value?: number | null;
-  icon: LucideIcon;
-  tone: string;
   faded?: boolean;
   onTap?: () => void;
 }
 
-const STAT_COLUMNS: Record<number, { narrow: string; wide: string }> = {
-  1: { narrow: "grid-cols-1", wide: "sm:grid-cols-1" },
-  2: { narrow: "grid-cols-2", wide: "sm:grid-cols-2" },
-  3: { narrow: "grid-cols-3", wide: "sm:grid-cols-3" },
-  4: { narrow: "grid-cols-2", wide: "sm:grid-cols-4" },
+const STAT_COLUMNS: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+  4: "grid-cols-4",
 };
 
 export function ProfileStats({
@@ -184,73 +208,168 @@ export function ProfileStats({
   items: ProfileStat[];
   className?: string;
 }) {
-  const total = items.length;
-  if (!total) return null;
-  const columns = STAT_COLUMNS[Math.min(total, 4)];
-  const stack = Math.min(total, 3);
+  if (!items.length) return null;
 
   return (
     <div
       className={cn(
-        PROFILE_CARD,
-        "grid overflow-hidden",
-        columns.narrow,
-        columns.wide,
+        "grid",
+        STAT_COLUMNS[Math.min(items.length, 4)],
         className,
       )}
     >
-      {items.map(({ key, label, value, icon: Icon, tone, faded, onTap }, index) => {
-        const cell = (
-          <>
+      {items.map(({ key, label, value, faded, onTap }) => {
+        const body = (
+          <span className="flex min-w-0 flex-col items-center">
             <span
-              className="flex size-8 shrink-0 items-center justify-center rounded-[9px] sm:size-9"
-              style={{
-                backgroundColor: `color-mix(in srgb, ${tone} 15%, transparent)`,
-                color: tone,
-              }}
+              className={cn(
+                "text-[22px] font-extrabold leading-none tabular-nums transition-colors duration-150 sm:text-[26px]",
+                faded ? "text-dim" : "text-ink",
+                onTap && "group-hover:text-accent",
+              )}
             >
-              <Icon className="size-4" aria-hidden />
+              {typeof value === "number" ? count(value) : "—"}
             </span>
-            <span className="min-w-0 flex-1">
-              <span
-                className={cn(
-                  "block truncate text-[18px] font-bold leading-none tabular-nums sm:text-[21px]",
-                  faded && "text-dim",
-                )}
-              >
-                {typeof value === "number" ? count(value) : "—"}
-              </span>
-              <span className="mt-1 block truncate text-[11.5px] font-medium text-dim">
-                {label}
-              </span>
+            <span className="mt-1.5 w-full truncate text-center text-[12px] font-medium text-dim">
+              {label}
             </span>
-          </>
-        );
-        const skin = cn(
-          "flex min-w-0 items-center gap-2 px-3 py-3 text-left sm:gap-3 sm:px-4 sm:py-3.5",
-          index % stack !== 0 && "border-l border-line",
-          index >= stack && "border-t border-line sm:border-t-0",
-          index > 0 && "sm:border-l sm:border-line",
+          </span>
         );
         return onTap ? (
           <button
             key={key}
             type="button"
             onClick={onTap}
-            className={cn(
-              skin,
-              "transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]",
-            )}
+            className="group min-w-0 px-1 py-0.5"
           >
-            {cell}
+            {body}
           </button>
         ) : (
-          <div key={key} className={skin}>
-            {cell}
+          <div key={key} className="min-w-0 px-1 py-0.5">
+            {body}
           </div>
         );
       })}
     </div>
+  );
+}
+
+export interface ProfileDetail {
+  icon: LucideIcon;
+  text: string;
+  tone: string;
+  onClick?: () => void;
+}
+
+function DetailRow({ icon: Icon, text, tone, onClick }: ProfileDetail) {
+  const body = (
+    <>
+      <span
+        className="flex size-5 shrink-0 items-center justify-center"
+        style={{ color: tone }}
+      >
+        <Icon className="size-[18px]" aria-hidden />
+      </span>
+      <span className="min-w-0 truncate text-[14px] font-medium text-ink/80">
+        {text}
+      </span>
+    </>
+  );
+  if (!onClick) {
+    return <div className="flex min-w-0 items-center gap-2.5">{body}</div>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full min-w-0 items-center gap-2.5 text-left transition-colors duration-150 hover:text-accent"
+    >
+      {body}
+    </button>
+  );
+}
+
+export function ProfileAbout({
+  bio,
+  character,
+  show = false,
+  empty,
+  art,
+  details,
+  children,
+}: {
+  bio: string;
+  character?: string | null;
+  show?: boolean | null;
+  empty: string;
+  art?: string | null;
+  details: ProfileDetail[];
+  children?: ReactNode;
+}) {
+  const { t } = usePreferences();
+
+  return (
+    <section
+      className="overflow-hidden rounded-[14px] border border-line bg-card bg-[length:min(100%,540px)_auto] bg-right-bottom bg-no-repeat"
+      style={art ? { backgroundImage: `url("${art}")` } : undefined}
+    >
+      <div
+        className={cn(
+          "grid",
+          details.length > 0 && "md:grid-cols-[minmax(0,1fr)_280px]",
+        )}
+      >
+        <div className="min-w-0 p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
+              <Quote className="size-[17px] text-accent" aria-hidden />
+            </div>
+
+            <h2 className="text-[16px] font-bold tracking-tight">{t("About")}</h2>
+          </div>
+
+          <div className="mt-5">
+            {bio ? (
+              <PosedBio
+                text={bio}
+                character={character ?? null}
+                show={show}
+                className="w-full px-0 pt-0"
+              />
+            ) : (
+              <p className="text-[14px] leading-7 text-ink/60">{empty}</p>
+            )}
+          </div>
+
+          {children}
+        </div>
+
+        {details.length > 0 ? (
+          <div className="min-w-0 border-t border-line p-4 md:border-l md:border-t-0">
+            <div className="flex items-center gap-3">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]">
+                <Info className="size-[17px] text-accent" aria-hidden />
+              </div>
+
+              <h2 className="text-[16px] font-bold tracking-tight">
+                {t("Details")}
+              </h2>
+            </div>
+
+            <div className="mt-5">
+              {details.map((detail, index) => (
+                <div
+                  key={`${detail.text}-${index}`}
+                  className="py-1 first:pt-0 last:pb-0"
+                >
+                  <DetailRow {...detail} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -264,7 +383,7 @@ export function Chip({
   onClick?: () => void;
 }) {
   const shell =
-    "inline-flex max-w-full items-center gap-2 rounded-[8px] border border-line bg-[color-mix(in_srgb,var(--ink)_4%,var(--card))] px-3 py-1.5 text-[12.5px] font-medium text-[color-mix(in_srgb,var(--ink)_78%,transparent)]";
+    "inline-flex max-w-full items-center gap-2 rounded-full border border-line bg-[color-mix(in_srgb,var(--ink)_4%,var(--card))] px-3 py-1.5 text-[12.5px] font-medium text-[color-mix(in_srgb,var(--ink)_78%,transparent)]";
   const body = (
     <>
       <span className="flex shrink-0">{icon}</span>
@@ -287,9 +406,9 @@ export function Chip({
 }
 
 export const ASK_PILL =
-  "inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-[10px] px-5 text-[13.5px] font-semibold tracking-[-0.01em] transition-[transform,background-color,border-color,color,opacity] duration-150 ease-out-soft active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55";
+  "inline-flex min-h-10 select-none items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold tracking-[-0.01em] transition-[transform,background-color,border-color,color,opacity] duration-150 ease-out-soft active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55";
 
-export const SOLID_PILL = `${ASK_PILL} border border-transparent bg-[linear-gradient(135deg,var(--accent),var(--accent-pill))] text-on-accent shadow-[0_12px_26px_-14px_color-mix(in_srgb,var(--accent)_90%,transparent)] hover:brightness-105`;
+export const SOLID_PILL = `${ASK_PILL} border border-transparent bg-[linear-gradient(135deg,var(--accent),var(--accent-pill))] text-on-accent shadow-[0_2px_16px_-14px_color-mix(in_srgb,var(--accent)_90%,transparent)] hover:brightness-105`;
 
 export const QUIET_PILL = `${ASK_PILL} border border-line bg-card text-ink hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)]`;
 
@@ -297,7 +416,7 @@ export const ROUND_CONTROL =
   "inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] active:scale-[0.97]";
 
 export const TILE_CONTROL =
-  "inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-line bg-card text-ink transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] active:scale-[0.97]";
+  "inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] active:scale-[0.97]";
 
 export const COVER_CONTROL =
   "inline-flex size-10 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--card)_70%,transparent)] bg-[color-mix(in_srgb,var(--card)_90%,transparent)] text-ink shadow-[0_10px_26px_-14px_color-mix(in_srgb,var(--ink)_70%,transparent)] backdrop-blur-md transition-colors duration-150 hover:bg-card active:scale-[0.96]";
@@ -610,10 +729,12 @@ export function MutualStrip({
   count: total,
   faces,
   onOpen,
+  className,
 }: {
   count?: number | null;
   faces?: UserCard[];
   onOpen: () => void;
+  className?: string;
 }) {
   const { t } = usePreferences();
   const n = total ?? 0;
@@ -624,39 +745,51 @@ export function MutualStrip({
     <button
       type="button"
       onClick={onOpen}
-      className="mx-auto flex max-w-full items-center gap-2 rounded-[10px] px-2 py-1.5 transition-[transform] duration-150 active:scale-[.98]"
+      className={cn(
+        "group flex w-full items-center gap-4 py-4",
+        className,
+      )}
     >
-      {shown.length > 0 ? (
-        <span
-          className="relative block h-[22px] shrink-0"
-          // Each face is 22 wide and overlaps the one before by 8, so the stack
-          // is 22 + 14·(n-1) across.
-          style={{ width: 22 + 14 * (shown.length - 1) }}
-        >
-          {shown.map((person, index) => (
-            // The stack overlaps towards the reading end, so on a right-to-left
-            // page the first face is on the right. A ring the colour of the page
-            // ground makes the faces read as a stack rather than a smear where
-            // they meet — the app's `X.ink`, which is the page's own ground and
-            // not the colour its words are written in.
-            <span
-              key={person.id ?? index}
-              className="absolute top-0 flex rounded-full bg-[var(--page)] p-[1.5px]"
-              style={{ insetInlineStart: index * 14 }}
-            >
-              <Avatar user={person} size={19} />
-            </span>
-          ))}
+      <span aria-hidden className="h-px flex-1 bg-line" />
+
+      <span className="flex shrink-0 items-center gap-3">
+        {shown.length > 0 ? (
+          <span
+            className="relative block h-[30px] shrink-0"
+            style={{ width: 30 + 18 * (shown.length - 1) }}
+          >
+            {shown.map((person, index) => (
+              // The stack overlaps towards the reading end, so on a right-to-left
+              // page the first face is on the right. A ring the colour of the page
+              // ground makes the faces read as a stack rather than a smear where
+              // they meet — the app's `X.ink`, which is the page's own ground and
+              // not the colour its words are written in.
+              <span
+                key={person.id ?? index}
+                className="absolute top-0 flex rounded-full bg-[var(--page)] p-[2px]"
+                style={{ insetInlineStart: index * 18 }}
+              >
+                <Avatar user={person} size={26} />
+              </span>
+            ))}
+          </span>
+        ) : null}
+
+        <span className="min-w-0 truncate text-[13.5px] font-semibold text-ink">
+          {t(
+            n === 1
+              ? `${count(n)} mutual friend`
+              : `${count(n)} mutual friends`,
+          )}
         </span>
-      ) : null}
-      <span className="min-w-0 truncate text-[12.5px] font-medium text-dim">
-        {t(
-          n === 1
-            ? `${count(n)} mutual friend`
-            : `${count(n)} mutual friends`,
-        )}
+
+        <ChevronRight
+          className="size-4 shrink-0 text-accent transition-transform duration-150 group-hover:translate-x-0.5"
+          aria-hidden
+        />
       </span>
-      <ChevronRight className="size-4 shrink-0 text-dim" aria-hidden />
+
+      <span aria-hidden className="h-px flex-1 bg-line" />
     </button>
   );
 }
