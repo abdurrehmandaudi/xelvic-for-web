@@ -7,7 +7,7 @@ const LIMITS: Record<string, number> = {
   voice: 25 * 1024 * 1024,
   audio: 200 * 1024 * 1024,
   video: 600 * 1024 * 1024,
-  doc: 25 * 1024 * 1024,
+  doc: 500 * 1024 * 1024,
 };
 
 export function kindOf(file: File): Asset["kind"] {
