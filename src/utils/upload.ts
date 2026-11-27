@@ -1,4 +1,10 @@
 import { ApiError } from "@/utils/errors";
+import {
+  DIRECT_UPLOAD_THRESHOLD,
+  directUploadAsset,
+  isDirectUploadUnavailable,
+  type DirectUploadShape,
+} from "@/utils/directUpload";
 import { uploadService } from "@/services/upload.service";
 import type { Asset } from "@/types/api";
 
@@ -137,18 +143,22 @@ export async function uploadAsset(file: File, options: UploadOptions = {}): Prom
     });
   }
 
-  const form = new FormData();
-  form.append("file", file);
-  form.append("upload_id", crypto.randomUUID());
-  form.append("kind", kind);
+  /*
+   * The description of the file, gathered before either road is chosen.
+   *
+   * Both roads send the same shape — the one-request route in the form body,
+   * the part road at `complete` — so it is read once here. Reading it off the
+   * file is the same work it always was; only where it is put changed.
+   */
+  const shape: DirectUploadShape = {};
 
   if (kind === "image") {
     const facts = options.skipMetadata
       ? {}
       : await imageFacts(file, options.skipThumb);
-    if (facts.width) form.append("width", String(facts.width));
-    if (facts.height) form.append("height", String(facts.height));
-    if (facts.thumb) form.append("thumb", facts.thumb);
+    if (facts.width) shape.width = facts.width;
+    if (facts.height) shape.height = facts.height;
+    if (facts.thumb) shape.thumb = facts.thumb;
   } else if (!options.skipMetadata && (kind === "video" || kind === "audio" || kind === "voice")) {
     // A voice note that arrived with its own readings needs nothing decoded: it
     // was measured as it was recorded, which is the only moment the length is
@@ -156,14 +166,43 @@ export async function uploadAsset(file: File, options: UploadOptions = {}): Prom
     const known = kind === "voice" && options.durationMs !== undefined;
     if (!known) {
       const facts = await mediaFacts(file, kind === "video" ? "video" : "audio");
-      if (facts.width) form.append("width", String(facts.width));
-      if (facts.height) form.append("height", String(facts.height));
-      if (facts.duration_ms) form.append("duration_ms", String(facts.duration_ms));
+      if (facts.width) shape.width = facts.width;
+      if (facts.height) shape.height = facts.height;
+      if (facts.duration_ms) shape.duration_ms = facts.duration_ms;
     } else {
-      form.append("duration_ms", String(Math.round(options.durationMs as number)));
+      shape.duration_ms = Math.round(options.durationMs as number);
     }
-    if (options.waveform?.length) form.append("waveform", JSON.stringify(options.waveform));
+    if (options.waveform?.length) shape.waveform = options.waveform;
   }
+
+  /*
+   * A file over 50 MB cannot go through the proxy in one body (measured
+   * 2026-11-27: a 120 MB POST came back a Cloudflare 413 before Django saw it),
+   * so above that line it goes up in parts. A server with no bucket, or one
+   * from before the part route existed, says so at `begin` and this falls back
+   * to the road it has always used — which is also the only road a file at or
+   * below the line ever takes.
+   */
+  if (file.size > DIRECT_UPLOAD_THRESHOLD) {
+    try {
+      return await directUploadAsset(file, kind, shape, {
+        signal: options.signal,
+        onProgress: options.onProgress,
+      });
+    } catch (error) {
+      if (!isDirectUploadUnavailable(error)) throw error;
+    }
+  }
+
+  const form = new FormData();
+  form.append("file", file);
+  form.append("upload_id", crypto.randomUUID());
+  form.append("kind", kind);
+  if (shape.width) form.append("width", String(shape.width));
+  if (shape.height) form.append("height", String(shape.height));
+  if (shape.duration_ms !== undefined) form.append("duration_ms", String(shape.duration_ms));
+  if (shape.waveform?.length) form.append("waveform", JSON.stringify(shape.waveform));
+  if (shape.thumb) form.append("thumb", shape.thumb);
 
   return uploadService.asset(form, {
     signal: options.signal,
