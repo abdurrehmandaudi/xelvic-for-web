@@ -158,7 +158,7 @@ import {
   dropPictures,
   dropStill,
 } from "@/features/drops/model";
-import { apiPathFrom, apiUrl } from "@/config/urls";
+import { apiPathFrom, apiUrl, mediaUrl } from "@/config/urls";
 import { e2ee } from "@/crypto/e2ee";
 import { chatService } from "@/services/chat.service";
 import { cachedThread } from "@/store/seed";
@@ -432,6 +432,16 @@ function useMessageCache(threadId: string) {
   return { insert, arrive, arrivalOf, insertLocal, markFailed, patch, remove };
 }
 
+/**
+ * Above this, a download is handed to the browser rather than fetched.
+ *
+ * A blob read of a file this large keeps the whole of it in the tab's memory
+ * and then asks the private bucket to answer a cross-origin `fetch`, which it
+ * does not. A navigation asks for nothing but the bytes. Forty megabytes is
+ * the line where that trade stops being worth defending.
+ */
+const DIRECT_SAVE_BYTES = 40 * 1024 * 1024;
+
 function fileDetails(asset?: Asset | null): string {
   const kind = String(asset?.kind ?? "");
   const words: Record<string, string> = {
@@ -486,6 +496,29 @@ function ChatDocument({
     transfer.total && transfer.total > 0
       ? Math.min(100, Math.round((transfer.received / transfer.total) * 100))
       : null;
+
+  /**
+   * Where the bytes really are, and how a browser can take them without this
+   * tab holding them first.
+   *
+   * The signed address is the API's own 302 to the bucket: a navigation follows
+   * it and the bucket answers the browser directly. That matters because a
+   * `fetch` of the same address is refused — the bucket is private and grants
+   * no CORS to this origin — which is why a 150 MB zip said "Could not save
+   * that file" while every picture beside it drew. Reported 2026-11-28.
+   */
+  function openDirect() {
+    const absolute = src ? mediaUrl(src) : null;
+    if (!absolute) return false;
+    const anchor = document.createElement("a");
+    anchor.href = absolute;
+    anchor.download = fileName;
+    anchor.rel = "noopener";
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    return true;
+  }
 
   async function bytesFor() {
     if (bytes.current) return bytes.current;
@@ -563,6 +596,15 @@ function ChatDocument({
       pause(src!);
       return;
     }
+    // A file this heavy is not fetched into this tab's memory only to be
+    // handed back to the browser: the signed address is downloaded directly,
+    // and there is no CORS wall in a navigation. The progress strip is for
+    // the files small enough to read whole.
+    const size = asset?.size ?? 0;
+    if (size > DIRECT_SAVE_BYTES && openDirect()) {
+      forget(src!);
+      return;
+    }
     wantSave.current = true;
     begin(src!, asset?.size ?? null);
   }
@@ -580,11 +622,16 @@ function ChatDocument({
       URL.revokeObjectURL(url);
       forget(src!);
     } catch (error) {
-      toast({
-        title: "Could not save that file.",
-        description: errorMessage(error),
-        tone: "error",
-      });
+      // The read failed under this tab — most often the bucket's CORS refusal
+      // after the API's 302. The browser can still follow the signed address
+      // itself, so that is tried before anybody is told the save failed.
+      if (!openDirect()) {
+        toast({
+          title: "Could not save that file.",
+          description: errorMessage(error),
+          tone: "error",
+        });
+      }
     } finally {
       setBusy(null);
     }
